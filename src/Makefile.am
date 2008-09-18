@@ -4,9 +4,9 @@ INCLUDES =			\
 
 libexec_PROGRAMS = cups-pk-helper-mechanism
 
-cups-pk-helper-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
-	dbus-binding-tool --prefix=cups_pk_helper --mode=glib-server	\
-			  --output=cups-pk-helper-glue.h		\
+cups-pk-helper-mechanism-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
+	dbus-binding-tool --prefix=cph_mechanism --mode=glib-server	\
+			  --output=cups-pk-helper-mechanism-glue.h	\
 			  $(srcdir)/cups-pk-helper-mechanism.xml
 
 cups_pk_helper_mechanism_SOURCES =	\
