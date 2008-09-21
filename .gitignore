@@ -8,7 +8,7 @@ autom4te.cache/
 compile
 config.guess
 config.h
-config.h.in
+config.h.in*
 config.log
 config.status
 config.sub
@@ -33,6 +33,8 @@ src/Makefile
 src/Makefile.in
 src/cups-pk-helper-mechanism
 src/cups-pk-helper-mechanism-glue.h
-src/org.opensuse.cups-pk-helper.Mechanism.service
-src/org.opensuse.cups-pk-helper.mechanism.policy
+src/org.opensuse.CupsPkHelper.Mechanism.service
+src/org.opensuse.cupspkhelper.mechanism.policy
+src/test-cups
+src/test-cups-pk
 stamp-h1

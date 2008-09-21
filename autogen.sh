@@ -7,7 +7,7 @@ test -z "$srcdir" && srcdir=.
 PKG_NAME="CUPS PolicyKit helper"
 
 (test -f $srcdir/configure.ac \
-  && test -f $srcdir/src/cups-methods.c) || {
+  && test -f $srcdir/src/cups-pk-helper-mechanism.c) || {
     echo -n "**Error**: Directory "\`$srcdir\'" does not look like the"
     echo " top-level package directory"
     exit 1

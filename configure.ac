@@ -1,6 +1,6 @@
 AC_INIT([cups-pk-helper], [0.0.1],
         [https://bugzilla.novell.com/enter_bug.cgi?classification=7340&product=openSUSE+11.1])
-AC_CONFIG_SRCDIR(src/cups-methods.c)
+AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
 AM_CONFIG_HEADER(config.h)
 
@@ -43,6 +43,8 @@ GLIB_REQUIRED=2.14.0
 DBUS_REQUIRED=1.1.2
 DBUS_GLIB_REQUIRED=0.74
 POLKIT_DBUS_REQUIRED=0.8
+GTK_REQUIRED=2.12.0
+POLKIT_GNOME_REQUIRED=0.7
 
 # pkg-config dependency checks
 PKG_CHECK_MODULES(CUPS_PK, glib-2.0 >= $GLIB_REQUIRED \
@@ -54,6 +56,18 @@ PKG_CHECK_MODULES(CUPS_PK, glib-2.0 >= $GLIB_REQUIRED \
 			   polkit-dbus >= $POLKIT_DBUS_REQUIRED)
 AC_SUBST(CUPS_PK_CFLAGS)
 AC_SUBST(CUPS_PK_LIBS)
+
+PKG_CHECK_MODULES(CUPS_PK_GNOME, gtk+-2.0 >= $GTK_REQUIRED \
+				 polkit-gnome >= $POLKIT_GNOME_REQUIRED \
+				 dbus-1 >= $DBUS_REQUIRED \
+				 dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
+AC_SUBST(CUPS_PK_GNOME_CFLAGS)
+AC_SUBST(CUPS_PK_GNOME_LIBS)
+
+# check for cups
+AC_CHECK_HEADERS(cups/cups.h cups/http.h cups/ipp.h)
+CUPS_LIBS=-lcups
+AC_SUBST(CUPS_LIBS)
 
 AC_OUTPUT([
 Makefile

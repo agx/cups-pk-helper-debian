@@ -1,8 +1,13 @@
-INCLUDES =			\
+INCLUDES =				\
+	$(WARN_CFLAGS)			\
+	$(DISABLE_DEPRECATED_CFLAGS)	\
 	$(CUPS_PK_CFLAGS)
 
-
 libexec_PROGRAMS = cups-pk-helper-mechanism
+
+noinst_PROGRAMS = 	\
+	test-cups	\
+	test-cups-pk
 
 cups-pk-helper-mechanism-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
 	dbus-binding-tool --prefix=cph_mechanism --mode=glib-server	\
@@ -10,13 +15,31 @@ cups-pk-helper-mechanism-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
 			  $(srcdir)/cups-pk-helper-mechanism.xml
 
 cups_pk_helper_mechanism_SOURCES =	\
-	cups-methods.c			\
-	cups-methods.h			\
+	cups.c				\
+	cups.h				\
 	cups-pk-helper-mechanism.c	\
 	cups-pk-helper-mechanism.h	\
 	main.c
 cups_pk_helper_mechanism_LDADD =	\
-	$(CUPS_PK_LIBS)
+	$(CUPS_PK_LIBS)			\
+	$(CUPS_LIBS)
+
+test_cups_SOURCES =	\
+	cups.c		\
+	cups.h		\
+	test-cups.c
+test_cups_LDADD =	\
+	$(CUPS_PK_LIBS)	\
+	$(CUPS_LIBS)
+
+test_cups_pk_SOURCES =	\
+	test-cups-pk.c
+test_cups_pk_CFLAGS =	\
+	$(CUPS_PK_GNOME_CFLAGS)
+test_cups_pk_LDADD =		\
+	$(CUPS_PK_GNOME_LIBS)	\
+	$(CUPS_PK_LIBS)		\
+	$(CUPS_LIBS)
 
 BUILT_SOURCES = cups-pk-helper-mechanism-glue.h
 
@@ -25,15 +48,15 @@ dbus_servicesdir = $(datadir)/dbus-1/system-services
 dbus_confdir = $(sysconfdir)/dbus-1/system.d
 polkitdir = $(datadir)/PolicyKit/policy
 
-dbus_services_in_files = org.opensuse.cups-pk-helper.Mechanism.service.in
-polkit_in_files = org.opensuse.cups-pk-helper.mechanism.policy.in
+dbus_services_in_files = org.opensuse.CupsPkHelper.Mechanism.service.in
+polkit_in_files = org.opensuse.cupspkhelper.mechanism.policy.in
 
 dbus_services_DATA = $(dbus_services_in_files:.service.in=.service)
 
 $(dbus_services_DATA): $(dbus_services_in_files)
 	sed -e "s|\@LIBEXECDIR\@|$(libexecdir)|" $< > $@
 
-dbus_conf_DATA = org.opensuse.cups-pk-helper.Mechanism.conf
+dbus_conf_DATA = org.opensuse.CupsPkHelper.Mechanism.conf
 
 @INTLTOOL_POLICY_RULE@
 polkit_DATA = $(polkit_in_files:.policy.in=.policy)
@@ -45,7 +68,7 @@ check:
 
 EXTRA_DIST =						\
 	$(dbus_services_in_files)			\
-	org.opensuse.cups-pk-helper.Mechanism.conf	\
+	org.opensuse.CupsPkHelper.Mechanism.conf	\
 	$(polkit_in_files)				\
 	cups-pk-helper-mechanism.xml
 

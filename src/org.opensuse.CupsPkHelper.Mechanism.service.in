@@ -1,4 +1,4 @@
 [D-BUS Service]
-Name=org.opensuse.cups-pk-helper.Mechanism
+Name=org.opensuse.CupsPkHelper.Mechanism
 Exec=@LIBEXECDIR@/cups-pk-helper-mechanism
 User=root

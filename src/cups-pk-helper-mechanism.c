@@ -1,4 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+ * vim: set et ts=8 sw=8:
  *
  * Copyright (C) 2008 Novell, Inc.
  *
@@ -48,26 +49,29 @@
 
 #include "cups-pk-helper-mechanism.h"
 #include "cups-pk-helper-mechanism-glue.h"
+#include "cups.h"
 
 /* exit timer */
 
 static gboolean
 do_exit (gpointer user_data)
 {
+        g_object_unref (CPH_MECHANISM (user_data));
+
         exit (0);
 
         return FALSE;
 }
 
 static void
-reset_killtimer (void)
+reset_killtimer (CphMechanism *mechanism)
 {
         static guint timer_id = 0;
 
         if (timer_id > 0)
                 g_source_remove (timer_id);
 
-        timer_id = g_timeout_add_seconds (30, do_exit, NULL);
+        timer_id = g_timeout_add_seconds (30, do_exit, mechanism);
 }
 
 /* error */
@@ -118,11 +122,23 @@ struct CphMechanismPrivate
 {
         DBusGConnection *system_bus_connection;
         PolKitContext   *pol_ctx;
+        CphCups         *cups;
 };
+
+static GObject *cph_mechanism_constructor (GType                  type,
+                                           guint                  n_construct_properties,
+                                           GObjectConstructParam *construct_properties);
+static void     cph_mechanism_finalize    (GObject *object);
+
 
 static void
 cph_mechanism_class_init (CphMechanismClass *klass)
 {
+        GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+        object_class->constructor = cph_mechanism_constructor;
+        object_class->finalize = cph_mechanism_finalize;
+
         g_type_class_add_private (klass, sizeof (CphMechanismPrivate));
 
         dbus_g_object_type_install_info (CPH_TYPE_MECHANISM,
@@ -132,10 +148,53 @@ cph_mechanism_class_init (CphMechanismClass *klass)
                                       CPH_MECHANISM_TYPE_ERROR);
 }
 
+static GObject *
+cph_mechanism_constructor (GType                  type,
+                           guint                  n_construct_properties,
+                           GObjectConstructParam *construct_properties)
+{
+        GObject      *obj;
+        CphMechanism *mechanism;
+
+        obj = G_OBJECT_CLASS (cph_mechanism_parent_class)->constructor (
+                                                type,
+                                                n_construct_properties,
+                                                construct_properties);
+
+        mechanism = CPH_MECHANISM (obj);
+        mechanism->priv->cups = cph_cups_new ();
+
+        if (!mechanism->priv->cups) {
+                g_object_unref (mechanism);
+                return NULL;
+        }
+
+        return obj;
+}
+
 static void
 cph_mechanism_init (CphMechanism *mechanism)
 {
         mechanism->priv = CPH_MECHANISM_GET_PRIVATE (mechanism);
+
+        mechanism->priv->cups = NULL;
+}
+
+static void
+cph_mechanism_finalize (GObject *object)
+{
+        CphMechanism *mechanism;
+
+        g_return_if_fail (object != NULL);
+        g_return_if_fail (CPH_IS_MECHANISM (object));
+
+        mechanism = CPH_MECHANISM (object);
+
+        if (mechanism->priv->cups)
+                g_object_unref (mechanism->priv->cups);
+        mechanism->priv->cups = NULL;
+
+        G_OBJECT_CLASS (cph_mechanism_parent_class)->finalize (object);
 }
 
 static gboolean
@@ -210,7 +269,7 @@ register_mechanism (CphMechanism *mechanism)
         dbus_g_connection_register_g_object (mechanism->priv->system_bus_connection, "/",
                                              G_OBJECT (mechanism));
 
-        reset_killtimer ();
+        reset_killtimer (mechanism);
 
         return TRUE;
 }
@@ -234,7 +293,7 @@ cph_mechanism_new (void)
 static gboolean
 _check_polkit_for_action (CphMechanism          *mechanism,
                           DBusGMethodInvocation *context,
-                          const char            *action)
+                          const char            *action_method)
 {
         const char *sender;
         GError *error;
@@ -242,8 +301,12 @@ _check_polkit_for_action (CphMechanism          *mechanism,
         PolKitCaller *pk_caller;
         PolKitAction *pk_action;
         PolKitResult pk_result;
+        char *action;
 
         error = NULL;
+
+        action = g_strdup_printf ("org.opensuse.cupspkhelper.mechanism.%s",
+                                  action_method);
 
         /* Check that caller is privileged */
         sender = dbus_g_method_get_sender (context);
@@ -263,6 +326,7 @@ _check_polkit_for_action (CphMechanism          *mechanism,
                 dbus_error_free (&dbus_error);
                 dbus_g_method_return_error (context, error);
                 g_error_free (error);
+                g_free (action);
 
                 return FALSE;
         }
@@ -284,11 +348,40 @@ _check_polkit_for_action (CphMechanism          *mechanism,
                 dbus_error_free (&dbus_error);
                 dbus_g_method_return_error (context, error);
                 g_error_free (error);
+                g_free (action);
 
                 return FALSE;
         }
+
+        g_free (action);
 
         return TRUE;
 }
 
 /* exported methods */
+
+gboolean
+cph_mechanism_printer_add (CphMechanism           *mechanism,
+                           const char             *name,
+                           const char             *uri,
+                           const char             *ppd,
+                           const char             *info,
+                           const char             *location,
+                           DBusGMethodInvocation  *context)
+{
+        const char *error;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeradd"))
+                return FALSE;
+
+        if (!cph_cups_printer_add (mechanism->priv->cups,
+                                   name, uri, ppd, info, location))
+                error = cph_cups_last_status_to_string (mechanism->priv->cups);
+        else
+                error = "";
+
+        dbus_g_method_return (context, error);
+        return TRUE;
+}

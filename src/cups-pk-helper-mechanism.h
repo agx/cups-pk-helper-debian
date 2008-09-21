@@ -1,4 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+ * vim: set et ts=8 sw=8:
  *
  * Copyright (C) 2008 Novell, Inc.
  *
@@ -72,6 +73,14 @@ GType          cph_mechanism_get_type    (void);
 CphMechanism  *cph_mechanism_new         (void);
 
 /* exported methods */
+
+gboolean cph_mechanism_printer_add (CphMechanism           *mechanism,
+                                    const char             *name,
+                                    const char             *uri,
+                                    const char             *ppd,
+                                    const char             *info,
+                                    const char             *location,
+                                    DBusGMethodInvocation  *context);
 
 G_END_DECLS
 

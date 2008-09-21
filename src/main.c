@@ -1,4 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+ * vim: set et ts=8 sw=8:
  *
  * Copyright (C) 2008 Novell, Inc.
  *
@@ -47,7 +48,7 @@
 
 #include "cups-pk-helper-mechanism.h"
 
-#define BUS_NAME "org.opensuse.cups-pk-helper.Mechanism"
+#define BUS_NAME "org.opensuse.CupsPkHelper.Mechanism"
 
 static DBusGProxy *
 get_bus_proxy (DBusGConnection *connection)
@@ -93,7 +94,6 @@ main (int argc, char **argv)
         CphMechanism    *mechanism;
         DBusGProxy      *bus_proxy;
         DBusGConnection *connection;
-        int              ret;
 
         if (!g_thread_supported ())
                 g_thread_init (NULL);
