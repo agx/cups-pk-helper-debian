@@ -1,0 +1,421 @@
+diff --git a/authconn.py b/authconn.py
+index 6244eee..4fff0d1 100644
+--- a/authconn.py
++++ b/authconn.py
+@@ -18,6 +18,7 @@
+ ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ 
+ import cups
++import cupspk
+ import gtk
+ from debug import *
+ 
+@@ -120,8 +121,15 @@ class Connection:
+ 
+     def _connect (self):
+         cups.setUser (self._use_user)
++
++        self._use_pk = self._server[0] == '/' or self._server == 'localhost'
++        if self._use_pk:
++            create_object = cupspk.Connection
++        else:
++            create_object = cups.Connection
++
+         try:
+-            self._connection = cups.Connection (host=self._server,
++            self._connection = create_object (host=self._server,
+                                                 port=self._port,
+                                                 encryption=self._encryption)
+         except TypeError:
+@@ -129,16 +137,17 @@ class Connection:
+             cups.setServer (self._server)
+             cups.setPort (self._port)
+             cups.setEncryption (self._encryption)
+-            self._connection = cups.Connection ()
++            self._connection = create_object ()
+ 
+         self._user = self._use_user
+         debugprint ("Connected as user %s" % self._user)
+-        methodtype = type (self._connection.getPrinters)
++        methodtype_lambda = type (self._connection.getPrinters)
++        methodtype_real = type (self._connection.addPrinter)
+         for fname in dir (self._connection):
+             if fname[0] == '_':
+                 continue
+             fn = getattr (self._connection, fname)
+-            if type (fn) != methodtype:
++            if not type (fn) in [methodtype_lambda, methodtype_real]:
+                 continue
+             setattr (self, fname, self._make_binding (fname, fn))
+ 
+diff --git a/cupspk.py b/cupspk.py
+new file mode 100644
+index 0000000..b5d9e7f
+--- /dev/null
++++ b/cupspk.py
+@@ -0,0 +1,365 @@
++# TODO: UI is blocking. We should do the dbus call async and stay stuck in our main loop
++# check FIXME/TODO in cups-pk-helper
++# define fine-grained policy (more than one level of permission)
++
++import os
++
++import tempfile
++
++import cups
++import dbus
++
++PK_AUTH_NAME  = 'org.freedesktop.PolicyKit.AuthenticationAgent'
++PK_AUTH_PATH  = '/'
++PK_AUTH_IFACE = 'org.freedesktop.PolicyKit.AuthenticationAgent'
++
++CUPS_PK_NAME  = 'org.opensuse.CupsPkHelper.Mechanism'
++CUPS_PK_PATH  = '/'
++CUPS_PK_IFACE = 'org.opensuse.CupsPkHelper.Mechanism'
++
++CUPS_PK_NEED_AUTH = 'org.opensuse.CupsPkHelper.Mechanism.NotPrivileged'
++
++# we can't subclass cups.Connection, even when adding
++# Py_TPFLAGS_BASETYPE to cupsconnection.c
++# So we'll hack this...
++class Connection:
++    def __init__(self, host, port, encryption):
++        self._session_bus = dbus.SessionBus()
++        self._system_bus = dbus.SystemBus()
++
++        self._connection = cups.Connection(host=host,
++                                           port=port,
++                                           encryption=encryption)
++
++        self._hack_subclass()
++
++
++    def _hack_subclass(self):
++        # here's how to subclass without really subclassing. Just provide
++        # the same methods
++        methodtype = type(self._connection.getPrinters)
++        for fname in dir(self._connection):
++            if fname[0] == '_':
++                continue
++            fn = getattr(self._connection, fname)
++            if type(fn) != methodtype:
++                continue
++            if not hasattr(self, fname):
++                setattr(self, fname, fn.__call__)
++
++
++    def _get_cups_pk(self):
++        try:
++            object = self._system_bus.get_object(CUPS_PK_NAME, CUPS_PK_PATH)
++            return dbus.Interface(object, CUPS_PK_IFACE)
++        except dbus.exceptions.DBusException:
++            return None
++
++
++    def _obtain_auth(self, action, xid = 0):
++        pk_auth_object = self._session_bus.get_object(PK_AUTH_NAME, PK_AUTH_PATH)
++        pk_auth = dbus.Interface(pk_auth_object, PK_AUTH_IFACE)
++
++        ret = pk_auth.ObtainAuthorization(action, dbus.UInt32(xid), dbus.UInt32(os.getpid()))
++
++        if not type(ret) == dbus.Boolean:
++            return False
++
++        return ret != 0
++
++
++    def _handle_exception_with_auth(self, e, fallback, *args, **kwds):
++        if e.get_dbus_name() != CUPS_PK_NEED_AUTH:
++            fallback(*args, **kwds)
++            return False
++
++        tokens = e.get_dbus_message().split(' ', 2)
++        if len(tokens) != 3:
++            fallback(*args, **kwds)
++            return False
++
++        try:
++            # FIXME use self._parent from authconn.py
++            ret = self._obtain_auth(tokens[0], 0)
++        except dbus.exceptions.DBusException, e_auth:
++            fallback(*args, **kwds)
++            return False
++
++        if not ret:
++            raise cups.IPPError(cups.IPP_NOT_AUTHORIZED, '')
++
++        return True
++
++
++    def _args_to_tuple(self, types, *args):
++        if len(types) != len(args):
++            types.append(False)
++            return types
++
++        exception = False
++
++        retval = []
++
++        for i in range(len(types)):
++            if type(args[i]) != types[i]:
++                if types[i] == str and type(args[i]) == unicode:
++                    # we accept a mix between unicode and str
++                    pass
++                else:
++                    exception = True
++            retval.append(args[i])
++
++        retval.append(exception)
++
++        return tuple(retval)
++
++
++    def _kwds_to_vars(self, names, **kwds):
++        ret = []
++
++        for name in names:
++            if kwds.has_key(name):
++                ret.append(kwds[name])
++            else:
++                ret.append(None)
++
++        return tuple(ret)
++
++
++    def _call_with_pk_and_fallback(self, use_fallback, pk_function_name, pk_args, fallback_function, *args, **kwds):
++        pk_function = None
++
++        if not use_fallback:
++            cups_pk = self._get_cups_pk()
++            if cups_pk:
++                try:
++                    pk_function = cups_pk.get_dbus_method(pk_function_name)
++                except dbus.exceptions.DBusException:
++                    pass
++
++        if use_fallback or not pk_function:
++            fallback_function(*args, **kwds)
++            return
++
++        while True:
++            try:
++                pk_function(*pk_args)
++                break
++            except dbus.exceptions.DBusException, e:
++                if not self._handle_exception_with_auth(e, fallback_function, *args, **kwds):
++                    break
++
++#    getPrinters
++#    getDests
++#    getClasses
++#    getPPDs
++#    getServerPPD
++#    getDocument
++#    getDevices
++#    getJobs
++#    getJobAttributes
++#    cancelJob
++#    cancelAllJobs
++#    authenticateJob
++#    setJobHoldUntil
++#    restartJob
++#    getFile
++#    putFile
++
++    def addPrinter(self, *args, **kwds):
++        (name, use_pycups) = self._args_to_tuple([str], *args)
++        (filename, ppdname, info, location, device, ppd) = self._kwds_to_vars(['filename', 'ppdname', 'info', 'location', 'device', 'ppd'], **kwds)
++
++        need_unlink = False
++        if not ppdname and not filename and ppd:
++            (fd, filename) = tempfile.mkstemp ()
++            ppd.writeFd(fd)
++            os.close(fd)
++            need_unlink = True
++
++        if filename and not ppdname:
++            pk_args = (name, device, filename, info, location)
++            self._call_with_pk_and_fallback(use_pycups,
++                                            'PrinterAddWithPpdFile', pk_args,
++                                            self._connection.addPrinter,
++                                            *args, **kwds)
++            if need_unlink:
++                os.unlink(filename)
++        else:
++            pk_args = (name, device, ppdname, info, location)
++            self._call_with_pk_and_fallback(use_pycups,
++                                            'PrinterAdd', pk_args,
++                                            self._connection.addPrinter,
++                                            *args, **kwds)
++
++
++    def setPrinterDevice(self, *args, **kwds):
++        (name, device, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, device)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetDevice', pk_args,
++                                        self._connection.setPrinterDevice,
++                                        *args, **kwds)
++
++
++    def setPrinterInfo(self, *args, **kwds):
++        (name, info, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, info)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetInfo', pk_args,
++                                        self._connection.setPrinterInfo,
++                                        *args, **kwds)
++
++
++    def setPrinterLocation(self, *args, **kwds):
++        (name, location, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, location)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetLocation', pk_args,
++                                        self._connection.setPrinterLocation,
++                                        *args, **kwds)
++
++
++    def setPrinterShared(self, *args, **kwds):
++        (name, shared, use_pycups) = self._args_to_tuple([str, bool], *args)
++        pk_args = (name, shared)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetShared', pk_args,
++                                        self._connection.setPrinterShared,
++                                        *args, **kwds)
++
++
++    def setPrinterJobSheets(self, *args, **kwds):
++        (name, start, end, use_pycups) = self._args_to_tuple([str, str, str], *args)
++        pk_args = (name, start, end)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetJobSheets', pk_args,
++                                        self._connection.setPrinterJobSheets,
++                                        *args, **kwds)
++
++
++    def setPrinterErrorPolicy(self, *args, **kwds):
++        (name, policy, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, policy)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetErrorPolicy', pk_args,
++                                        self._connection.setPrinterErrorPolicy,
++                                        *args, **kwds)
++
++
++    def setPrinterOpPolicy(self, *args, **kwds):
++        (name, policy, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, policy)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetOpPolicy', pk_args,
++                                        self._connection.setPrinterOpPolicy,
++                                        *args, **kwds)
++
++
++#    setPrinterUsersAllowed
++#    setPrinterUsersDenied
++
++    def addPrinterOptionDefault(self, *args, **kwds):
++        #FIXME: value can be a sequence (need to fix dbus API too)
++        (name, option, value, use_pycups) = self._args_to_tuple([str, str, str], *args)
++        pk_args = (name, option, value)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterAddOptionDefault', pk_args,
++                                        self._connection.addPrinterOptionDefault,
++                                        *args, **kwds)
++
++
++    def deletePrinterOptionDefault(self, *args, **kwds):
++        (name, option, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, option)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterDeleteOptionDefault', pk_args,
++                                        self._connection.deletePrinterOptionDefault,
++                                        *args, **kwds)
++
++
++    def deletePrinter(self, *args, **kwds):
++        (name, use_pycups) = self._args_to_tuple([str], *args)
++        pk_args = (name,)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterDelete', pk_args,
++                                        self._connection.deletePrinter,
++                                        *args, **kwds)
++
++#    getPrinterAttributes
++#    addPrinterToClass
++#    deletePrinterFromClass
++#    deleteClass
++#    getDefault
++
++    def setDefault(self, *args, **kwds):
++        (name, use_pycups) = self._args_to_tuple([str], *args)
++        pk_args = (name,)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetDefault', pk_args,
++                                        self._connection.setDefault,
++                                        *args, **kwds)
++
++#    getPPD
++
++    def enablePrinter(self, *args, **kwds):
++        (name, use_pycups) = self._args_to_tuple([str], *args)
++        pk_args = (name, True)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetEnabled', pk_args,
++                                        self._connection.enablePrinter,
++                                        *args, **kwds)
++
++
++    def disablePrinter(self, *args, **kwds):
++        (name, use_pycups) = self._args_to_tuple([str], *args)
++        pk_args = (name, False)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetEnabled', pk_args,
++                                        self._connection.enablePrinter,
++                                        *args, **kwds)
++
++
++    def acceptJobs(self, *args, **kwds):
++        (name, use_pycups) = self._args_to_tuple([str], *args)
++        pk_args = (name, True, '')
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetAcceptJobs', pk_args,
++                                        self._connection.acceptJobs,
++                                        *args, **kwds)
++
++
++    def rejectJobs(self, *args, **kwds):
++        (name, reason, use_pycups) = self._args_to_tuple([str, str], *args)
++        pk_args = (name, False, reason)
++
++        self._call_with_pk_and_fallback(use_pycups,
++                                        'PrinterSetAcceptJobs', pk_args,
++                                        self._connection.rejectJobs,
++                                        *args, **kwds)
++
++
++#    printTestPage
++#    adminGetServerSettings
++#    adminSetServerSettings
++#    getSubscriptions
++#    createSubscription
++#    getNotifications
++#    cancelSubscription
++#    renewSubscription
++#    printFile
++#    printFiles

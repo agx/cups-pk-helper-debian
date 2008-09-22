@@ -10,5 +10,107 @@
       <arg name="location" direction="in"  type="s"/>
       <arg name="error"    direction="out" type="s"/>
     </method>
+
+    <method name="PrinterAddWithPpdFile">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="uri"      direction="in"  type="s"/>
+      <arg name="ppd"      direction="in"  type="s"/>
+      <arg name="info"     direction="in"  type="s"/>
+      <arg name="location" direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetDevice">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="device"   direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetInfo">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="info"     direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetLocation">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="location" direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetShared">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="shared"   direction="in"  type="b"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetJobSheets">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="start"    direction="in"  type="s"/>
+      <arg name="end"      direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetErrorPolicy">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="policy"   direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetOpPolicy">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="policy"   direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterAddOptionDefault">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="option"   direction="in"  type="s"/>
+      <arg name="value"    direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterDeleteOptionDefault">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="option"   direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterDelete">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetDefault">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetEnabled">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="enabled"  direction="in"  type="b"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetAcceptJobs">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="enabled"  direction="in"  type="b"/>
+      <arg name="reason"   direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
   </interface>
 </node>

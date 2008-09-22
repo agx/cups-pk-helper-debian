@@ -61,30 +61,30 @@
  !   restartJob
      getFile
      putFile
-~!   addPrinter
-~!   setPrinterDevice
-~!   setPrinterInfo
-~!   setPrinterLocation
-~!   setPrinterShared
-~!   setPrinterJobSheets
-~!   setPrinterErrorPolicy
-~!   setPrinterOpPolicy
+~!+* addPrinter
+~!+* setPrinterDevice
+~!+* setPrinterInfo
+~!+* setPrinterLocation
+~!+* setPrinterShared
+~!+* setPrinterJobSheets
+~!+* setPrinterErrorPolicy
+~!+* setPrinterOpPolicy
  !   setPrinterUsersAllowed
  !   setPrinterUsersDenied
-~!   addPrinterOptionDefault
-~!   deletePrinterOptionDefault
-~!   deletePrinter
+~!+* addPrinterOptionDefault
+~!+* deletePrinterOptionDefault
+~!+* deletePrinter
      getPrinterAttributes
  !   addPrinterToClass
  !   deletePrinterFromClass
  !   deleteClass
      getDefault
-~!   setDefault
+~!+* setDefault
      getPPD
-~!   enablePrinter
-~!   disablePrinter
-~!   acceptJobs
-~!   rejectJobs
+~!+* enablePrinter
+~!+* disablePrinter
+~!+* acceptJobs
+~!+* rejectJobs
      printTestPage
  !   adminGetServerSettings
  !   adminSetServerSettings
@@ -237,13 +237,10 @@ _cph_cups_set_error_from_reply (CphCups *cups,
 }
 
 static gboolean
-_cph_cups_send_request (CphCups *cups,
-                        ipp_t   *request)
+_cph_cups_handle_reply (CphCups *cups,
+                        ipp_t   *reply)
 {
         gboolean retval;
-        ipp_t *reply;
-
-        reply = cupsDoRequest (cups->priv->connection, request, "/");
 
         if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
                 retval = FALSE;
@@ -260,6 +257,29 @@ _cph_cups_send_request (CphCups *cups,
 }
 
 static gboolean
+_cph_cups_send_request (CphCups *cups,
+                        ipp_t   *request)
+{
+        ipp_t *reply;
+
+        reply = cupsDoRequest (cups->priv->connection, request, "/");
+
+        return _cph_cups_handle_reply (cups, reply);
+}
+
+static gboolean
+_cph_cups_post_request (CphCups    *cups,
+                        ipp_t      *request,
+                        const char *file)
+{
+        ipp_t *reply;
+
+        reply = cupsDoFileRequest (cups->priv->connection, request, "/", file);
+
+        return _cph_cups_handle_reply (cups, reply);
+}
+
+static gboolean
 _cph_cups_send_new_simple_request (CphCups     *cups,
                                    ipp_op_t     op,
                                    const char  *printer_name)
@@ -270,7 +290,7 @@ _cph_cups_send_new_simple_request (CphCups     *cups,
                 /* FIXME: set status */
                 return FALSE;
 
-        request = ippNewRequest (IPP_PAUSE_PRINTER);
+        request = ippNewRequest (op);
         _cph_cups_add_printer_uri (request, printer_name);
 
         return _cph_cups_send_request (cups, request);
@@ -324,7 +344,6 @@ cph_cups_printer_add (CphCups    *cups,
                       const char *info,
                       const char *location)
 {
-        /* TODO: we might need to support putting a file on the server */
         ipp_t *request;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
@@ -351,6 +370,40 @@ cph_cups_printer_add (CphCups    *cups,
         }
 
         return _cph_cups_send_request (cups, request);
+}
+
+gboolean
+cph_cups_printer_add_with_ppd_file (CphCups    *cups,
+                                    const char *printer_name,
+                                    const char *printer_uri,
+                                    const char *ppd_filename,
+                                    const char *info,
+                                    const char *location)
+{
+        ipp_t *request;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        /* FIXME check arguments are fine */
+
+        request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
+        _cph_cups_add_printer_uri (request, printer_name);
+
+        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                      "printer-name", NULL, printer_name);
+        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
+                      "device-uri", NULL, printer_uri);
+
+        if (info) {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
+                              "printer-info", NULL, info);
+        }
+        if (location) {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
+                              "printer-location", NULL, location);
+        }
+
+        return _cph_cups_post_request (cups, request, ppd_filename);
 }
 
 gboolean

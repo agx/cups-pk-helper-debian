@@ -39,7 +39,7 @@ main (int argc, char **argv)
                 return 1;
 
         //if (cph_cups_add_printer (cups, "MyPrinter", "smb://really/cool", "HP/Business_Inkjet_2200-chp2200.ppd.gz", "This is my printer", "At home")) {
-        //if (cph_cups_delete_printer (cups, "MyPrinter")) {
+        //if (cph_cups_printer_delete (cups, "MyPrinter")) {
         if (cph_cups_printer_class_set_job_sheets (cups, "DesignJet-650C", "none", "none")) {
                 g_print ("worked\n");
         } else {

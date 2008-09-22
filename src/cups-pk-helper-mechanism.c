@@ -358,30 +358,329 @@ _check_polkit_for_action (CphMechanism          *mechanism,
         return TRUE;
 }
 
-/* exported methods */
+/* helpers */
 
-gboolean
-cph_mechanism_printer_add (CphMechanism           *mechanism,
-                           const char             *name,
-                           const char             *uri,
-                           const char             *ppd,
-                           const char             *info,
-                           const char             *location,
-                           DBusGMethodInvocation  *context)
+static void
+_cph_mechanism_return_error (CphMechanism          *mechanism,
+                             DBusGMethodInvocation *context,
+                             gboolean               failed)
 {
         const char *error;
 
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action (mechanism, context, "printeradd"))
-                return FALSE;
-
-        if (!cph_cups_printer_add (mechanism->priv->cups,
-                                   name, uri, ppd, info, location))
+        if (failed)
                 error = cph_cups_last_status_to_string (mechanism->priv->cups);
         else
                 error = "";
 
         dbus_g_method_return (context, error);
+}
+
+/* exported methods */
+
+gboolean
+cph_mechanism_printer_add (CphMechanism          *mechanism,
+                           const char            *name,
+                           const char            *uri,
+                           const char            *ppd,
+                           const char            *info,
+                           const char            *location,
+                           DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_add (mechanism->priv->cups,
+                                    name, uri, ppd, info, location);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_add_with_ppd_file (CphMechanism          *mechanism,
+                                         const char            *name,
+                                         const char            *uri,
+                                         const char            *ppdfile,
+                                         const char            *info,
+                                         const char            *location,
+                                         DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_add_with_ppd_file (mechanism->priv->cups,
+                                                  name, uri, ppdfile,
+                                                  info, location);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_device (CphMechanism          *mechanism,
+                                  const char            *name,
+                                  const char            *device,
+                                  DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_set_uri (mechanism->priv->cups,
+                                        name, device);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_info (CphMechanism          *mechanism,
+                                const char            *name,
+                                const char            *info,
+                                DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_info (mechanism->priv->cups,
+                                               name, info);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_location (CphMechanism          *mechanism,
+                                    const char            *name,
+                                    const char            *location,
+                                    DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_location (mechanism->priv->cups,
+                                                   name, location);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_shared (CphMechanism          *mechanism,
+                                  const char            *name,
+                                  gboolean               shared,
+                                  DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_shared (mechanism->priv->cups,
+                                                 name, shared);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_job_sheets (CphMechanism          *mechanism,
+                                      const char            *name,
+                                      const char            *start,
+                                      const char            *end,
+                                      DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_job_sheets (mechanism->priv->cups,
+                                                     name, start, end);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_error_policy (CphMechanism          *mechanism,
+                                        const char            *name,
+                                        const char            *policy,
+                                        DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_error_policy (mechanism->priv->cups,
+                                                       name, policy);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
+                                     const char            *name,
+                                     const char            *policy,
+                                     DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_op_policy (mechanism->priv->cups,
+                                                    name, policy);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_add_option_default (CphMechanism          *mechanism,
+                                          const char            *name,
+                                          const char            *option,
+                                          const char            *value,
+                                          DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
+                                                         name, option, value,
+                                                         NULL);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,
+                                             const char            *name,
+                                             const char            *option,
+                                             DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
+                                                         name, option, NULL);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_delete (CphMechanism          *mechanism,
+                              const char            *name,
+                              DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_delete (mechanism->priv->cups, name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_default (CphMechanism          *mechanism,
+                                   const char            *name,
+                                   DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_set_default (mechanism->priv->cups, name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
+                                   const char            *name,
+                                   gboolean               enabled,
+                                   DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_set_enabled (mechanism->priv->cups,
+                                            name, enabled);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
+                                       const char            *name,
+                                       gboolean               enabled,
+                                       const char            *reason,
+                                       DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
+                                                name, enabled, reason);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
         return TRUE;
 }

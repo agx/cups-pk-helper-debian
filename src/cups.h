@@ -61,6 +61,13 @@ gboolean cph_cups_printer_add (CphCups    *cups,
                                const char *info,
                                const char *location);
 
+gboolean cph_cups_printer_add_with_ppd_file (CphCups    *cups,
+                                             const char *printer_name,
+                                             const char *printer_uri,
+                                             const char *ppd_filename,
+                                             const char *info,
+                                             const char *location);
+
 gboolean cph_cups_printer_delete (CphCups    *cups,
                                   const char *printer_name);
 
