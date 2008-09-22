@@ -159,7 +159,9 @@ main (int argc, char **argv)
                                 tokens = g_strsplit (error->message, " ", 2);
                                 g_error_free (error);
                                 if (g_strv_length (tokens) == 2) {
-                                        /* FIXME: this fails because of timeout if the user waits too long */
+                                        /* Note: the async version fails
+                                         * because of timeout if the user waits
+                                         * too long */
                                         try = do_auth (session_bus, tokens[0], tokens[1]);
                                         if (!try)
                                                 g_print ("not authorized\n");

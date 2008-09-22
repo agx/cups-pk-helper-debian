@@ -1,5 +1,6 @@
 *.sw[nop]
 *.o
+*.tar.*
 INSTALL
 Makefile
 Makefile.in

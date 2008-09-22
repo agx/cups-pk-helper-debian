@@ -47,6 +47,8 @@ def handle_exception_with_auth(session_bus, e):
         return False
 
     try:
+        # Note: the async version fails because of timeout if the user waits
+        # too long
         ret = pk_auth(session_bus, tokens[0], tokens[1])
     except dbus.exceptions.DBusException, e_auth:
         print 'dbus error: %s' % e_auth
