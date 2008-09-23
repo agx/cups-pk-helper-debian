@@ -1,3 +1,15 @@
+diff --git a/Makefile.am b/Makefile.am
+index cb62cbd..fee240e 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -60,6 +60,7 @@ nobase_pkgdata_DATA=					\
+ 	authconn.py					\
+ 	config.py					\
+ 	contextmenu.py					\
++	cupspk.py					\
+ 	debug.py					\
+ 	errordialogs.py					\
+ 	jobviewer.py					\
 diff --git a/authconn.py b/authconn.py
 index 6244eee..ad3bfb0 100644
 --- a/authconn.py
