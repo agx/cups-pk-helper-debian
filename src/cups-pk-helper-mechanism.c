@@ -678,6 +678,9 @@ cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
         if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
                 return FALSE;
 
+        if (reason && reason[0] == '\0')
+                reason = NULL;
+
         ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
                                                 name, enabled, reason);
         _cph_mechanism_return_error (mechanism, context, !ret);
