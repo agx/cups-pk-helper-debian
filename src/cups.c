@@ -97,6 +97,13 @@
      printFiles
 */
 
+typedef enum
+{
+        CPH_RESOURCE_ROOT,
+        CPH_RESOURCE_ADMIN,
+        CPH_RESOURCE_JOBS
+} CphResource;
+
 G_DEFINE_TYPE (CphCups, cph_cups, G_TYPE_OBJECT)
 
 #define CPH_CUPS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CPH_TYPE_CUPS, CphCupsPrivate))
@@ -256,25 +263,51 @@ _cph_cups_handle_reply (CphCups *cups,
         return retval;
 }
 
-static gboolean
-_cph_cups_send_request (CphCups *cups,
-                        ipp_t   *request)
+static const char *
+_cph_cups_get_resource (CphResource resource)
 {
-        ipp_t *reply;
+        switch (resource)
+        {
+                case CPH_RESOURCE_ROOT:
+                        return "/";
+                case CPH_RESOURCE_ADMIN:
+                        return "/admin/";
+                case CPH_RESOURCE_JOBS:
+                        return "/jobs/";
+                default:
+                        /* that's a fallback -- we don't use
+                         * g_assert_not_reached() to avoir crashing. */
+                        g_critical ("Asking for a resource with no match.");
+                        return "/";
+        }
+}
 
-        reply = cupsDoRequest (cups->priv->connection, request, "/");
+static gboolean
+_cph_cups_send_request (CphCups     *cups,
+                        ipp_t       *request,
+                        CphResource  resource)
+{
+        ipp_t      *reply;
+        const char *resource_char;
+
+        resource_char = _cph_cups_get_resource (resource);
+        reply = cupsDoRequest (cups->priv->connection, request, resource_char);
 
         return _cph_cups_handle_reply (cups, reply);
 }
 
 static gboolean
-_cph_cups_post_request (CphCups    *cups,
-                        ipp_t      *request,
-                        const char *file)
+_cph_cups_post_request (CphCups     *cups,
+                        ipp_t       *request,
+                        const char  *file,
+                        CphResource  resource)
 {
         ipp_t *reply;
+        const char *resource_char;
 
-        reply = cupsDoFileRequest (cups->priv->connection, request, "/", file);
+        resource_char = _cph_cups_get_resource (resource);
+        reply = cupsDoFileRequest (cups->priv->connection, request,
+                                   resource_char, file);
 
         return _cph_cups_handle_reply (cups, reply);
 }
@@ -282,7 +315,8 @@ _cph_cups_post_request (CphCups    *cups,
 static gboolean
 _cph_cups_send_new_simple_request (CphCups     *cups,
                                    ipp_op_t     op,
-                                   const char  *printer_name)
+                                   const char  *printer_name,
+                                   CphResource  resource)
 {
         ipp_t *request;
 
@@ -293,7 +327,7 @@ _cph_cups_send_new_simple_request (CphCups     *cups,
         request = ippNewRequest (op);
         _cph_cups_add_printer_uri (request, printer_name);
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, resource);
 }
 
 static gboolean
@@ -310,7 +344,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
         _cph_cups_add_printer_uri (request, printer_name);
         ippAddString (request, group, type, name, NULL, value);
 
-        if (_cph_cups_send_request (cups, request))
+        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
                 return TRUE;
 
         /* it failed, maybe it was a class? */
@@ -321,7 +355,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
         _cph_cups_add_class_uri (request, printer_name);
         ippAddString (request, group, type, name, NULL, value);
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
 
 /******************************************************
@@ -369,7 +403,7 @@ cph_cups_printer_add (CphCups    *cups,
                               "printer-location", NULL, location);
         }
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -403,7 +437,8 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
                               "printer-location", NULL, location);
         }
 
-        return _cph_cups_post_request (cups, request, ppd_filename);
+        return _cph_cups_post_request (cups, request, ppd_filename,
+                                       CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -413,7 +448,8 @@ cph_cups_printer_delete (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         return _cph_cups_send_new_simple_request (cups, CUPS_DELETE_PRINTER,
-                                                  printer_name);
+                                                  printer_name,
+                                                  CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -423,7 +459,8 @@ cph_cups_printer_set_default (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         return _cph_cups_send_new_simple_request (cups, CUPS_SET_DEFAULT,
-                                                  printer_name);
+                                                  printer_name,
+                                                  CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -437,7 +474,8 @@ cph_cups_printer_set_enabled (CphCups    *cups,
 
         op = enabled ? IPP_RESUME_PRINTER : IPP_PAUSE_PRINTER;
 
-        return _cph_cups_send_new_simple_request (cups, op, printer_name);
+        return _cph_cups_send_new_simple_request (cups, op, printer_name,
+                                                  CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -457,7 +495,7 @@ cph_cups_printer_set_uri (CphCups    *cups,
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                       "device-uri", NULL, printer_uri);
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
 
 /* reason must be NULL if accept is TRUE */
@@ -477,7 +515,8 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
         if (accept)
                 return _cph_cups_send_new_simple_request (cups,
                                                           CUPS_ACCEPT_JOBS,
-                                                          printer_name);
+                                                          printer_name,
+                                                          CPH_RESOURCE_ADMIN);
 
         /* !accept */
         request = ippNewRequest (CUPS_REJECT_JOBS);
@@ -487,7 +526,7 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
                 ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_TEXT,
                               "printer-state-message", NULL, reason);
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
 
 /* Functions that can work on printer and class */
@@ -540,7 +579,7 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
         ippAddBoolean (request, IPP_TAG_OPERATION,
                        "printer-is-shared", shared ? 1 : 0);
 
-        if (_cph_cups_send_request (cups, request))
+        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
                 return TRUE;
 
         /* it failed, maybe it was a class? */
@@ -552,7 +591,7 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
         ippAddBoolean (request, IPP_TAG_OPERATION,
                        "printer-is-shared", shared ? 1 : 0);
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -573,7 +612,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
 		       "job-sheets-default", 2, NULL, values);
 
-        if (_cph_cups_send_request (cups, request))
+        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
                 return TRUE;
 
         /* it failed, maybe it was a class? */
@@ -585,7 +624,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
 		       "job-sheets-default", 2, NULL, values);
 
-        return _cph_cups_send_request (cups, request);
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
 
 gboolean
@@ -695,7 +734,7 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
                 }
         }
 
-        if (_cph_cups_send_request (cups, request)) {
+        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN)) {
                 retval = TRUE;
                 goto out;
         }
@@ -726,7 +765,7 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
                 }
         }
 
-        retval = _cph_cups_send_request (cups, request);
+        retval = _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 
 out:
         g_free (option_name);
