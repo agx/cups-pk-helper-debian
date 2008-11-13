@@ -83,6 +83,18 @@ def addprinter(cups_pk, printer_name, printer_uri, ppd_file, info, location):
     else:
         print 'ouch: %s' % error
 
+def acceptjobs(cups_pk, printer_name, enabled, reason):
+    error = cups_pk.PrinterSetAcceptJobs(printer_name, enabled, reason)
+
+    if not type(error) in [dbus.String, dbus.UTF8String]:
+           print 'unexpected return value'
+           return
+
+    if error == '':
+        print 'worked!'
+    else:
+        print 'ouch: %s' % error
+
 def changeoption(cups_pk, printer_name, option, value):
     error = cups_pk.PrinterAddOptionDefault(printer_name, option, value)
 
@@ -107,6 +119,7 @@ def main(args):
             #removeprinter(cups_pk_interface, "MyPrinter")
             addprinter(cups_pk_interface, "MyPrinter", "smb://really/cool", "HP/Business_Inkjet_2200-chp2200.ppd.gz", "This is my printer", "At home")
             #changeoption(cups_pk_interface, "MyPrinter", "toto", "At home")
+            #acceptjobs(cups_pk_interface, "MyPrinter", True, "")
             break
         except dbus.exceptions.DBusException, e:
             if handle_exception_with_auth(session_bus, e):
