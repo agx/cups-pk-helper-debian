@@ -205,6 +205,24 @@ cph_cups_new (void)
  ******************************************************/
 
 static gboolean
+_cph_cups_is_string_printable (const char *str)
+{
+        int i;
+
+        /* no NULL string */
+        if (!str)
+                return FALSE;
+
+        /* only printable characters */
+        for (i = 0; i < strlen (str); i++) {
+                if (!g_ascii_isprint (str[i]))
+                        return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
 _cph_cups_is_printer_name_valid_internal (const char *name)
 {
         int i;
@@ -236,6 +254,22 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
                 return TRUE;
 
         error = g_strdup_printf ("\"%s\" is not a valid printer name.", name);
+        _cph_cups_set_internal_status (cups, error);
+        g_free (error);
+
+        return FALSE;
+}
+
+static gboolean
+_cph_cups_is_printer_uri_valid (CphCups    *cups,
+                                const char *uri)
+{
+        char *error;
+
+        if (_cph_cups_is_string_printable (uri))
+                return TRUE;
+
+        error = g_strdup_printf ("\"%s\" is not a valid printer URI.", uri);
         _cph_cups_set_internal_status (cups, error);
         g_free (error);
 
@@ -440,6 +474,8 @@ cph_cups_printer_add (CphCups    *cups,
         /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
                 return FALSE;
+        if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
+                return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
@@ -477,6 +513,8 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
 
         /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
                 return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
@@ -546,8 +584,9 @@ cph_cups_printer_set_uri (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
                 return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
