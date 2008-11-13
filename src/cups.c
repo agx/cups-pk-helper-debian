@@ -279,18 +279,37 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
         return FALSE;
 }
 
-/* This is some text, but we could potentially do more checks:
+/* This is some text, but we could potentially do more checks. We don't do them
+ * because cups will already do them.
  *   + for the URI, we could check that the scheme is supported and that the
- *     URI is a valid URI. However, cups will also do this.
- *   + for the PPD, we could check that the PPD exists in the cups database,
- *     but again, cups will check for this too. And it's really slow to fetch
- *     all the PPD.
+ *     URI is a valid URI.
+ *   + for the PPD, we could check that the PPD exists in the cups database.
+ *     Another reason to not do this ourselves is that it's really slow to
+ *     fetch all the PPDs.
+ *   + for the PPD filename, we could check that the file exists and is a
+ *     regular file (no socket, block device, etc.).
+ *   + for the job sheet, we could check that the value is in the
+ *     job-sheets-supported attribute.
+ *   + for the policies, we could check that the value is in the
+ *     printer-error-policy-supported and printer-op-policy-supported
+ *     attributes.
  */
 _CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE)
 _CPH_CUPS_IS_VALID (ppd, "PPD", TRUE)
+_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE)
+_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE)
+_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE)
+_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
 
-/* TODO: hrm, check for file existence, no socket, etc. */
-_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", TRUE)
+/* Check for options & values. Those are for sure some printable strings, but
+ * can we do more? Let's see:
+ *   + an option seems to be, empirically, composed of alphanumerical
+ *     characters, and dashes. However, this is not something we can be sure of
+ *     and so we'll let cups handle that.
+ *   + a value can be some text, and we don't know much more.
+ */
+_CPH_CUPS_IS_VALID (option, "option", TRUE)
+_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE)
 
 /* This is really just some text */
 _CPH_CUPS_IS_VALID (info, "description", FALSE)
@@ -746,8 +765,11 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_job_sheet_valid (cups, start))
+                return FALSE;
+        if (!_cph_cups_is_job_sheet_valid (cups, end))
                 return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
@@ -777,8 +799,9 @@ cph_cups_printer_class_set_error_policy (CphCups    *cups,
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_error_policy_valid (cups, policy))
                 return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
@@ -795,8 +818,9 @@ cph_cups_printer_class_set_op_policy (CphCups    *cups,
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_op_policy_valid (cups, policy))
                 return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
@@ -825,9 +849,11 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
                 return FALSE;
+        if (!_cph_cups_is_option_valid (cups, option))
+                return FALSE;
+        /* We check the values later. */
 
         option_name = g_strdup_printf ("%s-default", option);
 
@@ -853,6 +879,12 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
         va_start (var_args, first_value);
 
         while (value) {
+                /* Safety check for the values */
+                if (!_cph_cups_is_option_value_valid (cups, value)) {
+                        retval = FALSE;
+                        goto out;
+                }
+
                 /* cast to remove warning */
                 values = g_slist_prepend (values, (char *) value);
                 len++;
