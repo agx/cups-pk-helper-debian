@@ -211,8 +211,8 @@ _cph_cups_is_string_printable (const char *str,
         int i;
 
         /* no NULL string */
-        if (check_for_null && !str)
-                return FALSE;
+        if (!str)
+                return !check_for_null;
 
         /* only printable characters */
         for (i = 0; i < strlen (str); i++) {
