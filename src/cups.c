@@ -209,6 +209,7 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
 {
         int i;
 
+        /* no empty string */
         if (!name || name[0] == '\0')
                 return FALSE;
 
