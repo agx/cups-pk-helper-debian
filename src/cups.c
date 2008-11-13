@@ -112,6 +112,7 @@ struct CphCupsPrivate
 {
         http_t       *connection;
         ipp_status_t  last_status;
+        char         *internal_status;
 };
 
 static GObject *cph_cups_constructor (GType                  type,
@@ -166,6 +167,7 @@ cph_cups_init (CphCups *cups)
 
         cups->priv->connection = NULL;
         cups->priv->last_status = IPP_OK;
+        cups->priv->internal_status = NULL;
 }
 
 static void
@@ -181,6 +183,10 @@ cph_cups_finalize (GObject *object)
         if (cups->priv->connection)
                 httpClose (cups->priv->connection);
         cups->priv->connection = NULL;
+
+        if (cups->priv->internal_status)
+                g_free (cups->priv->internal_status);
+        cups->priv->internal_status = NULL;
 
         G_OBJECT_CLASS (cph_cups_parent_class)->finalize (object);
 }
@@ -245,6 +251,19 @@ _cph_cups_add_class_uri (ipp_t      *request,
 }
 
 static void
+_cph_cups_set_internal_status (CphCups    *cups,
+                               const char *status)
+{
+        if (cups->priv->internal_status)
+                g_free (cups->priv->internal_status);
+
+        if (status)
+                cups->priv->internal_status = g_strdup (status);
+        else
+                cups->priv->internal_status = NULL;
+}
+
+static void
 _cph_cups_set_error_from_reply (CphCups *cups,
                                 ipp_t   *reply)
 {
@@ -259,6 +278,9 @@ _cph_cups_handle_reply (CphCups *cups,
                         ipp_t   *reply)
 {
         gboolean retval;
+
+        /* reset the internal status: we'll use the cups status */
+        _cph_cups_set_internal_status (cups, NULL);
 
         if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
                 retval = FALSE;
@@ -378,7 +400,10 @@ cph_cups_last_status_to_string (CphCups *cups)
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), "");
 
-        return ippErrorString (cups->priv->last_status);
+        if (cups->priv->internal_status)
+                return cups->priv->internal_status;
+        else
+                return ippErrorString (cups->priv->last_status);
 }
 
 gboolean
