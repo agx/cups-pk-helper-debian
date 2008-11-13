@@ -222,6 +222,24 @@ _cph_cups_is_string_printable (const char *str)
         return TRUE;
 }
 
+#define _CPH_CUPS_IS_VALID(name, name_for_str)                                \
+static gboolean                                                               \
+_cph_cups_is_##name##_valid (CphCups    *cups,                                \
+                             const char *str)                                 \
+{                                                                             \
+        char *error;                                                          \
+                                                                              \
+        if (_cph_cups_is_string_printable (str))                              \
+                return TRUE;                                                  \
+                                                                              \
+        error = g_strdup_printf ("\"%s\" is not a valid %s.",                 \
+                                 str, name_for_str);                          \
+        _cph_cups_set_internal_status (cups, error);                          \
+        g_free (error);                                                       \
+                                                                              \
+        return FALSE;                                                         \
+}
+
 static gboolean
 _cph_cups_is_printer_name_valid_internal (const char *name)
 {
@@ -260,21 +278,7 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
         return FALSE;
 }
 
-static gboolean
-_cph_cups_is_printer_uri_valid (CphCups    *cups,
-                                const char *uri)
-{
-        char *error;
-
-        if (_cph_cups_is_string_printable (uri))
-                return TRUE;
-
-        error = g_strdup_printf ("\"%s\" is not a valid printer URI.", uri);
-        _cph_cups_set_internal_status (cups, error);
-        g_free (error);
-
-        return FALSE;
-}
+_CPH_CUPS_IS_VALID (printer_uri, "printer URI")
 
 /******************************************************
  * Helpers
