@@ -205,12 +205,13 @@ cph_cups_new (void)
  ******************************************************/
 
 static gboolean
-_cph_cups_is_string_printable (const char *str)
+_cph_cups_is_string_printable (const char *str,
+                               gboolean    check_for_null)
 {
         int i;
 
         /* no NULL string */
-        if (!str)
+        if (check_for_null && !str)
                 return FALSE;
 
         /* only printable characters */
@@ -222,14 +223,14 @@ _cph_cups_is_string_printable (const char *str)
         return TRUE;
 }
 
-#define _CPH_CUPS_IS_VALID(name, name_for_str)                                \
+#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null)                \
 static gboolean                                                               \
 _cph_cups_is_##name##_valid (CphCups    *cups,                                \
                              const char *str)                                 \
 {                                                                             \
         char *error;                                                          \
                                                                               \
-        if (_cph_cups_is_string_printable (str))                              \
+        if (_cph_cups_is_string_printable (str, check_for_null))              \
                 return TRUE;                                                  \
                                                                               \
         error = g_strdup_printf ("\"%s\" is not a valid %s.",                 \
@@ -278,7 +279,23 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
         return FALSE;
 }
 
-_CPH_CUPS_IS_VALID (printer_uri, "printer URI")
+/* This is some text, but we could potentially do more checks:
+ *   + for the URI, we could check that the scheme is supported and that the
+ *     URI is a valid URI. However, cups will also do this.
+ *   + for the PPD, we could check that the PPD exists in the cups database,
+ *     but again, cups will check for this too. And it's really slow to fetch
+ *     all the PPD.
+ */
+_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE)
+_CPH_CUPS_IS_VALID (ppd, "PPD", TRUE)
+
+/* TODO: hrm, check for file existence, no socket, etc. */
+_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", TRUE)
+
+/* This is really just some text */
+_CPH_CUPS_IS_VALID (info, "description", FALSE)
+_CPH_CUPS_IS_VALID (location, "location", FALSE)
+_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE)
 
 /******************************************************
  * Helpers
@@ -475,10 +492,15 @@ cph_cups_printer_add (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
                 return FALSE;
         if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
+                return FALSE;
+        if (!_cph_cups_is_ppd_valid (cups, ppd_file))
+                return FALSE;
+        if (!_cph_cups_is_info_valid (cups, info))
+                return FALSE;
+        if (!_cph_cups_is_location_valid (cups, location))
                 return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
@@ -491,11 +513,11 @@ cph_cups_printer_add (CphCups    *cups,
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "ppd-name", NULL, ppd_file);
 
-        if (info) {
+        if (info && info[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
                               "printer-info", NULL, info);
         }
-        if (location) {
+        if (location && location[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
                               "printer-location", NULL, location);
         }
@@ -515,10 +537,15 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
                 return FALSE;
         if (!_cph_cups_is_printer_uri_valid (cups, printer_uri))
+                return FALSE;
+        if (!_cph_cups_is_ppd_filename_valid (cups, ppd_filename))
+                return FALSE;
+        if (!_cph_cups_is_info_valid (cups, info))
+                return FALSE;
+        if (!_cph_cups_is_location_valid (cups, location))
                 return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
@@ -529,11 +556,11 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                       "device-uri", NULL, printer_uri);
 
-        if (info) {
+        if (info && info[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
                               "printer-info", NULL, info);
         }
-        if (location) {
+        if (location && location[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
                               "printer-location", NULL, location);
         }
@@ -614,8 +641,9 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
         g_return_val_if_fail (!accept || reason == NULL, FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_reject_jobs_reason_valid (cups, reason))
                 return FALSE;
 
         if (accept)
@@ -628,7 +656,7 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
         request = ippNewRequest (CUPS_REJECT_JOBS);
         _cph_cups_add_printer_uri (request, printer_name);
 
-        if (reason)
+        if (reason && reason[0] == '\0')
                 ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_TEXT,
                               "printer-state-message", NULL, reason);
 
@@ -644,8 +672,9 @@ cph_cups_printer_class_set_info (CphCups    *cups,
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_info_valid (cups, info))
                 return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
@@ -662,8 +691,9 @@ cph_cups_printer_class_set_location (CphCups    *cups,
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_location_valid (cups, location))
                 return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
