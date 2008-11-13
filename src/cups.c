@@ -198,10 +198,21 @@ cph_cups_new (void)
 static gboolean
 _cph_cups_is_printer_name_valid (const char *name)
 {
+        int i;
+
         if (!name || name[0] == '\0')
                 return FALSE;
 
-        /* FIXME: what's a valid printer name? No space/tabs, etc. */
+        /* only printable characters, no space, no /, no # */
+        for (i = 0; i < strlen (name); i++) {
+                if (!g_ascii_isprint (name[i]))
+                        return FALSE;
+                if (g_ascii_isspace (name[i]))
+                        return FALSE;
+                if (name[i] == '/' || name[i] == '#')
+                        return FALSE;
+        }
+
         return TRUE;
 }
 
