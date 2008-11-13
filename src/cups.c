@@ -120,6 +120,9 @@ static GObject *cph_cups_constructor (GType                  type,
                                       GObjectConstructParam *construct_properties);
 static void     cph_cups_finalize    (GObject *object);
 
+static void     _cph_cups_set_internal_status (CphCups    *cups,
+                                               const char *status);
+
 
 static void
 cph_cups_class_init (CphCupsClass *klass)
@@ -202,7 +205,7 @@ cph_cups_new (void)
  ******************************************************/
 
 static gboolean
-_cph_cups_is_printer_name_valid (const char *name)
+_cph_cups_is_printer_name_valid_internal (const char *name)
 {
         int i;
 
@@ -220,6 +223,22 @@ _cph_cups_is_printer_name_valid (const char *name)
         }
 
         return TRUE;
+}
+
+static gboolean
+_cph_cups_is_printer_name_valid (CphCups    *cups,
+                                 const char *name)
+{
+        char *error;
+
+        if (_cph_cups_is_printer_name_valid_internal (name))
+                return TRUE;
+
+        error = g_strdup_printf ("\"%s\" is not a valid printer name.", name);
+        _cph_cups_set_internal_status (cups, error);
+        g_free (error);
+
+        return FALSE;
 }
 
 /******************************************************
@@ -353,8 +372,7 @@ _cph_cups_send_new_simple_request (CphCups     *cups,
 {
         ipp_t *request;
 
-        if (!_cph_cups_is_printer_name_valid (printer_name))
-                /* FIXME: set status */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
                 return FALSE;
 
         request = ippNewRequest (op);
@@ -419,6 +437,8 @@ cph_cups_printer_add (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
@@ -455,6 +475,8 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
@@ -524,6 +546,8 @@ cph_cups_printer_set_uri (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
@@ -547,6 +571,8 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
         g_return_val_if_fail (!accept || reason == NULL, FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         if (accept)
                 return _cph_cups_send_new_simple_request (cups,
@@ -575,6 +601,8 @@ cph_cups_printer_class_set_info (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
                                                          IPP_TAG_PRINTER,
@@ -591,6 +619,8 @@ cph_cups_printer_class_set_location (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
                                                          IPP_TAG_PRINTER,
@@ -608,7 +638,8 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
-        /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
@@ -642,6 +673,8 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
@@ -671,6 +704,8 @@ cph_cups_printer_class_set_error_policy (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
                                                          IPP_TAG_PRINTER,
@@ -687,6 +722,8 @@ cph_cups_printer_class_set_op_policy (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         return _cph_cups_send_new_printer_class_request (cups, printer_name,
                                                          IPP_TAG_PRINTER,
@@ -715,6 +752,8 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         /* FIXME check arguments are fine */
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
 
         option_name = g_strdup_printf ("%s-default", option);
 
