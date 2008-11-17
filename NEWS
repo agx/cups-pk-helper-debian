@@ -1,0 +1,12 @@
+=============
+Version 0.0.2
+=============
+
++ Make the AcceptJobs method work.
++ Add checks to arguments passed over dbus, for more security.
+
+=============
+Version 0.0.1
+=============
+
+Initial release.
