@@ -406,6 +406,10 @@ _cph_cups_handle_reply (CphCups *cups,
         if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
                 retval = FALSE;
                 _cph_cups_set_error_from_reply (cups, reply);
+#if 0
+                /* Useful when debugging: */
+                g_print ("%s\n", cupsLastErrorString ());
+#endif
         } else {
                 retval = TRUE;
                 cups->priv->last_status = IPP_OK;
