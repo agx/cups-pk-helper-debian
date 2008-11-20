@@ -1541,6 +1541,7 @@ cph_cups_is_printer_uri_local (const char *uri)
                 buf = strchr (lower_uri, '?');
 
                 while (buf) {
+                        buf++;
                         if (g_str_has_prefix (buf, "ip="))
                                 break;
                         buf = strchr (buf, '&');
