@@ -973,7 +973,7 @@ cph_cups_printer_class_set_option_default (CphCups     *cups,
         option_name = g_strdup_printf ("%s-default", option);
 
         /* delete default value for option */
-        if (!values) {
+        if (len == 0) {
                 retval = _cph_cups_send_new_printer_class_request (
                                                         cups,
                                                         printer_name,
