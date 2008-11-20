@@ -291,19 +291,19 @@ cph_mechanism_new (void)
 }
 
 static gboolean
-_check_polkit_for_action (CphMechanism          *mechanism,
-                          DBusGMethodInvocation *context,
-                          const char            *action_method)
+_check_polkit_for_action_internal (CphMechanism           *mechanism,
+                                   DBusGMethodInvocation  *context,
+                                   const char             *action_method,
+                                   GError                **error)
 {
         const char *sender;
-        GError *error;
         DBusError dbus_error;
         PolKitCaller *pk_caller;
         PolKitAction *pk_action;
         PolKitResult pk_result;
         char *action;
 
-        error = NULL;
+        g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
         action = g_strdup_printf ("org.opensuse.cupspkhelper.mechanism.%s",
                                   action_method);
@@ -318,14 +318,11 @@ _check_polkit_for_action (CphMechanism          *mechanism,
                 &dbus_error);
 
         if (pk_caller == NULL) {
-                error = g_error_new (CPH_MECHANISM_ERROR,
-                                     CPH_MECHANISM_ERROR_GENERAL,
-                                     "Error getting information about "
-                                     "caller: %s: %s",
-                                     dbus_error.name, dbus_error.message);
+                g_set_error (error,
+                             CPH_MECHANISM_ERROR, CPH_MECHANISM_ERROR_GENERAL,
+                             "Error getting information about caller: %s: %s",
+                             dbus_error.name, dbus_error.message);
                 dbus_error_free (&dbus_error);
-                dbus_g_method_return_error (context, error);
-                g_error_free (error);
                 g_free (action);
 
                 return FALSE;
@@ -340,14 +337,13 @@ _check_polkit_for_action (CphMechanism          *mechanism,
         polkit_action_unref (pk_action);
 
         if (pk_result != POLKIT_RESULT_YES) {
-                error = g_error_new (CPH_MECHANISM_ERROR,
-                                     CPH_MECHANISM_ERROR_NOT_PRIVILEGED,
-                                     "%s %s <-- (action, result)",
-                                     action,
-                                     polkit_result_to_string_representation (pk_result));
+                g_set_error (error,
+                             CPH_MECHANISM_ERROR,
+                             CPH_MECHANISM_ERROR_NOT_PRIVILEGED,
+                             "%s %s <-- (action, result)",
+                             action,
+                             polkit_result_to_string_representation (pk_result));
                 dbus_error_free (&dbus_error);
-                dbus_g_method_return_error (context, error);
-                g_error_free (error);
                 g_free (action);
 
                 return FALSE;
@@ -356,6 +352,70 @@ _check_polkit_for_action (CphMechanism          *mechanism,
         g_free (action);
 
         return TRUE;
+}
+
+static gboolean
+_check_polkit_for_action_v (CphMechanism          *mechanism,
+                            DBusGMethodInvocation *context,
+                            const char            *first_action_method,
+                            ...)
+{
+        gboolean    retval;
+        GError     *error;
+        va_list     var_args;
+        const char *action_method;
+
+        retval = FALSE;
+        error = NULL;
+
+        /* We check if the user is authorized for any of the specificed action
+         * methods. In case of failure, we'll fail for the last one. Therefore,
+         * we should go from generic authorization to very specific
+         * authorization, so that the user gets asked for the "easier"
+         * password in the end (eg, user password vs root password). */
+        va_start (var_args, first_action_method);
+        action_method = first_action_method;
+
+        while (action_method) {
+                if (error != NULL) {
+                        g_error_free (error);
+                        error = NULL;
+                }
+
+                retval = _check_polkit_for_action_internal (mechanism, context,
+                                                            action_method,
+                                                            &error);
+                if (retval)
+                        break;
+
+                action_method = va_arg (var_args, char *);
+        }
+
+        va_end (var_args);
+
+        if (!retval) {
+                if (!error) {
+                        /* This should never happen, but let's be paranoid */
+                        error = g_error_new (CPH_MECHANISM_ERROR,
+                                             CPH_MECHANISM_ERROR_GENERAL,
+                                             "Unknown error when checking for "
+                                             "authorization");
+                }
+
+                dbus_g_method_return_error (context, error);
+                g_error_free (error);
+        }
+
+        return retval;
+}
+
+static gboolean
+_check_polkit_for_action (CphMechanism          *mechanism,
+                          DBusGMethodInvocation *context,
+                          const char            *action_method)
+{
+        return _check_polkit_for_action_v (mechanism, context,
+                                           action_method, NULL);
 }
 
 /* helpers */
@@ -748,7 +808,9 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "printerdefault",
+                                         NULL))
                 return FALSE;
 
         ret = cph_cups_printer_set_default (mechanism->priv->cups, name);
@@ -767,7 +829,9 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "printerenable",
+                                         NULL))
                 return FALSE;
 
         ret = cph_cups_printer_set_enabled (mechanism->priv->cups,
