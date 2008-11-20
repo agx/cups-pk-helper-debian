@@ -809,7 +809,7 @@ cph_mechanism_server_get_settings (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action (mechanism, context, "serversettings"))
                 return FALSE;
 
         settings = cph_cups_server_get_settings (mechanism->priv->cups);
@@ -828,7 +828,7 @@ cph_mechanism_server_set_settings (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action (mechanism, context, "serversettings"))
                 return FALSE;
 
         ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
