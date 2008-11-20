@@ -1150,3 +1150,64 @@ cph_cups_server_set_settings (CphCups    *cups,
 
         return TRUE;
 }
+
+/******************************************************
+ * Non-object functions
+ ******************************************************/
+
+gboolean
+cps_cups_is_printer_uri_local (const char *uri)
+{
+        char *lower_uri;
+
+        g_return_val_if_fail (uri != NULL, FALSE);
+
+        lower_uri = g_ascii_strdown (uri, -1);
+
+        /* clearly local stuff */
+        if (g_str_has_prefix (lower_uri, "parallel:") ||
+            g_str_has_prefix (lower_uri, "usb:") ||
+            g_str_has_prefix (lower_uri, "hal:") ||
+            /* beh is the backend error handler */
+            g_str_has_prefix (lower_uri, "beh:") ||
+            g_str_has_prefix (lower_uri, "scsi:") ||
+            g_str_has_prefix (lower_uri, "serial:") ||
+            g_str_has_prefix (lower_uri, "pipe:")) {
+                g_free (lower_uri);
+                return TRUE;
+        }
+
+        /* clearly remote stuff */
+        if (g_str_has_prefix (lower_uri, "socket:") ||
+            g_str_has_prefix (lower_uri, "ipp:") ||
+            g_str_has_prefix (lower_uri, "http:") ||
+            g_str_has_prefix (lower_uri, "lpd:") ||
+            g_str_has_prefix (lower_uri, "smb:") ||
+            g_str_has_prefix (lower_uri, "novell:")) {
+                g_free (lower_uri);
+                return FALSE;
+        }
+
+        /* hplip can be both, I think. Let's just check if we have an ip
+         * argument in the URI */
+        if (g_str_has_prefix (lower_uri, "hp:") ||
+            g_str_has_prefix (lower_uri, "hpfax:")) {
+                char *buf;
+
+                buf = strchr (lower_uri, '?');
+
+                while (buf) {
+                        if (g_str_has_prefix (buf, "ip="))
+                                break;
+                        buf = strchr (buf, '&');
+                }
+
+                g_free (lower_uri);
+                return buf == NULL;
+        }
+
+        g_free (lower_uri);
+
+        /* we don't know, so we assume it's not local */
+        return FALSE;
+}

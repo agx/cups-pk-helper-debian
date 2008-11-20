@@ -130,6 +130,9 @@ GHashTable *cph_cups_server_get_settings (CphCups *cups);
 gboolean cph_cups_server_set_settings (CphCups    *cups,
                                        GHashTable *settings);
 
+
+gboolean cps_cups_is_printer_uri_local (const char *uri);
+
 G_END_DECLS
 
 #endif /* CPH_CUPS_H */
