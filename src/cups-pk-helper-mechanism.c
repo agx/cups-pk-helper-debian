@@ -375,6 +375,22 @@ _cph_mechanism_return_error (CphMechanism          *mechanism,
         dbus_g_method_return (context, error);
 }
 
+static void
+_cph_mechanism_return_error_and_value (CphMechanism          *mechanism,
+                                       DBusGMethodInvocation *context,
+                                       gboolean               failed,
+                                       gpointer               value)
+{
+        const char *error;
+
+        if (failed)
+                error = cph_cups_last_status_to_string (mechanism->priv->cups);
+        else
+                error = "";
+
+        dbus_g_method_return (context, error, value);
+}
+
 /* exported methods */
 
 gboolean
@@ -722,6 +738,42 @@ cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
 
         ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
                                                 name, enabled, reason);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_server_get_settings (CphMechanism          *mechanism,
+                                   DBusGMethodInvocation *context)
+{
+        GHashTable *settings;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        settings = cph_cups_server_get_settings (mechanism->priv->cups);
+        _cph_mechanism_return_error_and_value (mechanism, context,
+                                               settings == NULL, settings);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_server_set_settings (CphMechanism          *mechanism,
+                                   GHashTable            *settings,
+                                   DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         return TRUE;

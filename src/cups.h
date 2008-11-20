@@ -125,6 +125,11 @@ gboolean cph_cups_printer_class_set_option_default (CphCups     *cups,
                                                     const char  *option,
                                                     const char **values);
 
+GHashTable *cph_cups_server_get_settings (CphCups *cups);
+
+gboolean cph_cups_server_set_settings (CphCups    *cups,
+                                       GHashTable *settings);
+
 G_END_DECLS
 
 #endif /* CPH_CUPS_H */

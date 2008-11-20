@@ -183,6 +183,16 @@ cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
                                        gboolean               enabled,
                                        const char            *reason,
                                        DBusGMethodInvocation *context);
+
+gboolean
+cph_mechanism_server_get_settings (CphMechanism          *mechanism,
+                                   DBusGMethodInvocation *context);
+
+gboolean
+cph_mechanism_server_set_settings (CphMechanism          *mechanism,
+                                   GHashTable            *settings,
+                                   DBusGMethodInvocation *context);
+
 G_END_DECLS
 
 #endif /* CPH_MECHANISM_H */

@@ -38,6 +38,7 @@
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
 
+#include <cups/adminutil.h>
 #include <cups/cups.h>
 #include <cups/http.h>
 #include <cups/ipp.h>
@@ -1061,4 +1062,91 @@ out:
         g_free (option_name);
 
         return retval;
+}
+
+GHashTable *
+cph_cups_server_get_settings (CphCups *cups)
+{
+        int            retval;
+        GHashTable    *hash;
+        cups_option_t *settings;
+        int            num_settings, i;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+
+        retval = cupsAdminGetServerSettings (cups->priv->connection,
+                                             &num_settings, &settings);
+
+        if (retval == 0) {
+                char *error;
+
+                error = g_strdup_printf ("Can not get server settings.");
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return NULL;
+        }
+
+        hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                      g_free, g_free);
+
+        for (i = 0; i < num_settings; i++)
+                g_hash_table_replace (hash,
+                                      g_strdup (settings[i].name),
+                                      g_strdup (settings[i].value));
+
+        cupsFreeOptions (num_settings, settings);
+
+        return hash;
+}
+
+gboolean
+cph_cups_server_set_settings (CphCups    *cups,
+                              GHashTable *settings)
+{
+        int             retval;
+        GHashTableIter  iter;
+        /* key and value are strings, but we want to avoid compiler warnings */
+        gpointer        key;
+        gpointer        value;
+        cups_option_t  *cups_settings;
+        int             num_settings;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+        g_return_val_if_fail (settings != NULL, FALSE);
+
+        /* First pass to check the validity of the hashtable content */
+        g_hash_table_iter_init (&iter, settings);
+        while (g_hash_table_iter_next (&iter, &key, &value)) {
+                if (!_cph_cups_is_option_valid (cups, key))
+                        return FALSE;
+                if (!_cph_cups_is_option_value_valid (cups, value))
+                        return FALSE;
+        }
+
+        /* Second pass to actually set the settings */
+        cups_settings = NULL;
+        num_settings = 0;
+
+        g_hash_table_iter_init (&iter, settings);
+        while (g_hash_table_iter_next (&iter, &key, &value))
+                num_settings = cupsAddOption (key, value,
+                                              num_settings, &cups_settings);
+
+        retval = cupsAdminSetServerSettings (cups->priv->connection,
+                                             num_settings, cups_settings);
+
+        cupsFreeOptions (num_settings, cups_settings);
+
+        if (retval == 0) {
+                char *error;
+
+                error = g_strdup_printf ("Can not set server settings.");
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        return TRUE;
 }
