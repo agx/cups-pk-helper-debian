@@ -142,7 +142,7 @@ gboolean cph_cups_server_set_settings (CphCups    *cups,
                                        GHashTable *settings);
 
 
-gboolean cps_cups_is_printer_uri_local (const char *uri);
+gboolean cph_cups_is_printer_uri_local (const char *uri);
 
 G_END_DECLS
 

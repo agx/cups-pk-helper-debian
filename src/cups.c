@@ -1402,7 +1402,7 @@ cph_cups_server_set_settings (CphCups    *cups,
  ******************************************************/
 
 gboolean
-cps_cups_is_printer_uri_local (const char *uri)
+cph_cups_is_printer_uri_local (const char *uri)
 {
         char *lower_uri;
 
