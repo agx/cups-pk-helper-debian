@@ -8,6 +8,9 @@
   <vendor_url>http://www.opensuse.org/</vendor_url>
   <icon_name>printer</icon_name>
 
+  <!-- Exists mainly so that it's possible to not require a password for this
+       operation: if some authorization is required, then the PolicyKit helper
+       will fallback on printer-X-edit. -->
   <action id="org.opensuse.cupspkhelper.mechanism.printer-set-default">
     <_description>Set a printer as default printer</_description>
     <_message>Privileges are required to set a printer, or a class, as default printer.</_message>
@@ -17,6 +20,9 @@
     </defaults>
   </action>
 
+  <!-- Exists mainly so that it's possible to not require a password for this
+       operation: if some authorization is required, then the PolicyKit helper
+       will fallback on printer-X-edit. -->
   <action id="org.opensuse.cupspkhelper.mechanism.printer-enable">
     <_description>Enable/Disable a printer</_description>
     <_message>Privileges are required to enable/disable a printer, or a class.</_message>

@@ -370,9 +370,9 @@ _check_polkit_for_action_v (CphMechanism          *mechanism,
 
         /* We check if the user is authorized for any of the specificed action
          * methods. In case of failure, we'll fail for the last one. Therefore,
-         * we should go from generic authorization to very specific
-         * authorization, so that the user gets asked for the "easier"
-         * password in the end (eg, user password vs root password). */
+         * we should choose with care the order, especially if we don't want
+         * to prompt for a password too often and if we don't want to authorize
+         * too many things at once. */
         va_start (var_args, first_action_method);
         action_method = first_action_method;
 
@@ -838,12 +838,23 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                    const char            *name,
                                    DBusGMethodInvocation *context)
 {
+        gboolean is_local;
         gboolean ret;
 
         reset_killtimer (mechanism);
 
+        is_local = cph_cups_is_printer_local (mechanism->priv->cups, name);
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "printer-default",
+                                         "printeraddremove",
+                                         /* this is not the last check because
+                                          * it's likely most useful to the user
+                                          * to give "printer-X-edit" powers */
+                                         "printer-default",
+                                         /* quite important, since it's
+                                          * automatically called after adding a
+                                          * printer */
+                                         is_local ? "printer-local-edit"
+                                                  : "printer-remote-edit",
                                          NULL))
                 return FALSE;
 
@@ -859,12 +870,23 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                    gboolean               enabled,
                                    DBusGMethodInvocation *context)
 {
+        gboolean is_local;
         gboolean ret;
 
         reset_killtimer (mechanism);
 
+        is_local = cph_cups_is_printer_local (mechanism->priv->cups, name);
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "printer-enable",
+                                         "printeraddremove",
+                                         /* this is not the last check because
+                                          * it's likely most useful to the user
+                                          * to give "printer-X-edit" powers */
+                                         "printer-enable",
+                                         /* quite important, since it's
+                                          * automatically called after adding a
+                                          * printer */
+                                         is_local ? "printer-local-edit"
+                                                  : "printer-remote-edit",
                                          NULL))
                 return FALSE;
 
