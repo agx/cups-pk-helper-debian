@@ -678,6 +678,9 @@ cph_cups_printer_get_uri (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
 
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return NULL;
+
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_printer_uri (request, printer_name);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
@@ -717,6 +720,33 @@ cph_cups_printer_get_uri (CphCups    *cups,
         ippDelete (reply);
 
         return uri;
+}
+
+gboolean
+cph_cups_is_printer_local (CphCups    *cups,
+                           const char *printer_name)
+{
+        char     *uri;
+        gboolean  retval;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+
+        uri = cph_cups_printer_get_uri (cups, printer_name);
+
+        /* This can happen, especially since the printer might not exist, or if
+         * it's actually a class and not a printer. In all cases, it should be
+         * considered local. */
+        if (!uri)
+                return TRUE;
+
+        retval = cph_cups_is_printer_uri_local (uri);
+
+        g_free (uri);
+
+        return retval;
 }
 
 gboolean

@@ -144,6 +144,8 @@ GHashTable *cph_cups_server_get_settings (CphCups *cups);
 gboolean cph_cups_server_set_settings (CphCups    *cups,
                                        GHashTable *settings);
 
+gboolean cph_cups_is_printer_local (CphCups    *cups,
+                                    const char *printer_name);
 
 gboolean cph_cups_is_printer_uri_local (const char *uri);
 
