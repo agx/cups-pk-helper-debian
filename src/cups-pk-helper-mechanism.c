@@ -809,7 +809,7 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "printerdefault",
+                                         "printeraddremove", "printer-default",
                                          NULL))
                 return FALSE;
 
@@ -830,7 +830,7 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "printerenable",
+                                         "printeraddremove", "printer-enable",
                                          NULL))
                 return FALSE;
 
@@ -873,7 +873,7 @@ cph_mechanism_server_get_settings (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "serversettings"))
+        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return FALSE;
 
         settings = cph_cups_server_get_settings (mechanism->priv->cups);
@@ -892,7 +892,7 @@ cph_mechanism_server_set_settings (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "serversettings"))
+        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return FALSE;
 
         ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);

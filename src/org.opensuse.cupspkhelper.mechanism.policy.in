@@ -8,7 +8,7 @@
   <vendor_url>http://www.opensuse.org/</vendor_url>
   <icon_name>printer</icon_name>
 
-  <action id="org.opensuse.cupspkhelper.mechanism.printerdefault">
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-set-default">
     <_description>Set a printer as default printer</_description>
     <_message>Privileges are required to set a printer, or a class, as default printer.</_message>
     <defaults>
@@ -17,7 +17,7 @@
     </defaults>
   </action>
 
-  <action id="org.opensuse.cupspkhelper.mechanism.printerenable">
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-enable">
     <_description>Enable/Disable a printer</_description>
     <_message>Privileges are required to enable/disable a printer, or a class.</_message>
     <defaults>
@@ -26,16 +26,16 @@
     </defaults>
   </action>
 
-  <action id="org.opensuse.cupspkhelper.mechanism.printerlocal">
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-local-edit">
     <_description>Add/Remove/Edit a local printer</_description>
-    <_message>Privileges are required to add/remove/edit a local printer, or a class.</_message>
+    <_message>Privileges are required to add/remove/edit a local printer.</_message>
     <defaults>
       <allow_inactive>no</allow_inactive>
       <allow_active>auth_admin</allow_active>
     </defaults>
   </action>
 
-  <action id="org.opensuse.cupspkhelper.mechanism.printerremote">
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-remote-edit">
     <_description>Add/Remove/Edit a remote printer</_description>
     <_message>Privileges are required to add/remove/edit a remote printer.</_message>
     <defaults>
@@ -44,7 +44,16 @@
     </defaults>
   </action>
 
-  <action id="org.opensuse.cupspkhelper.mechanism.serversettings">
+  <action id="org.opensuse.cupspkhelper.mechanism.class-edit">
+    <_description>Add/Remove/Edit a class</_description>
+    <_message>Privileges are required to add/remove/edit a class.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.server-settings">
     <_description>Get/Set server settings</_description>
     <_message>Privileges are required to get/set server settings.</_message>
     <defaults>
