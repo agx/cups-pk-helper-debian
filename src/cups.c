@@ -665,6 +665,60 @@ cph_cups_last_status_to_string (CphCups *cups)
                 return ippErrorString (cups->priv->last_status);
 }
 
+char *
+cph_cups_printer_get_uri (CphCups    *cups,
+                          const char *printer_name)
+{
+        const char * const  attrs[1] = { "device-uri" };
+        ipp_t              *request;
+        const char         *resource_char;
+        ipp_t              *reply;
+        ipp_attribute_t    *attr;
+        char               *uri;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+
+        request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
+        _cph_cups_add_printer_uri (request, printer_name);
+        ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
+		       "requested-attributes", 1, NULL, attrs);
+
+        resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
+        reply = cupsDoRequest (cups->priv->connection,
+                               request, resource_char);
+
+        if (!reply)
+                return NULL;
+
+        uri = NULL;
+
+        for (attr = reply->attrs; attr; attr = attr->next) {
+                while (attr && attr->group_tag != IPP_TAG_PRINTER)
+                        attr = attr->next;
+
+                if (attr == NULL)
+                        break;
+
+                while (attr && attr->group_tag == IPP_TAG_PRINTER) {
+                        if (attr->name &&
+                            strcmp (attr->name, attrs[0]) == 0 &&
+                            attr->value_tag == IPP_TAG_URI) {
+                                uri = g_strdup (attr->values[0].string.text);
+                                break;
+                        }
+
+                        attr = attr->next;
+                }
+
+                if (uri != NULL || attr == NULL)
+                        break;
+        }
+
+        ippDelete (reply);
+
+        return uri;
+}
+
 gboolean
 cph_cups_printer_add (CphCups    *cups,
                       const char *printer_name,
@@ -1417,6 +1471,10 @@ cph_cups_is_printer_uri_local (const char *uri)
         char *lower_uri;
 
         g_return_val_if_fail (uri != NULL, FALSE);
+
+        /* empty URI: can only be local... */
+        if (uri[0] == '\0')
+                return TRUE;
 
         lower_uri = g_ascii_strdown (uri, -1);
 
