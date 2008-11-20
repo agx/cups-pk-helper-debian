@@ -495,7 +495,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
 }
 
 static gboolean
-_cps_cups_printer_class_set_users (CphCups     *cups,
+_cph_cups_printer_class_set_users (CphCups     *cups,
                                    const char  *printer_name,
                                    const char **users,
                                    const char  *request_name,
@@ -931,7 +931,7 @@ cph_cups_printer_class_set_users_allowed (CphCups     *cups,
                 }
         }
 
-        return _cps_cups_printer_class_set_users (cups, printer_name, users,
+        return _cph_cups_printer_class_set_users (cups, printer_name, users,
                                                   "requesting-user-name-allowed",
                                                   "all");
 }
@@ -959,7 +959,7 @@ cph_cups_printer_class_set_users_denied (CphCups     *cups,
                 }
         }
 
-        return _cps_cups_printer_class_set_users (cups, printer_name, users,
+        return _cph_cups_printer_class_set_users (cups, printer_name, users,
                                                   "requesting-user-name-denied",
                                                   "none");
 }
