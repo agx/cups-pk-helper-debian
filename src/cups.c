@@ -293,7 +293,6 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
  *   + for the policies, we could check that the value is in the
  *     printer-error-policy-supported and printer-op-policy-supported
  *     attributes.
- *   + for usernames, we could check that the username exists on the system.
  */
 _CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE)
 _CPH_CUPS_IS_VALID (ppd, "PPD", TRUE)
@@ -301,6 +300,14 @@ _CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE)
 _CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE)
 _CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE)
 _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
+
+/* Check for users. Those are some printable strings, which souldn't be NULL.
+ * They should also not be empty, but it appears that it's possible to carry
+ * an empty "DenyUser" in the cups configuration, so we should handle (by
+ * ignoring them) empty usernames.
+ * We could also check that the username exists on the system, but cups will do
+ * it.
+ */
 _CPH_CUPS_IS_VALID (user, "user", TRUE)
 
 /* Check for options & values. Those are for sure some printable strings, but
@@ -493,14 +500,19 @@ _cps_cups_printer_class_set_users (CphCups     *cups,
                                    const char  *request_name,
                                    const char  *default_value)
 {
+        int              real_len;
         int              len;
         ipp_t           *request;
         ipp_attribute_t *attr;
 
+        real_len = 0;
         len = 0;
         if (users) {
-                while (users[len] != NULL)
-                        len++;
+                while (users[real_len] != NULL) {
+                        if (users[real_len][0] != '\0')
+                                len++;
+                        real_len++;
+                }
         }
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
@@ -510,9 +522,15 @@ _cps_cups_printer_class_set_users (CphCups     *cups,
         if (len == 0)
                 attr->values[0].string.text = g_strdup (default_value);
         else {
-                int i;
-                for (i = 0; i < len; i++)
-                        attr->values[i].string.text = g_strdup (users[i]);
+                int i, j;
+                for (i = 0, j = 0; i < real_len && j < len; i++) {
+                        /* we skip empty user names */
+                        if (users[i][0] == '\0')
+                                continue;
+
+                        attr->values[j].string.text = g_strdup (users[i]);
+                        j++;
+                }
         }
 
         if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
@@ -529,9 +547,15 @@ _cps_cups_printer_class_set_users (CphCups     *cups,
         if (len == 0)
                 attr->values[0].string.text = g_strdup (default_value);
         else {
-                int i;
-                for (i = 0; i < len; i++)
-                        attr->values[i].string.text = g_strdup (users[i]);
+                int i, j;
+                for (i = 0, j = 0; i < real_len && j < len; i++) {
+                        /* we skip empty user names */
+                        if (users[i][0] == '\0')
+                                continue;
+
+                        attr->values[j].string.text = g_strdup (users[i]);
+                        j++;
+                }
         }
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
