@@ -517,8 +517,8 @@ _cps_cups_printer_class_set_users (CphCups     *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
-        ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                       request_name, len ? len : 1, NULL, NULL);
+        attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                              request_name, len ? len : 1, NULL, NULL);
         if (len == 0)
                 attr->values[0].string.text = g_strdup (default_value);
         else {
@@ -542,8 +542,8 @@ _cps_cups_printer_class_set_users (CphCups     *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
-        ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                       request_name, len ? len : 1, NULL, NULL);
+        attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                              request_name, len ? len : 1, NULL, NULL);
         if (len == 0)
                 attr->values[0].string.text = g_strdup (default_value);
         else {

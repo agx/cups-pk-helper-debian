@@ -595,15 +595,12 @@ cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
 
         reset_killtimer (mechanism);
 
-        g_print ("hello?\n");
         if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
                 return FALSE;
-        g_print ("hello!\n");
 
         ret = cph_cups_printer_class_set_users_denied (mechanism->priv->cups,
                                                        name, users);
         _cph_mechanism_return_error (mechanism, context, !ret);
-        g_print ("%s\n", cph_cups_last_status_to_string (mechanism->priv->cups));
 
         return TRUE;
 }
