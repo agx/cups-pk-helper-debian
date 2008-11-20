@@ -87,6 +87,17 @@ gboolean cph_cups_printer_set_accept_jobs (CphCups    *cups,
                                            gboolean    enabled,
                                            const char *reason);
 
+gboolean cph_cups_class_add_printer (CphCups    *cups,
+                                     const char *class_name,
+                                     const char *printer_name);
+
+gboolean cph_cups_class_delete_printer (CphCups    *cups,
+                                        const char *class_name,
+                                        const char *printer_name);
+
+gboolean cph_cups_class_delete (CphCups    *cups,
+                                const char *class_name);
+
 gboolean cph_cups_printer_class_set_info (CphCups    *cups,
                                           const char *printer_name,
                                           const char *info);

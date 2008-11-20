@@ -107,6 +107,26 @@
       <arg name="error"    direction="out" type="s"/>
     </method>
 
+    <method name="ClassAddPrinter">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="printer"  direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="ClassDeletePrinter">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="printer"  direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="ClassDelete">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
     <method name="PrinterSetDefault">
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="name"     direction="in"  type="s"/>

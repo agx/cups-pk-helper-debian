@@ -682,6 +682,64 @@ cph_mechanism_printer_delete (CphMechanism          *mechanism,
 }
 
 gboolean
+cph_mechanism_class_add_printer (CphMechanism          *mechanism,
+                                 const char            *name,
+                                 const char            *printer,
+                                 DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_class_add_printer (mechanism->priv->cups,
+                                          name, printer);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
+                                    const char            *name,
+                                    const char            *printer,
+                                    DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_class_delete_printer (mechanism->priv->cups,
+                                             name, printer);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_class_delete (CphMechanism          *mechanism,
+                            const char            *name,
+                            DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_class_delete (mechanism->priv->cups, name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
 cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                    const char            *name,
                                    DBusGMethodInvocation *context)

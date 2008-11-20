@@ -76,9 +76,9 @@
 ~!+* deletePrinterOptionDefault
 ~!+* deletePrinter
      getPrinterAttributes
- !   addPrinterToClass
- !   deletePrinterFromClass
- !   deleteClass
+~!+* addPrinterToClass
+~!+* deletePrinterFromClass
+~!+* deleteClass
      getDefault
 ~!+* setDefault
      getPPD
@@ -280,6 +280,23 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
         return FALSE;
 }
 
+/* class is similar to printer in terms of validity checks */
+static gboolean
+_cph_cups_is_class_name_valid (CphCups    *cups,
+                               const char *name)
+{
+        char *error;
+
+        if (_cph_cups_is_printer_name_valid_internal (name))
+                return TRUE;
+
+        error = g_strdup_printf ("\"%s\" is not a valid class name.", name);
+        _cph_cups_set_internal_status (cups, error);
+        g_free (error);
+
+        return FALSE;
+}
+
 /* This is some text, but we could potentially do more checks. We don't do them
  * because cups will already do them.
  *   + for the URI, we could check that the scheme is supported and that the
@@ -467,6 +484,23 @@ _cph_cups_send_new_simple_request (CphCups     *cups,
 }
 
 static gboolean
+_cph_cups_send_new_simple_class_request (CphCups     *cups,
+                                         ipp_op_t     op,
+                                         const char  *class_name,
+                                         CphResource  resource)
+{
+        ipp_t *request;
+
+        if (!_cph_cups_is_class_name_valid (cups, class_name))
+                return FALSE;
+
+        request = ippNewRequest (op);
+        _cph_cups_add_class_uri (request, class_name);
+
+        return _cph_cups_send_request (cups, request, resource);
+}
+
+static gboolean
 _cph_cups_send_new_printer_class_request (CphCups     *cups,
                                           const char  *printer_name,
                                           ipp_tag_t    group,
@@ -492,6 +526,56 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
         ippAddString (request, group, type, name, NULL, value);
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+static int
+_cph_cups_class_has_printer (CphCups     *cups,
+                             const char  *class_name,
+                             const char  *printer_name,
+                             ipp_t      **reply)
+{
+        gboolean         retval;
+        const char      *resource_char;
+        ipp_t           *request;
+        ipp_t           *internal_reply;
+        ipp_attribute_t *printer_names;
+        int              i;
+
+        retval = -1;
+
+        if (reply)
+                *reply = NULL;
+
+        request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
+        _cph_cups_add_class_uri (request, class_name);
+        resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
+        internal_reply = cupsDoRequest (cups->priv->connection,
+                                        request, resource_char);
+
+        if (!internal_reply)
+                return -1;
+
+        printer_names = ippFindAttribute (internal_reply,
+                                          "member-names", IPP_TAG_NAME);
+
+        if (!printer_names)
+                goto out;
+
+        for (i = 0; i < printer_names->num_values; i++) {
+                if (!g_ascii_strcasecmp (printer_names->values[i].string.text,
+                                         printer_name)) {
+                        retval = i;
+                        break;
+                }
+        }
+
+out:
+        if (reply)
+                *reply = internal_reply;
+        else
+                ippDelete (internal_reply);
+
+        return retval;
 }
 
 static gboolean
@@ -758,6 +842,168 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
                               "printer-state-message", NULL, reason);
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+/* Functions that work on a class */
+
+gboolean
+cph_cups_class_add_printer (CphCups    *cups,
+                            const char *class_name,
+                            const char *printer_name)
+{
+        int              printer_index;
+        ipp_t           *reply;
+        ipp_t           *request;
+        int              new_len;
+        ipp_attribute_t *printer_uris;
+        char             printer_uri[HTTP_MAX_URI + 1];
+        ipp_attribute_t *attr;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_class_name_valid (cups, class_name))
+                return FALSE;
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+
+        /* check that the printer is not already in the class */
+        printer_index = _cph_cups_class_has_printer (cups,
+                                                     class_name, printer_name,
+                                                     &reply);
+        if (printer_index >= 0) {
+                char *error;
+
+                if (reply)
+                        ippDelete (reply);
+
+                error = g_strdup_printf ("Printer %s is already in class %s.",
+                                         printer_name, class_name);
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        /* add the printer to the class */
+
+        request = ippNewRequest (CUPS_ADD_CLASS);
+        _cph_cups_add_class_uri (request, class_name);
+
+        g_snprintf (printer_uri, sizeof (printer_uri),
+                    "ipp://localhost/printers/%s", printer_name);
+
+        /* new length: 1 + what we had before */
+        new_len = 1;
+        if (reply) {
+                printer_uris = ippFindAttribute (reply,
+                                                 "member-uris", IPP_TAG_URI);
+                if (printer_uris)
+                        new_len += printer_uris->num_values;
+        } else
+                printer_uris = NULL;
+
+        attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_URI,
+                              "member-uris", new_len,
+                              NULL, NULL);
+        if (printer_uris) {
+                int i;
+
+                for (i = 0; i < printer_uris->num_values; i++)
+                        attr->values[i].string.text = g_strdup (printer_uris->values[i].string.text);
+        }
+
+        if (reply)
+                ippDelete (reply);
+
+        attr->values[new_len - 1].string.text = g_strdup (printer_uri);
+
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+gboolean
+cph_cups_class_delete_printer (CphCups    *cups,
+                               const char *class_name,
+                               const char *printer_name)
+{
+        int              printer_index;
+        ipp_t           *reply;
+        ipp_t           *request;
+        int              new_len;
+        ipp_attribute_t *printer_uris;
+        ipp_attribute_t *attr;
+        int              i;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_class_name_valid (cups, class_name))
+                return FALSE;
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+
+        /* check that the printer is in the class */
+        printer_index = _cph_cups_class_has_printer (cups,
+                                                     class_name, printer_name,
+                                                     &reply);
+        /* Note: the second condition (!reply) is only here for safety purpose.
+         * When it's TRUE, the first one should be TRUE too */
+        if (printer_index < 0 || !reply) {
+                char *error;
+
+                if (reply)
+                        ippDelete (reply);
+
+                error = g_strdup_printf ("Printer %s is not in class %s.",
+                                         printer_name, class_name);
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        /* remove the printer from the class */
+
+        /* new length: -1 + what we had before */
+        new_len = -1;
+        printer_uris = ippFindAttribute (reply,
+                                         "member-uris", IPP_TAG_URI);
+        if (printer_uris)
+                new_len += printer_uris->num_values;
+
+        /* empty class: we delete it */
+        if (new_len <= 0) {
+                ippDelete (reply);
+                return cph_cups_class_delete (cups, class_name);
+        }
+
+        /* printer_uris is not NULL and reply is not NULL */
+
+        request = ippNewRequest (CUPS_ADD_CLASS);
+        _cph_cups_add_class_uri (request, class_name);
+
+        attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_URI,
+                              "member-uris", new_len,
+                              NULL, NULL);
+
+        /* copy all printers from the class, except the one we remove */
+        for (i = 0; i < printer_index; i++)
+                attr->values[i].string.text = g_strdup (printer_uris->values[i].string.text);
+        for (i = printer_index + 1; i < printer_uris->num_values; i++)
+                attr->values[i].string.text = g_strdup (printer_uris->values[i].string.text);
+
+        ippDelete (reply);
+
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+gboolean
+cph_cups_class_delete (CphCups    *cups,
+                       const char *class_name)
+{
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        return _cph_cups_send_new_simple_class_request (cups, CUPS_DELETE_CLASS,
+                                                        class_name,
+                                                        CPH_RESOURCE_ADMIN);
 }
 
 /* Functions that can work on printer and class */

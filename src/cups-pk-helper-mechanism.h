@@ -166,6 +166,21 @@ cph_mechanism_printer_delete (CphMechanism          *mechanism,
                               DBusGMethodInvocation *context);
 
 gboolean
+cph_mechanism_class_add_printer (CphMechanism          *mechanism,
+                                 const char            *name,
+                                 const char            *printer,
+                                 DBusGMethodInvocation *context);
+gboolean
+cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
+                                    const char            *name,
+                                    const char            *printer,
+                                    DBusGMethodInvocation *context);
+gboolean
+cph_mechanism_class_delete (CphMechanism          *mechanism,
+                            const char            *name,
+                            DBusGMethodInvocation *context);
+
+gboolean
 cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                    const char            *name,
                                    DBusGMethodInvocation *context);
