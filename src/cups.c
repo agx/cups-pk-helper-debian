@@ -738,8 +738,14 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
-        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
-                      "device-uri", NULL, printer_uri);
+
+        /* In this specific case of ADD_MODIFY, the URI can be NULL/empty since
+         * we provide a complete PPD. And cups fails if we pass an empty
+         * string. */
+        if (printer_uri && printer_uri[0] != '\0') {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
+                              "device-uri", NULL, printer_uri);
+        }
 
         if (info && info[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
