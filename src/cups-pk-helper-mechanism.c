@@ -751,7 +751,9 @@ cph_mechanism_class_add_printer (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "class-edit",
+                                         NULL))
                 return FALSE;
 
         ret = cph_cups_class_add_printer (mechanism->priv->cups,
@@ -771,7 +773,9 @@ cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "class-edit",
+                                         NULL))
                 return FALSE;
 
         ret = cph_cups_class_delete_printer (mechanism->priv->cups,
@@ -790,7 +794,9 @@ cph_mechanism_class_delete (CphMechanism          *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "class-edit",
+                                         NULL))
                 return FALSE;
 
         ret = cph_cups_class_delete (mechanism->priv->cups, name);
