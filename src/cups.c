@@ -69,8 +69,8 @@
 ~!+* setPrinterJobSheets
 ~!+* setPrinterErrorPolicy
 ~!+* setPrinterOpPolicy
- !   setPrinterUsersAllowed
- !   setPrinterUsersDenied
+~!+* setPrinterUsersAllowed
+~!+* setPrinterUsersDenied
 ~!+* addPrinterOptionDefault
 ~!+* deletePrinterOptionDefault
 ~!+* deletePrinter
@@ -293,6 +293,7 @@ _cph_cups_is_printer_name_valid (CphCups    *cups,
  *   + for the policies, we could check that the value is in the
  *     printer-error-policy-supported and printer-op-policy-supported
  *     attributes.
+ *   + for usernames, we could check that the username exists on the system.
  */
 _CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE)
 _CPH_CUPS_IS_VALID (ppd, "PPD", TRUE)
@@ -300,6 +301,7 @@ _CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE)
 _CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE)
 _CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE)
 _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
+_CPH_CUPS_IS_VALID (user, "user", TRUE)
 
 /* Check for options & values. Those are for sure some printable strings, but
  * can we do more? Let's see:
@@ -480,6 +482,57 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
         ippAddString (request, group, type, name, NULL, value);
+
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+static gboolean
+_cps_cups_printer_class_set_users (CphCups     *cups,
+                                   const char  *printer_name,
+                                   const char **users,
+                                   const char  *request_name,
+                                   const char  *default_value)
+{
+        int              len;
+        ipp_t           *request;
+        ipp_attribute_t *attr;
+
+        len = 0;
+        if (users) {
+                while (users[len] != NULL)
+                        len++;
+        }
+
+        request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
+        _cph_cups_add_printer_uri (request, printer_name);
+        ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                       request_name, len ? len : 1, NULL, NULL);
+        if (len == 0)
+                attr->values[0].string.text = g_strdup (default_value);
+        else {
+                int i;
+                for (i = 0; i < len; i++)
+                        attr->values[i].string.text = g_strdup (users[i]);
+        }
+
+        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
+                return TRUE;
+
+        /* it failed, maybe it was a class? */
+        if (cups->priv->last_status != IPP_NOT_POSSIBLE)
+                return FALSE;
+
+        request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
+        _cph_cups_add_class_uri (request, printer_name);
+        ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                       request_name, len ? len : 1, NULL, NULL);
+        if (len == 0)
+                attr->values[0].string.text = g_strdup (default_value);
+        else {
+                int i;
+                for (i = 0; i < len; i++)
+                        attr->values[i].string.text = g_strdup (users[i]);
+        }
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
@@ -830,7 +883,63 @@ cph_cups_printer_class_set_op_policy (CphCups    *cups,
                                                          policy);
 }
 
-/* set first_value to NULL to delete the default */
+/* set users to NULL to allow all users */
+gboolean
+cph_cups_printer_class_set_users_allowed (CphCups     *cups,
+                                          const char  *printer_name,
+                                          const char **users)
+{
+        int len;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        /* check the validity of values, and get the length of the array at the
+         * same time */
+        len = 0;
+        if (users) {
+                while (users[len] != NULL) {
+                        if (!_cph_cups_is_user_valid (cups, users[len]))
+                                return FALSE;
+                        len++;
+                }
+        }
+
+        return _cps_cups_printer_class_set_users (cups, printer_name, users,
+                                                  "requesting-user-name-allowed",
+                                                  "all");
+}
+
+/* set users to NULL to deny no user */
+gboolean
+cph_cups_printer_class_set_users_denied (CphCups     *cups,
+                                         const char  *printer_name,
+                                         const char **users)
+{
+        int len;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        /* check the validity of values, and get the length of the array at the
+         * same time */
+        len = 0;
+        if (users) {
+                while (users[len] != NULL) {
+                        if (!_cph_cups_is_user_valid (cups, users[len]))
+                                return FALSE;
+                        len++;
+                }
+        }
+
+        return _cps_cups_printer_class_set_users (cups, printer_name, users,
+                                                  "requesting-user-name-denied",
+                                                  "none");
+}
+
+/* set values to NULL to delete the default */
 gboolean
 cph_cups_printer_class_set_option_default (CphCups     *cups,
                                            const char  *printer_name,

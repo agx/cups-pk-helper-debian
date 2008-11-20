@@ -112,6 +112,14 @@ gboolean cph_cups_printer_class_set_op_policy (CphCups    *cups,
                                                const char *printer_name,
                                                const char *policy);
 
+gboolean cph_cups_printer_class_set_users_allowed (CphCups     *cups,
+                                                   const char  *printer_name,
+                                                   const char **users);
+
+gboolean cph_cups_printer_class_set_users_denied (CphCups     *cups,
+                                                  const char  *printer_name,
+                                                  const char **users);
+
 gboolean cph_cups_printer_class_set_option_default (CphCups     *cups,
                                                     const char  *printer_name,
                                                     const char  *option,

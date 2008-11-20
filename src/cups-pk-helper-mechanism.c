@@ -566,6 +566,47 @@ cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
 }
 
 gboolean
+cph_mechanism_printer_set_users_allowed (CphMechanism           *mechanism,
+                                         const char             *name,
+                                         const char            **users,
+                                         DBusGMethodInvocation  *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_users_allowed (mechanism->priv->cups,
+                                                        name, users);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
+                                        const char             *name,
+                                        const char            **users,
+                                        DBusGMethodInvocation  *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "printeraddremove"))
+                return FALSE;
+
+        ret = cph_cups_printer_class_set_users_denied (mechanism->priv->cups,
+                                                       name, users);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+
+gboolean
 cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
                                           const char             *name,
                                           const char             *option,
@@ -582,7 +623,6 @@ cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
         ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
                                                          name, option, values);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
 
         return TRUE;
 }

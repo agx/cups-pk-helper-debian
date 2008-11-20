@@ -71,6 +71,20 @@
       <arg name="error"    direction="out" type="s"/>
     </method>
 
+    <method name="PrinterSetUsersAllowed">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="users"    direction="in"  type="as"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="PrinterSetUsersDenied">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="users"    direction="in"  type="as"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
     <method name="PrinterAddOptionDefault">
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="name"     direction="in"  type="s"/>

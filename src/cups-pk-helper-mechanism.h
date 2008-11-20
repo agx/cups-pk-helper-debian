@@ -136,6 +136,18 @@ cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
                                      DBusGMethodInvocation *context);
 
 gboolean
+cph_mechanism_printer_set_users_allowed (CphMechanism           *mechanism,
+                                         const char             *name,
+                                         const char            **users,
+                                         DBusGMethodInvocation  *context);
+
+gboolean
+cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
+                                        const char             *name,
+                                        const char            **users,
+                                        DBusGMethodInvocation  *context);
+
+gboolean
 cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
                                           const char             *name,
                                           const char             *option,
