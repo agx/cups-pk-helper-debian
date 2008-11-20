@@ -87,8 +87,8 @@
 ~!+* acceptJobs
 ~!+* rejectJobs
      printTestPage
- !   adminGetServerSettings
- !   adminSetServerSettings
+~!+* adminGetServerSettings
+~!+* adminSetServerSettings
      getSubscriptions
      createSubscription
      getNotifications
