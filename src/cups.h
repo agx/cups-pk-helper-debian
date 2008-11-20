@@ -112,11 +112,11 @@ gboolean cph_cups_printer_class_set_op_policy (CphCups    *cups,
                                                const char *printer_name,
                                                const char *policy);
 
-gboolean cph_cups_printer_class_set_option_default (CphCups    *cups,
-                                                    const char *printer_name,
-                                                    const char *option,
-                                                    const char *first_value,
-                                                    ...);
+gboolean cph_cups_printer_class_set_option_default (CphCups     *cups,
+                                                    const char  *printer_name,
+                                                    const char  *option,
+                                                    const char **values);
+
 G_END_DECLS
 
 #endif /* CPH_CUPS_H */

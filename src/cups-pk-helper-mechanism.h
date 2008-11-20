@@ -136,11 +136,11 @@ cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
                                      DBusGMethodInvocation *context);
 
 gboolean
-cph_mechanism_printer_add_option_default (CphMechanism          *mechanism,
-                                          const char            *name,
-                                          const char            *option,
-                                          const char            *value,
-                                          DBusGMethodInvocation *context);
+cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
+                                          const char             *name,
+                                          const char             *option,
+                                          const char            **values,
+                                          DBusGMethodInvocation  *context);
 
 gboolean
 cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,

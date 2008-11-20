@@ -832,16 +832,12 @@ cph_cups_printer_class_set_op_policy (CphCups    *cups,
 
 /* set first_value to NULL to delete the default */
 gboolean
-cph_cups_printer_class_set_option_default (CphCups    *cups,
-                                           const char *printer_name,
-                                           const char *option,
-                                           const char *first_value,
-                                           ...)
+cph_cups_printer_class_set_option_default (CphCups     *cups,
+                                           const char  *printer_name,
+                                           const char  *option,
+                                           const char **values)
 {
         char            *option_name;
-        const char      *value;
-        va_list          var_args;
-        GSList          *values;
         int              len;
         ipp_t           *request;
         ipp_attribute_t *attr;
@@ -853,12 +849,22 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
                 return FALSE;
         if (!_cph_cups_is_option_valid (cups, option))
                 return FALSE;
-        /* We check the values later. */
+        /* check the validity of values, and get the length of the array at the
+         * same time */
+        len = 0;
+        if (values) {
+                while (values[len] != NULL) {
+                        if (!_cph_cups_is_option_value_valid (cups,
+                                                              values[len]))
+                                return FALSE;
+                        len++;
+                }
+        }
 
         option_name = g_strdup_printf ("%s-default", option);
 
         /* delete default value for option */
-        if (!first_value) {
+        if (!values) {
                 retval = _cph_cups_send_new_printer_class_request (
                                                         cups,
                                                         printer_name,
@@ -871,48 +877,22 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
                 return retval;
         }
 
-        /* set default vaule for option */
-
-        values = NULL;
-        len = 0;
-        value = first_value;
-        va_start (var_args, first_value);
-
-        while (value) {
-                /* Safety check for the values */
-                if (!_cph_cups_is_option_value_valid (cups, value)) {
-                        retval = FALSE;
-                        goto out;
-                }
-
-                /* cast to remove warning */
-                values = g_slist_prepend (values, (char *) value);
-                len++;
-                value = va_arg (var_args, char *);
-        }
-
-        va_end (var_args);
-
-        values = g_slist_reverse (values);
+        /* set default value for option */
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
 
         if (len == 1)
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                              option_name, NULL, first_value);
+                              option_name, NULL, values[0]);
         else {
-                GSList *value_l;
-                int     i;
+                int i;
 
                 attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                                       option_name, len, NULL, NULL);
 
-                i = 0;
-                for (value_l = values; value_l; value_l = value_l->next) {
-                        attr->values[i].string.text = g_strdup (value_l->data);
-                        i++;
-                }
+                for (i = 0; i < len; i++)
+                        attr->values[i].string.text = g_strdup (values[i]);
         }
 
         if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN)) {
@@ -931,26 +911,21 @@ cph_cups_printer_class_set_option_default (CphCups    *cups,
 
         if (len == 1)
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                              option_name, NULL, first_value);
+                              option_name, NULL, values[0]);
         else {
-                GSList *value_l;
-                int     i;
+                int i;
 
                 attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                                       option_name, len, NULL, NULL);
 
-                i = 0;
-                for (value_l = values; value_l; value_l = value_l->next) {
-                        attr->values[i].string.text = g_strdup (value_l->data);
-                        i++;
-                }
+                for (i = 0; i < len; i++)
+                        attr->values[i].string.text = g_strdup (values[i]);
         }
 
         retval = _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 
 out:
         g_free (option_name);
-        g_slist_free (values);
 
         return retval;
 }

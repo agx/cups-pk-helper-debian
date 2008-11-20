@@ -75,7 +75,7 @@
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="name"     direction="in"  type="s"/>
       <arg name="option"   direction="in"  type="s"/>
-      <arg name="value"    direction="in"  type="s"/>
+      <arg name="values"   direction="in"  type="as"/>
       <arg name="error"    direction="out" type="s"/>
     </method>
 

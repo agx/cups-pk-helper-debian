@@ -566,11 +566,11 @@ cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
 }
 
 gboolean
-cph_mechanism_printer_add_option_default (CphMechanism          *mechanism,
-                                          const char            *name,
-                                          const char            *option,
-                                          const char            *value,
-                                          DBusGMethodInvocation *context)
+cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
+                                          const char             *name,
+                                          const char             *option,
+                                          const char            **values,
+                                          DBusGMethodInvocation  *context)
 {
         gboolean ret;
 
@@ -580,8 +580,7 @@ cph_mechanism_printer_add_option_default (CphMechanism          *mechanism,
                 return FALSE;
 
         ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
-                                                         name, option, value,
-                                                         NULL);
+                                                         name, option, values);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
 
