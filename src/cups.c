@@ -665,6 +665,44 @@ cph_cups_last_status_to_string (CphCups *cups)
                 return ippErrorString (cups->priv->last_status);
 }
 
+gboolean
+cph_cups_is_class (CphCups    *cups,
+                   const char *name)
+{
+        const char * const  attrs[1] = { "member-names" };
+        ipp_t              *request;
+        const char         *resource_char;
+        ipp_t              *reply;
+        gboolean            retval;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_class_name_valid (cups, name))
+                return FALSE;
+
+        request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
+        _cph_cups_add_class_uri (request, name);
+        ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
+		       "requested-attributes", 1, NULL, attrs);
+
+        resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
+        reply = cupsDoRequest (cups->priv->connection,
+                               request, resource_char);
+
+        if (!reply)
+                return FALSE;
+
+        /* Note: we need to look if the attribute is there, since we get a
+         * reply if the name is a printer name and not a class name. The
+         * attribute is the only way to distinguish the two cases. */
+        retval = ippFindAttribute (reply, attrs[0], IPP_TAG_NAME) != NULL;
+
+        if (reply)
+                ippDelete (reply);
+
+        return retval;
+}
+
 char *
 cph_cups_printer_get_uri (CphCups    *cups,
                           const char *printer_name)

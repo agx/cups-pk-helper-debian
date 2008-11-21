@@ -54,6 +54,9 @@ CphCups  *cph_cups_new         (void);
 
 const char *cph_cups_last_status_to_string (CphCups *cups);
 
+gboolean cph_cups_is_class (CphCups    *cups,
+                            const char *name);
+
 char *cph_cups_printer_get_uri (CphCups    *cups,
                                 const char *printer_name);
 
