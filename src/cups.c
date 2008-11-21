@@ -60,8 +60,8 @@
  !   authenticateJob
  !   setJobHoldUntil
  !   restartJob
-     getFile
-     putFile
+~!+* getFile
+~!+* putFile
 ~!+* addPrinter
 ~!+* setPrinterDevice
 ~!+* setPrinterInfo
@@ -342,6 +342,15 @@ _CPH_CUPS_IS_VALID (option_value, "value for option", FALSE)
 _CPH_CUPS_IS_VALID (info, "description", FALSE)
 _CPH_CUPS_IS_VALID (location, "location", FALSE)
 _CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE)
+
+/* For put/get file: this is some text, but we could potentially do more
+ * checks. We don't do them because cups will already do them.
+ *   + for the resource, we could check that it starts with a /, for example.
+ *   + for the filename, in the put case, we could check that the file exists
+ *     and is a regular file (no socket, block device, etc.).
+ */
+_CPH_CUPS_IS_VALID (resource, "resource", TRUE)
+_CPH_CUPS_IS_VALID (filename, "filename", TRUE)
 
 /******************************************************
  * Helpers
@@ -785,6 +794,49 @@ cph_cups_is_printer_local (CphCups    *cups,
         g_free (uri);
 
         return retval;
+}
+
+gboolean
+cph_cups_file_get (CphCups    *cups,
+                   const char *resource,
+                   const char *filename)
+{
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_resource_valid (cups, resource))
+                return FALSE;
+        if (!_cph_cups_is_filename_valid (cups, filename))
+                return FALSE;
+
+        /* reset the internal status: we'll use the cups status */
+        _cph_cups_set_internal_status (cups, NULL);
+
+        cups->priv->last_status = cupsGetFile (cups->priv->connection,
+                                               resource, filename);
+
+        return cups->priv->last_status == HTTP_OK;
+}
+
+gboolean
+cph_cups_file_put (CphCups    *cups,
+                   const char *resource,
+                   const char *filename)
+{
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_resource_valid (cups, resource))
+                return FALSE;
+        if (!_cph_cups_is_filename_valid (cups, filename))
+                return FALSE;
+
+        /* reset the internal status: we'll use the cups status */
+        _cph_cups_set_internal_status (cups, NULL);
+
+        cups->priv->last_status = cupsPutFile (cups->priv->connection,
+                                               resource, filename);
+
+        return (cups->priv->last_status == HTTP_OK ||
+                cups->priv->last_status == HTTP_CREATED);
 }
 
 gboolean

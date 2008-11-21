@@ -60,6 +60,14 @@ gboolean cph_cups_is_class (CphCups    *cups,
 char *cph_cups_printer_get_uri (CphCups    *cups,
                                 const char *printer_name);
 
+gboolean cph_cups_file_get (CphCups    *cups,
+                            const char *resource,
+                            const char *filename);
+
+gboolean cph_cups_file_put (CphCups    *cups,
+                            const char *resource,
+                            const char *filename);
+
 gboolean cph_cups_printer_add (CphCups    *cups,
                                const char *printer_name,
                                const char *printer_uri,

@@ -75,6 +75,18 @@ CphMechanism  *cph_mechanism_new         (void);
 /* exported methods */
 
 gboolean
+cph_mechanism_file_get (CphMechanism          *mechanism,
+                        const char            *resource,
+                        const char            *filename,
+                        DBusGMethodInvocation *context);
+
+gboolean
+cph_mechanism_file_put (CphMechanism          *mechanism,
+                        const char            *resource,
+                        const char            *filename,
+                        DBusGMethodInvocation *context);
+
+gboolean
 cph_mechanism_printer_add (CphMechanism          *mechanism,
                            const char            *name,
                            const char            *uri,

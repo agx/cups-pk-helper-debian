@@ -502,6 +502,48 @@ _cph_mechanism_return_error_and_value (CphMechanism          *mechanism,
 /* exported methods */
 
 gboolean
+cph_mechanism_file_get (CphMechanism          *mechanism,
+                        const char            *resource,
+                        const char            *filename,
+                        DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
+                return FALSE;
+
+        ret = cph_cups_file_get (mechanism->priv->cups, resource, filename);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_file_put (CphMechanism          *mechanism,
+                        const char            *resource,
+                        const char            *filename,
+                        DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
+                return FALSE;
+
+        ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        /* TODO: this is a workaround for bnc#447422
+         * https://bugzilla.novell.com/show_bug.cgi?id=447422 */
+        do_exit (NULL);
+
+        return TRUE;
+}
+
+gboolean
 cph_mechanism_printer_add (CphMechanism          *mechanism,
                            const char            *name,
                            const char            *uri,
