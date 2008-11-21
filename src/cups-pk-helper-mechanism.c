@@ -442,9 +442,29 @@ _check_polkit_for_printer_class (CphMechanism          *mechanism,
                                  DBusGMethodInvocation *context,
                                  const char            *printer_name)
 {
-        return _check_polkit_for_printer (mechanism, context,
-                                          printer_name, NULL);
+        if (cph_cups_is_class (mechanism->priv->cups, printer_name)) {
+                return _check_polkit_for_action_v (mechanism, context,
+                                                   "printeraddremove",
+                                                   "class-edit", NULL);
+        } else {
+                return _check_polkit_for_printer (mechanism, context,
+                                                  printer_name, NULL);
+        }
 }
+
+static const char *
+_cph_mechanism_get_action_for_name (CphMechanism *mechanism,
+                                    const char   *name)
+{
+        if (cph_cups_is_class (mechanism->priv->cups, name))
+                return "class-edit";
+
+        if (cph_cups_is_printer_local (mechanism->priv->cups, name))
+                return "printer-local-edit";
+
+        return "printer-remote-edit";
+}
+
 
 /* helpers */
 
@@ -838,12 +858,12 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                    const char            *name,
                                    DBusGMethodInvocation *context)
 {
-        gboolean is_local;
-        gboolean ret;
+        gboolean    ret;
+        const char *last_action;
 
         reset_killtimer (mechanism);
 
-        is_local = cph_cups_is_printer_local (mechanism->priv->cups, name);
+        last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "printeraddremove",
                                          /* this is not the last check because
@@ -853,8 +873,7 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                          /* quite important, since it's
                                           * automatically called after adding a
                                           * printer */
-                                         is_local ? "printer-local-edit"
-                                                  : "printer-remote-edit",
+                                         last_action,
                                          NULL))
                 return FALSE;
 
@@ -870,12 +889,12 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                    gboolean               enabled,
                                    DBusGMethodInvocation *context)
 {
-        gboolean is_local;
-        gboolean ret;
+        gboolean    ret;
+        const char *last_action;
 
         reset_killtimer (mechanism);
 
-        is_local = cph_cups_is_printer_local (mechanism->priv->cups, name);
+        last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "printeraddremove",
                                          /* this is not the last check because
@@ -885,8 +904,7 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                          /* quite important, since it's
                                           * automatically called after adding a
                                           * printer */
-                                         is_local ? "printer-local-edit"
-                                                  : "printer-remote-edit",
+                                         last_action,
                                          NULL))
                 return FALSE;
 
