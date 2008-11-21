@@ -1,4 +1,16 @@
 =============
+Version 0.0.3
+=============
+
++ Make PrinterAddOptionDefault work for options with more than one value.
++ Implement PrinterSetUsersAllowed/PrinterSetUsersDenied methods.
++ Implement ServerGetSettings/ServerSetSettings methods.
++ Implement ClassAddPrinter/ClassDeletePrinter/ClassDelete methods.
++ Add more fine-grained policies, including local vs remote printers.
++ Fix major bug that made it impossible to change many settings.
++ Implement FileGet/FilePut methods.
+
+=============
 Version 0.0.2
 =============
 
