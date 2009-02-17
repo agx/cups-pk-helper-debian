@@ -220,6 +220,22 @@ cph_mechanism_server_set_settings (CphMechanism          *mechanism,
                                    GHashTable            *settings,
                                    DBusGMethodInvocation *context);
 
+gboolean
+cph_mechanism_job_cancel (CphMechanism          *mechanism,
+                          int                    id,
+                          DBusGMethodInvocation *context);
+
+gboolean
+cph_mechanism_job_restart (CphMechanism          *mechanism,
+                           int                    id,
+                           DBusGMethodInvocation *context);
+
+gboolean
+cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
+                                  int                    id,
+                                  const char            *job_hold_until,
+                                  DBusGMethodInvocation *context);
+
 G_END_DECLS
 
 #endif /* CPH_MECHANISM_H */

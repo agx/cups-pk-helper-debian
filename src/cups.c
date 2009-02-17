@@ -45,6 +45,9 @@
 
 #include "cups.h"
 
+#define MAX_RECONNECT_ATTEMPTS 100
+#define RECONNECT_DELAY        100000
+
 /*
      getPrinters
      getDests
@@ -114,6 +117,7 @@ struct CphCupsPrivate
         http_t       *connection;
         ipp_status_t  last_status;
         char         *internal_status;
+        gboolean      reconnecting;
 };
 
 static GObject *cph_cups_constructor (GType                  type,
@@ -172,6 +176,30 @@ cph_cups_init (CphCups *cups)
         cups->priv->connection = NULL;
         cups->priv->last_status = IPP_OK;
         cups->priv->internal_status = NULL;
+        cups->priv->reconnecting = FALSE;
+}
+
+gboolean
+cph_cups_reconnect (CphCups *cups)
+{
+        int  return_value = -1;
+        int  i;
+
+        cups->priv->reconnecting = TRUE;
+
+        for (i = 0; i < MAX_RECONNECT_ATTEMPTS; i++) {
+                return_value = httpReconnect (cups->priv->connection);
+                if (return_value == 0)
+                        break;
+                g_usleep (RECONNECT_DELAY);
+        }
+
+        cups->priv->reconnecting = FALSE;
+
+        if (return_value == 0)
+                return TRUE;
+        else
+                return FALSE;
 }
 
 static void
@@ -318,6 +346,7 @@ _CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE)
 _CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE)
 _CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE)
 _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
+_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
 
 /* Check for users. Those are some printable strings, which souldn't be NULL.
  * They should also not be empty, but it appears that it's possible to carry
@@ -378,6 +407,18 @@ _cph_cups_add_class_uri (ipp_t      *request,
                     "ipp://localhost/classes/%s", name);
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
 		      "printer-uri", NULL, uri);
+}
+
+static void
+_cph_cups_add_job_uri (ipp_t      *request,
+                       int         job_id)
+{
+        char uri[HTTP_MAX_URI + 1];
+
+        g_snprintf (uri, sizeof (uri),
+                    "ipp://localhost/jobs/%d", job_id);
+        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
+		      "job-uri", NULL, uri);
 }
 
 static void
@@ -539,6 +580,52 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
         ippAddString (request, group, type, name, NULL, value);
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+}
+
+static gboolean
+_cph_cups_send_new_simple_job_request (CphCups     *cups,
+                                       ipp_op_t     op,
+                                       int          job_id,
+                                       const char  *user_name,
+                                       CphResource  resource)
+{
+        ipp_t *request;
+
+        request = ippNewRequest (op);
+
+        if (user_name != NULL)
+                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                              "requesting-user-name", NULL, user_name);
+
+        _cph_cups_add_job_uri (request, job_id);
+
+        return _cph_cups_send_request (cups, request, resource);
+}
+
+static gboolean
+_cph_cups_send_new_job_attributes_request (CphCups     *cups,
+                                           int          job_id,
+                                           const char  *name,
+                                           const char  *value,
+                                           const char  *user_name,
+                                           CphResource  resource)
+{
+        cups_option_t *options = NULL;
+        ipp_t         *request;
+        int            num_options = 0;
+
+        request = ippNewRequest (IPP_SET_JOB_ATTRIBUTES);
+        _cph_cups_add_job_uri (request, job_id);
+
+        if (user_name != NULL)
+                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                              "requesting-user-name", NULL, user_name);
+
+        num_options = cupsAddOption (name, value,
+                                     num_options, &options);
+        cupsEncodeOptions (request, num_options, options);
+
+        return _cph_cups_send_request (cups, request, resource);
 }
 
 static int
@@ -801,6 +888,10 @@ cph_cups_file_get (CphCups    *cups,
                    const char *resource,
                    const char *filename)
 {
+        struct stat file_stat;
+        uid_t       uid = 0;
+        gid_t       gid = 0;
+
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         if (!_cph_cups_is_resource_valid (cups, resource))
@@ -808,11 +899,32 @@ cph_cups_file_get (CphCups    *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
+        stat (filename, &file_stat);
+        uid = file_stat.st_uid;
+        gid = file_stat.st_gid;
+
         /* reset the internal status: we'll use the cups status */
         _cph_cups_set_internal_status (cups, NULL);
 
         cups->priv->last_status = cupsGetFile (cups->priv->connection,
                                                resource, filename);
+
+        if (cups->priv->last_status != HTTP_OK) {
+                int fd;
+
+                if (cph_cups_reconnect (cups)) {
+
+                        /* if cupsGetFile fail then filename is erased */
+                        fd = open (filename, O_CREAT, S_IRUSR | S_IWUSR);
+                        close (fd);
+                        chown (filename, uid, gid);
+
+                        _cph_cups_set_internal_status (cups, NULL);
+
+                        cups->priv->last_status = cupsGetFile (cups->priv->connection,
+                                                               resource, filename);
+                }
+        }
 
         return cups->priv->last_status == HTTP_OK;
 }
@@ -834,6 +946,9 @@ cph_cups_file_put (CphCups    *cups,
 
         cups->priv->last_status = cupsPutFile (cups->priv->connection,
                                                resource, filename);
+
+        /* CUPS is being restarted, so we need to reconnect */
+        cph_cups_reconnect (cups);
 
         return (cups->priv->last_status == HTTP_OK ||
                 cups->priv->last_status == HTTP_CREATED);
@@ -1566,6 +1681,9 @@ cph_cups_server_set_settings (CphCups    *cups,
         retval = cupsAdminSetServerSettings (cups->priv->connection,
                                              num_settings, cups_settings);
 
+        /* CUPS is being restarted, so we need to reconnect */
+        cph_cups_reconnect (cups);
+
         cupsFreeOptions (num_settings, cups_settings);
 
         if (retval == 0) {
@@ -1579,6 +1697,79 @@ cph_cups_server_set_settings (CphCups    *cups,
         }
 
         return TRUE;
+}
+
+gboolean
+cph_cups_job_cancel (CphCups    *cups,
+                     int         job_id,
+                     const char *user_name)
+{
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        return _cph_cups_send_new_simple_job_request (cups, IPP_CANCEL_JOB,
+                                                      job_id,
+                                                      user_name,
+                                                      CPH_RESOURCE_ADMIN);
+}
+
+gboolean
+cph_cups_job_restart (CphCups    *cups,
+                      int         job_id,
+                      const char *user_name)
+{
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        return _cph_cups_send_new_simple_job_request (cups, IPP_RESTART_JOB,
+                                                      job_id,
+                                                      user_name,
+                                                      CPH_RESOURCE_ADMIN);
+}
+
+gboolean
+cph_cups_job_set_hold_until (CphCups    *cups,
+                             int         job_id,
+                             const char *job_hold_until,
+                             const char *user_name)
+{
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_job_hold_until_valid (cups, job_hold_until))
+                return FALSE;
+
+        return _cph_cups_send_new_job_attributes_request (cups,
+                                                          job_id,
+                                                          "job-hold-until",
+                                                          job_hold_until,
+                                                          user_name,
+                                                          CPH_RESOURCE_ADMIN);
+}
+
+CphJobStatus
+cph_cups_job_get_status (CphCups    *cups,
+                         int         job_id,
+                         const char *user)
+{
+        CphJobStatus  status = CPH_JOB_STATUS_INVALID;
+        cups_job_t   *jobs;
+        int           num_jobs = 0;
+        int           i;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), CPH_JOB_STATUS_INVALID);
+
+        num_jobs = cupsGetJobs2 (cups->priv->connection, &jobs, NULL, 0, 0);
+
+        for (i = 0; i < num_jobs; i++) {
+                if (jobs[i].id == job_id) {
+                        status = CPH_JOB_STATUS_NOT_OWNED_BY_USER;
+                        if (user != NULL && g_strcmp0 (jobs[i].user, user) == 0)
+                                status = CPH_JOB_STATUS_OWNED_BY_USER;
+                        break;
+                }
+        }
+
+        cupsFreeJobs (num_jobs, jobs);
+
+        return status;
 }
 
 /******************************************************
@@ -1606,6 +1797,7 @@ cph_cups_is_printer_uri_local (const char *uri)
             g_str_has_prefix (lower_uri, "beh:") ||
             g_str_has_prefix (lower_uri, "scsi:") ||
             g_str_has_prefix (lower_uri, "serial:") ||
+            g_str_has_prefix (lower_uri, "file:") ||
             g_str_has_prefix (lower_uri, "pipe:")) {
                 g_free (lower_uri);
                 return TRUE;

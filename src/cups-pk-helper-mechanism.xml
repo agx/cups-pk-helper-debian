@@ -174,5 +174,23 @@
       <arg name="error"    direction="out" type="s"/>
     </method>
 
+    <method name="JobCancel">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="jobid"    direction="in"  type="i"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="JobRestart">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="jobid"    direction="in"  type="i"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
+    <method name="JobSetHoldUntil">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="jobid"          direction="in"  type="i"/>
+      <arg name="job_hold_until" direction="in"  type="s"/>
+      <arg name="error"          direction="out" type="s"/>
+    </method>
   </interface>
 </node>

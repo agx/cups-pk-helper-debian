@@ -47,6 +47,8 @@
 
 #include <polkit-dbus/polkit-dbus.h>
 
+#include <pwd.h>
+
 #include "cups-pk-helper-mechanism.h"
 #include "cups-pk-helper-mechanism-glue.h"
 #include "cups.h"
@@ -56,7 +58,8 @@
 static gboolean
 do_exit (gpointer user_data)
 {
-        g_object_unref (CPH_MECHANISM (user_data));
+	if (user_data != NULL)
+                g_object_unref (CPH_MECHANISM (user_data));
 
         exit (0);
 
@@ -465,6 +468,28 @@ _cph_mechanism_get_action_for_name (CphMechanism *mechanism,
         return "printer-remote-edit";
 }
 
+char *
+_cph_mechanism_get_callers_user_name (CphMechanism          *mechanism,
+                                      DBusGMethodInvocation *context)
+{
+        unsigned long  sender_uid;
+        struct passwd *password_entry;
+        DBusError      dbus_error;
+        gchar         *sender;
+        char          *user_name = NULL;
+
+        sender = dbus_g_method_get_sender (context);
+        dbus_error_init (&dbus_error);
+        sender_uid = dbus_bus_get_unix_user (dbus_g_connection_get_connection (mechanism->priv->system_bus_connection), sender, &dbus_error);
+        password_entry = getpwuid ((uid_t) sender_uid);
+
+        if (password_entry != NULL)
+                user_name = g_strdup (password_entry->pw_name);
+
+        g_free (sender);
+
+        return user_name;
+}
 
 /* helpers */
 
@@ -535,10 +560,6 @@ cph_mechanism_file_put (CphMechanism          *mechanism,
 
         ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        /* TODO: this is a workaround for bnc#447422
-         * https://bugzilla.novell.com/show_bug.cgi?id=447422 */
-        do_exit (NULL);
 
         return TRUE;
 }
@@ -1013,6 +1034,118 @@ cph_mechanism_server_set_settings (CphMechanism          *mechanism,
 
         ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
         _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_job_cancel (CphMechanism          *mechanism,
+                          int                    id,
+                          DBusGMethodInvocation *context)
+{
+        CphJobStatus  job_status;
+        gboolean      ret;
+        char         *user_name = NULL;
+
+        reset_killtimer (mechanism);
+
+        user_name = _cph_mechanism_get_callers_user_name (mechanism, context);
+        job_status = cph_cups_job_get_status (mechanism->priv->cups, id, user_name);
+
+        switch (job_status) {
+                case CPH_JOB_STATUS_OWNED_BY_USER: {
+                        if (!_check_polkit_for_action_v (mechanism, context, "job-not-owned-edit", "job-edit", NULL))
+                                return FALSE;
+                        break;
+                }
+                case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
+                        if (!_check_polkit_for_action (mechanism, context, "job-not-owned-edit"))
+                                return FALSE;
+                        break;
+                }
+                case CPH_JOB_STATUS_INVALID:
+                        return FALSE;
+        }
+
+        ret = cph_cups_job_cancel (mechanism->priv->cups, id, user_name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        g_free (user_name);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_job_restart (CphMechanism          *mechanism,
+                           int                    id,
+                           DBusGMethodInvocation *context)
+{
+        CphJobStatus  job_status;
+        gboolean      ret;
+        char         *user_name = NULL;
+
+        reset_killtimer (mechanism);
+
+        user_name = _cph_mechanism_get_callers_user_name (mechanism, context);
+        job_status = cph_cups_job_get_status (mechanism->priv->cups, id, user_name);
+
+        switch (job_status) {
+                case CPH_JOB_STATUS_OWNED_BY_USER: {
+                        if (!_check_polkit_for_action_v (mechanism, context, "job-not-owned-edit", "job-edit", NULL))
+                                return FALSE;
+                        break;
+                }
+                case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
+                        if (!_check_polkit_for_action (mechanism, context, "job-not-owned-edit"))
+                                return FALSE;
+                        break;
+                }
+                case CPH_JOB_STATUS_INVALID:
+                        return FALSE;
+        }
+
+        ret = cph_cups_job_restart (mechanism->priv->cups, id, user_name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        g_free (user_name);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
+                                  int                    id,
+                                  const char            *job_hold_until,
+                                  DBusGMethodInvocation *context)
+{
+        CphJobStatus  job_status;
+        gboolean      ret;
+        char         *user_name = NULL;
+
+        reset_killtimer (mechanism);
+
+        user_name = _cph_mechanism_get_callers_user_name (mechanism, context);
+        job_status = cph_cups_job_get_status (mechanism->priv->cups, id, user_name);
+
+        switch (job_status) {
+                case CPH_JOB_STATUS_OWNED_BY_USER: {
+                        if (!_check_polkit_for_action_v (mechanism, context, "job-not-owned-edit", "job-edit", NULL))
+                                return FALSE;
+                        break;
+                }
+                case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
+                        if (!_check_polkit_for_action (mechanism, context, "job-not-owned-edit"))
+                                return FALSE;
+                        break;
+                }
+                case CPH_JOB_STATUS_INVALID:
+                        return FALSE;
+        }
+
+        ret = cph_cups_job_set_hold_until (mechanism->priv->cups, id, job_hold_until, user_name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        g_free (user_name);
 
         return TRUE;
 }

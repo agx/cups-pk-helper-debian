@@ -48,6 +48,13 @@ typedef struct
         GObjectClass parent_class;
 } CphCupsClass;
 
+typedef enum
+{
+        CPH_JOB_STATUS_INVALID,
+        CPH_JOB_STATUS_OWNED_BY_USER,
+        CPH_JOB_STATUS_NOT_OWNED_BY_USER
+} CphJobStatus;
+
 GType     cph_cups_get_type    (void);
 
 CphCups  *cph_cups_new         (void);
@@ -159,6 +166,23 @@ gboolean cph_cups_is_printer_local (CphCups    *cups,
                                     const char *printer_name);
 
 gboolean cph_cups_is_printer_uri_local (const char *uri);
+
+gboolean cph_cups_job_cancel (CphCups    *cups,
+                              int         job_id,
+                              const char *user_name);
+
+gboolean cph_cups_job_restart (CphCups    *cups,
+                               int         job_id,
+                               const char *user_name);
+
+gboolean cph_cups_job_set_hold_until (CphCups    *cups,
+                                      int         job_id,
+                                      const char *job_hold_until,
+                                      const char *user_name);
+
+CphJobStatus cph_cups_job_get_status (CphCups    *cups,
+                                      int         job_id,
+                                      const char *user);
 
 G_END_DECLS
 

@@ -68,6 +68,24 @@
     </defaults>
   </action>
 
+  <action id="org.opensuse.cupspkhelper.mechanism.job-edit">
+    <_description>Restart/Cancel/Edit a job</_description>
+    <_message>Privileges are required to restart/cancel/edit a job.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_self</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.job-not-owned-edit">
+    <_description>Restart/Cancel/Edit a job owned by another user</_description>
+    <_message>Privileges are required to restart/cancel/edit a job owned by another user.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
   <!-- Deprecated -->
   <action id="org.opensuse.cupspkhelper.mechanism.printeraddremove">
     <_description>Add/Remove/Edit a printer</_description>
