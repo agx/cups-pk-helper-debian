@@ -601,12 +601,11 @@ _cph_cups_send_new_simple_job_request (CphCups     *cups,
         ipp_t *request;
 
         request = ippNewRequest (op);
+        _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
                 ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
                               "requesting-user-name", NULL, user_name);
-
-        _cph_cups_add_job_uri (request, job_id);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -1729,7 +1728,7 @@ cph_cups_job_cancel (CphCups    *cups,
         return _cph_cups_send_new_simple_job_request (cups, IPP_CANCEL_JOB,
                                                       job_id,
                                                       user_name,
-                                                      CPH_RESOURCE_ADMIN);
+                                                      CPH_RESOURCE_JOBS);
 }
 
 gboolean
@@ -1747,7 +1746,7 @@ cph_cups_job_restart (CphCups    *cups,
         return _cph_cups_send_new_simple_job_request (cups, IPP_RESTART_JOB,
                                                       job_id,
                                                       user_name,
-                                                      CPH_RESOURCE_ADMIN);
+                                                      CPH_RESOURCE_JOBS);
 }
 
 gboolean
@@ -1770,7 +1769,7 @@ cph_cups_job_set_hold_until (CphCups    *cups,
                                                           "job-hold-until",
                                                           job_hold_until,
                                                           user_name,
-                                                          CPH_RESOURCE_ADMIN);
+                                                          CPH_RESOURCE_JOBS);
 }
 
 CphJobStatus
