@@ -73,7 +73,7 @@
     <_message>Privileges are required to restart/cancel/edit a job.</_message>
     <defaults>
       <allow_inactive>no</allow_inactive>
-      <allow_active>auth_self</allow_active>
+      <allow_active>yes</allow_active>
     </defaults>
   </action>
 
