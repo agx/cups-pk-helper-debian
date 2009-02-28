@@ -356,7 +356,6 @@ _CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE)
 _CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE)
 _CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE)
 _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
-_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
 
 /* Check for users. Those are some printable strings, which souldn't be NULL.
  * They should also not be empty, but it appears that it's possible to carry
@@ -381,6 +380,7 @@ _CPH_CUPS_IS_VALID (option_value, "value for option", FALSE)
 _CPH_CUPS_IS_VALID (info, "description", FALSE)
 _CPH_CUPS_IS_VALID (location, "location", FALSE)
 _CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE)
+_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
 
 /* For put/get file: this is some text, but we could potentially do more
  * checks. We don't do them because cups will already do them.
@@ -962,6 +962,8 @@ cph_cups_file_put (CphCups    *cups,
         return (cups->priv->last_status == HTTP_OK ||
                 cups->priv->last_status == HTTP_CREATED);
 }
+
+/* Functions that work on a printer */
 
 gboolean
 cph_cups_printer_add (CphCups    *cups,
@@ -1618,6 +1620,8 @@ out:
         return retval;
 }
 
+/* Functions that are for the server in general */
+
 GHashTable *
 cph_cups_server_get_settings (CphCups *cups)
 {
@@ -1707,6 +1711,8 @@ cph_cups_server_set_settings (CphCups    *cups,
 
         return TRUE;
 }
+
+/* Functions that work on jobs */
 
 gboolean
 cph_cups_job_cancel (CphCups    *cups,
