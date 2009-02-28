@@ -177,7 +177,7 @@ cph_cups_init (CphCups *cups)
         cups->priv->internal_status = NULL;
 }
 
-gboolean
+static gboolean
 cph_cups_reconnect (CphCups *cups)
 {
         int  return_value = -1;
