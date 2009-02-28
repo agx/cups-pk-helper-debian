@@ -117,7 +117,6 @@ struct CphCupsPrivate
         http_t       *connection;
         ipp_status_t  last_status;
         char         *internal_status;
-        gboolean      reconnecting;
 };
 
 static GObject *cph_cups_constructor (GType                  type,
@@ -176,7 +175,6 @@ cph_cups_init (CphCups *cups)
         cups->priv->connection = NULL;
         cups->priv->last_status = IPP_OK;
         cups->priv->internal_status = NULL;
-        cups->priv->reconnecting = FALSE;
 }
 
 gboolean
@@ -185,16 +183,12 @@ cph_cups_reconnect (CphCups *cups)
         int  return_value = -1;
         int  i;
 
-        cups->priv->reconnecting = TRUE;
-
         for (i = 0; i < MAX_RECONNECT_ATTEMPTS; i++) {
                 return_value = httpReconnect (cups->priv->connection);
                 if (return_value == 0)
                         break;
                 g_usleep (RECONNECT_DELAY);
         }
-
-        cups->priv->reconnecting = FALSE;
 
         if (return_value == 0)
                 return TRUE;
