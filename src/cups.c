@@ -58,11 +58,11 @@
      getDevices
      getJobs
      getJobAttributes
- !   cancelJob
+~!+* cancelJob
  !   cancelAllJobs
  !   authenticateJob
- !   setJobHoldUntil
- !   restartJob
+~!+* setJobHoldUntil
+~!+* restartJob
 ~!+* getFile
 ~!+* putFile
 ~!+* addPrinter
