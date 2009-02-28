@@ -180,8 +180,8 @@ cph_cups_init (CphCups *cups)
 static gboolean
 cph_cups_reconnect (CphCups *cups)
 {
-        int  return_value = -1;
-        int  i;
+        int return_value = -1;
+        int i;
 
         for (i = 0; i < MAX_RECONNECT_ATTEMPTS; i++) {
                 return_value = httpReconnect (cups->priv->connection);
@@ -313,6 +313,22 @@ _cph_cups_is_class_name_valid (CphCups    *cups,
                 return TRUE;
 
         error = g_strdup_printf ("\"%s\" is not a valid class name.", name);
+        _cph_cups_set_internal_status (cups, error);
+        g_free (error);
+
+        return FALSE;
+}
+
+static gboolean
+_cph_cups_is_job_id_valid (CphCups *cups,
+                           int      job_id)
+{
+        char *error;
+
+        if (job_id > 0)
+                return TRUE;
+
+        error = g_strdup_printf ("\"%d\" is not a valid job id.", job_id);
         _cph_cups_set_internal_status (cups, error);
         g_free (error);
 
@@ -1699,6 +1715,11 @@ cph_cups_job_cancel (CphCups    *cups,
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
+        if (!_cph_cups_is_job_id_valid (cups, job_id))
+                return FALSE;
+        /* we don't check if the user name is valid or not because it comes
+         * from getpwuid(), and not dbus */
+
         return _cph_cups_send_new_simple_job_request (cups, IPP_CANCEL_JOB,
                                                       job_id,
                                                       user_name,
@@ -1711,6 +1732,11 @@ cph_cups_job_restart (CphCups    *cups,
                       const char *user_name)
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_job_id_valid (cups, job_id))
+                return FALSE;
+        /* we don't check if the user name is valid or not because it comes
+         * from getpwuid(), and not dbus */
 
         return _cph_cups_send_new_simple_job_request (cups, IPP_RESTART_JOB,
                                                       job_id,
@@ -1726,8 +1752,12 @@ cph_cups_job_set_hold_until (CphCups    *cups,
 {
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
+        if (!_cph_cups_is_job_id_valid (cups, job_id))
+                return FALSE;
         if (!_cph_cups_is_job_hold_until_valid (cups, job_hold_until))
                 return FALSE;
+        /* we don't check if the user name is valid or not because it comes
+         * from getpwuid(), and not dbus */
 
         return _cph_cups_send_new_job_attributes_request (cups,
                                                           job_id,
