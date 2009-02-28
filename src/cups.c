@@ -474,8 +474,7 @@ _cph_cups_handle_reply (CphCups *cups,
 static const char *
 _cph_cups_get_resource (CphResource resource)
 {
-        switch (resource)
-        {
+        switch (resource) {
                 case CPH_RESOURCE_ROOT:
                         return "/";
                 case CPH_RESOURCE_ADMIN:
