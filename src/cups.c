@@ -388,7 +388,7 @@ _cph_cups_add_printer_uri (ipp_t      *request,
         g_snprintf (uri, sizeof (uri),
                     "ipp://localhost/printers/%s", name);
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
-		      "printer-uri", NULL, uri);
+                      "printer-uri", NULL, uri);
 }
 
 static void
@@ -400,7 +400,7 @@ _cph_cups_add_class_uri (ipp_t      *request,
         g_snprintf (uri, sizeof (uri),
                     "ipp://localhost/classes/%s", name);
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
-		      "printer-uri", NULL, uri);
+                      "printer-uri", NULL, uri);
 }
 
 static void
@@ -412,7 +412,7 @@ _cph_cups_add_job_uri (ipp_t      *request,
         g_snprintf (uri, sizeof (uri),
                     "ipp://localhost/jobs/%d", job_id);
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
-		      "job-uri", NULL, uri);
+                      "job-uri", NULL, uri);
 }
 
 static void
@@ -772,7 +772,7 @@ cph_cups_is_class (CphCups    *cups,
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_class_uri (request, name);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
-		       "requested-attributes", 1, NULL, attrs);
+                       "requested-attributes", 1, NULL, attrs);
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
@@ -811,7 +811,7 @@ cph_cups_printer_get_uri (CphCups    *cups,
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_printer_uri (request, printer_name);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
-		       "requested-attributes", 1, NULL, attrs);
+                       "requested-attributes", 1, NULL, attrs);
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
@@ -882,8 +882,8 @@ cph_cups_file_get (CphCups    *cups,
                    const char *filename)
 {
         struct stat file_stat;
-        uid_t       uid = 0;
-        gid_t       gid = 0;
+        uid_t       uid;
+        gid_t       gid;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
@@ -903,9 +903,8 @@ cph_cups_file_get (CphCups    *cups,
                                                resource, filename);
 
         if (cups->priv->last_status != HTTP_OK) {
-                int fd;
-
                 if (cph_cups_reconnect (cups)) {
+                        int fd;
 
                         /* if cupsGetFile fail then filename is erased */
                         fd = open (filename, O_CREAT, S_IRUSR | S_IWUSR);
@@ -915,7 +914,8 @@ cph_cups_file_get (CphCups    *cups,
                         _cph_cups_set_internal_status (cups, NULL);
 
                         cups->priv->last_status = cupsGetFile (cups->priv->connection,
-                                                               resource, filename);
+                                                               resource,
+                                                               filename);
                 }
         }
 
@@ -1391,7 +1391,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-		       "job-sheets-default", 2, NULL, values);
+                       "job-sheets-default", 2, NULL, values);
 
         if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
                 return TRUE;
@@ -1403,7 +1403,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-		       "job-sheets-default", 2, NULL, values);
+                       "job-sheets-default", 2, NULL, values);
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
@@ -1744,7 +1744,7 @@ cph_cups_job_get_status (CphCups    *cups,
 {
         CphJobStatus  status = CPH_JOB_STATUS_INVALID;
         cups_job_t   *jobs;
-        int           num_jobs = 0;
+        int           num_jobs;
         int           i;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), CPH_JOB_STATUS_INVALID);
@@ -1753,9 +1753,11 @@ cph_cups_job_get_status (CphCups    *cups,
 
         for (i = 0; i < num_jobs; i++) {
                 if (jobs[i].id == job_id) {
-                        status = CPH_JOB_STATUS_NOT_OWNED_BY_USER;
-                        if (user != NULL && g_strcmp0 (jobs[i].user, user) == 0)
+                        if (user != NULL &&
+                            g_strcmp0 (jobs[i].user, user) == 0)
                                 status = CPH_JOB_STATUS_OWNED_BY_USER;
+                        else
+                                status = CPH_JOB_STATUS_NOT_OWNED_BY_USER;
                         break;
                 }
         }
