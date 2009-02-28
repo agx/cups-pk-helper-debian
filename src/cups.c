@@ -906,7 +906,7 @@ cph_cups_file_get (CphCups    *cups,
                 if (cph_cups_reconnect (cups)) {
                         int fd;
 
-                        /* if cupsGetFile fail then filename is erased */
+                        /* if cupsGetFile fail, then filename is unlinked */
                         fd = open (filename, O_CREAT, S_IRUSR | S_IWUSR);
                         close (fd);
                         chown (filename, uid, gid);
