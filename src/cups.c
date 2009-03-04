@@ -45,8 +45,11 @@
 
 #include "cups.h"
 
-#define MAX_RECONNECT_ATTEMPTS 100
+/* This is 0.1 second */
 #define RECONNECT_DELAY        100000
+/* We try to reconnect during 3 seconds. It's still a fairly long time even for
+ * restarting cups, so it should be fine */
+#define MAX_RECONNECT_ATTEMPTS 30
 
 /*
      getPrinters
@@ -917,6 +920,8 @@ cph_cups_file_get (CphCups    *cups,
         cups->priv->last_status = cupsGetFile (cups->priv->connection,
                                                resource, filename);
 
+        /* FIXME: There's a bug where the cups connection can fail with EPIPE.
+         * We're work-arounding it here until it's fixed in cups. */
         if (cups->priv->last_status != HTTP_OK) {
                 if (cph_cups_reconnect (cups)) {
                         int fd;
