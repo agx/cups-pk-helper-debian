@@ -1,4 +1,16 @@
 =============
+Version 0.0.4
+=============
+
++ Remove bare send_interface lines in the DBus rules.
++ Add job related functions. (Marek Kasik)
++ Reconnect to the cups server if necessary. (Marek Kasik)
++ Accept file: URI as local. (Marek Kasik)
++ Change default policy for job-edit to yes (jobs are owned by the user).
++ Add more checks for the new job-related functions.
++ Code cleanups.
+
+=============
 Version 0.0.3
 =============
 
