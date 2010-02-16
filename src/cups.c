@@ -1844,11 +1844,11 @@ cph_cups_job_get_status (CphCups    *cups,
         return status;
 }
 
-struct _CphCupsGetDevices {
+typedef struct {
         int         iter;
         int         limit;
         GHashTable *hash;
-};
+} CphCupsGetDevices;
 
 static void
 _cph_cups_get_devices_cb (const char *device_class,
@@ -1859,7 +1859,7 @@ _cph_cups_get_devices_cb (const char *device_class,
                           const char *device_location,
                           void       *user_data)
 {
-        struct _CphCupsGetDevices *data = user_data;
+        CphCupsGetDevices *data = user_data;
 
         g_return_if_fail (data != NULL);
 
@@ -1900,46 +1900,17 @@ _cph_cups_get_devices_cb (const char *device_class,
         data->iter++;
 }
 
-GHashTable *
-cph_cups_devices_get (CphCups     *cups,
-                      int          timeout,
-                      int          limit,
-                      const char **include_schemes,
-                      const char **exclude_schemes)
-{
-        struct _CphCupsGetDevices data;
-        int                       len_include;
-        int                       len_exclude;
-
-        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
-
-        /* check the validity of values */
-        len_include = 0;
-        if (include_schemes) {
-                while (include_schemes[len_include] != NULL) {
-                        if (!_cph_cups_is_scheme_valid (cups, include_schemes[len_include]))
-                                return NULL;
-                        len_include++;
-                }
-        }
-
-        len_exclude = 0;
-        if (exclude_schemes) {
-                while (exclude_schemes[len_exclude] != NULL) {
-                        if (!_cph_cups_is_scheme_valid (cups, exclude_schemes[len_exclude]))
-                                return NULL;
-                        len_exclude++;
-                }
-        }
-
-        data.iter  = 0;
-        data.limit = -1;
-        data.hash  = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                            g_free, g_free);
-        if (limit > 0)
-                data.limit = limit;
-
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
+static gboolean
+_cph_cups_devices_get_14 (CphCups            *cups,
+                          int                 timeout,
+                          int                 limit,
+                          const char        **include_schemes,
+                          const char        **exclude_schemes,
+                          int                 len_include,
+                          int                 len_exclude,
+                          CphCupsGetDevices  *data)
+{
         ipp_status_t  retval;
         int           timeout_param = CUPS_TIMEOUT_DEFAULT;
         char         *include_schemes_param;
@@ -1963,7 +1934,7 @@ cph_cups_devices_get (CphCups     *cups,
                                  include_schemes_param,
                                  exclude_schemes_param,
                                  _cph_cups_get_devices_cb,
-                                 &data);
+                                 data);
 
         g_free (include_schemes_param);
         g_free (exclude_schemes_param);
@@ -1971,9 +1942,22 @@ cph_cups_devices_get (CphCups     *cups,
         if (retval != IPP_OK) {
                 _cph_cups_set_internal_status (cups,
                                                "Cannot get devices.");
-                goto out_clean;
+                return FALSE;
         }
+
+        return TRUE;
+}
 #else
+static gboolean
+_cph_cups_devices_get_old (CphCups            *cups,
+                           int                 timeout,
+                           int                 limit,
+                           const char        **include_schemes,
+                           const char        **exclude_schemes,
+                           int                 len_include,
+                           int                 len_exclude,
+                           CphCupsGetDevices  *data)
+{
         ipp_t           *request;
         const char      *resource_char;
         ipp_t           *reply;
@@ -2018,7 +2002,7 @@ cph_cups_devices_get (CphCups     *cups,
 
         if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
                 _cph_cups_set_error_from_reply (cups, reply);
-                goto out_clean;
+                return FALSE;
         }
 
         for (attr = reply->attrs; attr; attr = attr->next) {
@@ -2067,21 +2051,76 @@ cph_cups_devices_get (CphCups     *cups,
                                                   device_make_and_model,
                                                   device_uri,
                                                   device_location,
-                                                  &data);
+                                                  data);
 
                 if (attr == NULL)
                         break;
         }
 
         ippDelete (reply);
+
+        return TRUE;
+}
 #endif
 
-        return data.hash;
+GHashTable *
+cph_cups_devices_get (CphCups     *cups,
+                      int          timeout,
+                      int          limit,
+                      const char **include_schemes,
+                      const char **exclude_schemes)
+{
+        CphCupsGetDevices data;
+        int               len_include;
+        int               len_exclude;
+        gboolean          retval;
 
-out_clean:
-        g_hash_table_destroy (data.hash);
+        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
 
-        return NULL;
+        /* check the validity of values */
+        len_include = 0;
+        if (include_schemes) {
+                while (include_schemes[len_include] != NULL) {
+                        if (!_cph_cups_is_scheme_valid (cups, include_schemes[len_include]))
+                                return NULL;
+                        len_include++;
+                }
+        }
+
+        len_exclude = 0;
+        if (exclude_schemes) {
+                while (exclude_schemes[len_exclude] != NULL) {
+                        if (!_cph_cups_is_scheme_valid (cups, exclude_schemes[len_exclude]))
+                                return NULL;
+                        len_exclude++;
+                }
+        }
+
+        data.iter  = 0;
+        data.limit = -1;
+        data.hash  = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                            g_free, g_free);
+        if (limit > 0)
+                data.limit = limit;
+
+#if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
+        retval = _cph_cups_devices_get_14 (cups, timeout, limit,
+                                           include_schemes, exclude_schemes,
+                                           len_include, len_exclude,
+                                           &data);
+#else
+        retval = _cph_cups_devices_get_old (cups, timeout, limit,
+                                            include_schemes, exclude_schemes,
+                                            len_include, len_exclude,
+                                            &data);
+#endif
+
+        if (retval)
+                return data.hash;
+        else {
+                g_hash_table_destroy (data.hash);
+                return NULL;
+        }
 }
 
 /******************************************************
