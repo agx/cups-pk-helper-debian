@@ -2,8 +2,9 @@
  * vim: set et ts=8 sw=8:
  *
  * Copyright (C) 2008 Novell, Inc.
+ * Copyright (C) 2009 Red Hat, Inc.
  *
- * Authors: Vincent Untz
+ * Authors: Vincent Untz, Tim Waugh
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1405,11 +1406,13 @@ cph_cups_printer_add (CphCups    *cups,
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
-        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
-                      "device-uri", NULL, printer_uri);
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "ppd-name", NULL, ppd_file);
 
+        if (printer_uri && printer_uri[0] != '\0') {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
+                              "device-uri", NULL, printer_uri);
+        }
         if (info && info[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_TEXT,
                               "printer-info", NULL, info);
