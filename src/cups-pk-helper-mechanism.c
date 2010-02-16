@@ -252,38 +252,46 @@ _check_polkit_for_action_internal (CphMechanism           *mechanism,
                                    GError                **error)
 {
         char *sender;
-        DBusError dbus_error;
-        PolkitSubject *pk_caller;
+        PolkitSubject *subject;
         PolkitAuthorizationResult *pk_result;
         char *action;
+        GError *local_error;
 
         g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+        local_error = NULL;
 
         action = g_strdup_printf ("org.opensuse.cupspkhelper.mechanism.%s",
                                   action_method);
 
         /* Check that caller is privileged */
         sender = dbus_g_method_get_sender (context);
-        dbus_error_init (&dbus_error);
-
-        pk_caller = polkit_system_bus_name_new (sender);
+        subject = polkit_system_bus_name_new (sender);
         g_free (sender);
 
         pk_result = polkit_authority_check_authorization_sync (mechanism->priv->pol_auth,
-                                                               pk_caller,
+                                                               subject,
                                                                action,
                                                                NULL,
                                                                POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
                                                                NULL,
-                                                               NULL);
-        g_object_unref (pk_caller);
+                                                               &local_error);
+        g_object_unref (subject);
 
-        if (pk_result == NULL || !polkit_authorization_result_get_is_authorized (pk_result)) {
+        if (local_error) {
+                g_propagate_error (error, local_error);
+                g_free (action);
+
+                return FALSE;
+        }
+
+        if (!polkit_authorization_result_get_is_authorized (pk_result)) {
                 g_set_error (error,
                              CPH_MECHANISM_ERROR,
                              CPH_MECHANISM_ERROR_NOT_PRIVILEGED,
-                             "Not Authorized: %s", action);
+                             "Not Authorized for action: %s", action);
                 g_free (action);
+                g_object_unref (pk_result);
 
                 return FALSE;
         }
