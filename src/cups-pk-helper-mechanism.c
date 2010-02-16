@@ -45,7 +45,7 @@
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
 
-#include <polkit-dbus/polkit-dbus.h>
+#include <polkit/polkit.h>
 
 #include <pwd.h>
 
@@ -124,7 +124,7 @@ G_DEFINE_TYPE (CphMechanism, cph_mechanism, G_TYPE_OBJECT)
 struct CphMechanismPrivate
 {
         DBusGConnection *system_bus_connection;
-        PolKitContext   *pol_ctx;
+        PolkitAuthority *pol_auth;
         CphCups         *cups;
 };
 
@@ -201,59 +201,11 @@ cph_mechanism_finalize (GObject *object)
 }
 
 static gboolean
-pk_io_watch_have_data (GIOChannel   *channel,
-                       GIOCondition  condition,
-                       gpointer      user_data)
-{
-        int            fd;
-        PolKitContext *pk_context;
-
-        pk_context = user_data;
-        fd = g_io_channel_unix_get_fd (channel);
-        polkit_context_io_func (pk_context, fd);
-
-        return TRUE;
-}
-
-static int
-pk_io_add_watch (PolKitContext *pk_context,
-                 int            fd)
-{
-        guint       id;
-        GIOChannel *channel;
-
-        channel = g_io_channel_unix_new (fd);
-        if (channel == NULL)
-                return 0;
-
-        id = g_io_add_watch (channel, G_IO_IN,
-                             pk_io_watch_have_data, pk_context);
-
-        return id;
-}
-
-static void
-pk_io_remove_watch (PolKitContext *pk_context,
-                    int            watch_id)
-{
-        g_source_remove (watch_id);
-}
-
-static gboolean
 register_mechanism (CphMechanism *mechanism)
 {
         GError *error;
 
-        mechanism->priv->pol_ctx = polkit_context_new ();
-
-        polkit_context_set_io_watch_functions (mechanism->priv->pol_ctx,
-                                               pk_io_add_watch,
-                                               pk_io_remove_watch);
-
-        if (!polkit_context_init (mechanism->priv->pol_ctx, NULL)) {
-                g_critical ("cannot initialize libpolkit");
-                return FALSE;
-        }
+        mechanism->priv->pol_auth = polkit_authority_get ();
 
         error = NULL;
         mechanism->priv->system_bus_connection = dbus_g_bus_get (DBUS_BUS_SYSTEM,
@@ -299,11 +251,10 @@ _check_polkit_for_action_internal (CphMechanism           *mechanism,
                                    const char             *action_method,
                                    GError                **error)
 {
-        const char *sender;
+        char *sender;
         DBusError dbus_error;
-        PolKitCaller *pk_caller;
-        PolKitAction *pk_action;
-        PolKitResult pk_result;
+        PolkitSubject *pk_caller;
+        PolkitAuthorizationResult *pk_result;
         char *action;
 
         g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
@@ -315,44 +266,30 @@ _check_polkit_for_action_internal (CphMechanism           *mechanism,
         sender = dbus_g_method_get_sender (context);
         dbus_error_init (&dbus_error);
 
-        pk_caller = polkit_caller_new_from_dbus_name (
-                dbus_g_connection_get_connection (mechanism->priv->system_bus_connection),
-                sender,
-                &dbus_error);
+        pk_caller = polkit_system_bus_name_new (sender);
+        g_free (sender);
 
-        if (pk_caller == NULL) {
-                g_set_error (error,
-                             CPH_MECHANISM_ERROR, CPH_MECHANISM_ERROR_GENERAL,
-                             "Error getting information about caller: %s: %s",
-                             dbus_error.name, dbus_error.message);
-                dbus_error_free (&dbus_error);
-                g_free (action);
+        pk_result = polkit_authority_check_authorization_sync (mechanism->priv->pol_auth,
+                                                               pk_caller,
+                                                               action,
+                                                               NULL,
+                                                               POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
+                                                               NULL,
+                                                               NULL);
+        g_object_unref (pk_caller);
 
-                return FALSE;
-        }
-
-        pk_action = polkit_action_new ();
-        polkit_action_set_action_id (pk_action, action);
-        pk_result = polkit_context_is_caller_authorized (mechanism->priv->pol_ctx,
-                                                         pk_action, pk_caller,
-                                                         FALSE, NULL);
-        polkit_caller_unref (pk_caller);
-        polkit_action_unref (pk_action);
-
-        if (pk_result != POLKIT_RESULT_YES) {
+        if (pk_result == NULL || !polkit_authorization_result_get_is_authorized (pk_result)) {
                 g_set_error (error,
                              CPH_MECHANISM_ERROR,
                              CPH_MECHANISM_ERROR_NOT_PRIVILEGED,
-                             "%s %s <-- (action, result)",
-                             action,
-                             polkit_result_to_string_representation (pk_result));
-                dbus_error_free (&dbus_error);
+                             "Not Authorized: %s", action);
                 g_free (action);
 
                 return FALSE;
         }
 
         g_free (action);
+        g_object_unref (pk_result);
 
         return TRUE;
 }

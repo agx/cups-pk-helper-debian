@@ -46,7 +46,7 @@ BUILT_SOURCES = cups-pk-helper-mechanism-glue.h
 
 dbus_servicesdir = $(datadir)/dbus-1/system-services
 dbus_confdir = $(sysconfdir)/dbus-1/system.d
-polkitdir = $(datadir)/PolicyKit/policy
+polkitdir = $(datadir)/polkit-1/actions
 
 dbus_services_in_files = org.opensuse.CupsPkHelper.Mechanism.service.in
 polkit_in_files = org.opensuse.cupspkhelper.mechanism.policy.in
