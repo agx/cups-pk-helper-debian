@@ -22,8 +22,6 @@
  */
 
 
-#include <gtk/gtk.h>
-
 #include <glib.h>
 
 #include <dbus/dbus-glib.h>
@@ -81,7 +79,7 @@ main (int argc, char **argv)
         gboolean         ret;
         GError          *error;
 
-        gtk_init (&argc, &argv);
+        g_type_init ();
 
         error = NULL;
         system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
