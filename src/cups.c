@@ -231,18 +231,30 @@ cph_cups_new (void)
  * Validation
  ******************************************************/
 
+/* From https://bugzilla.novell.com/show_bug.cgi?id=447444#c5
+ * We need to define a maximum length for strings to avoid cups
+ * thinking there are multiple lines.
+ */
+#define CPH_STR_MAXLEN 512
+
 static gboolean
 _cph_cups_is_string_printable (const char *str,
-                               gboolean    check_for_null)
+                               gboolean    check_for_null,
+                               int         maxlen)
 {
         int i;
+        int len;
 
         /* no NULL string */
         if (!str)
                 return !check_for_null;
 
+        len = strlen (str);
+        if (maxlen > 0 && len > maxlen)
+                return FALSE;
+
         /* only printable characters */
-        for (i = 0; i < strlen (str); i++) {
+        for (i = 0; i < len; i++) {
                 if (!g_ascii_isprint (str[i]))
                         return FALSE;
         }
@@ -250,14 +262,14 @@ _cph_cups_is_string_printable (const char *str,
         return TRUE;
 }
 
-#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null)                \
+#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null, maxlen)        \
 static gboolean                                                               \
 _cph_cups_is_##name##_valid (CphCups    *cups,                                \
                              const char *str)                                 \
 {                                                                             \
         char *error;                                                          \
                                                                               \
-        if (_cph_cups_is_string_printable (str, check_for_null))              \
+        if (_cph_cups_is_string_printable (str, check_for_null, maxlen))      \
                 return TRUE;                                                  \
                                                                               \
         error = g_strdup_printf ("\"%s\" is not a valid %s.",                 \
@@ -272,13 +284,20 @@ static gboolean
 _cph_cups_is_printer_name_valid_internal (const char *name)
 {
         int i;
+        int len;
 
         /* no empty string */
         if (!name || name[0] == '\0')
                 return FALSE;
 
+        len = strlen (name);
+        /* no string that is too long; see comment at the beginning of the
+         * validation code block */
+        if (len > CPH_STR_MAXLEN)
+                return FALSE;
+
         /* only printable characters, no space, no /, no # */
-        for (i = 0; i < strlen (name); i++) {
+        for (i = 0; i < len; i++) {
                 if (!g_ascii_isprint (name[i]))
                         return FALSE;
                 if (g_ascii_isspace (name[i]))
@@ -294,9 +313,16 @@ static gboolean
 _cph_cups_is_scheme_valid_internal (const char *scheme)
 {
         int i;
+        int len;
 
         /* no empty string */
         if (!scheme || scheme[0] == '\0')
+                return FALSE;
+
+        len = strlen (scheme);
+        /* no string that is too long; see comment at the beginning of the
+         * validation code block */
+        if (len > CPH_STR_MAXLEN)
                 return FALSE;
 
         /* From RFC 1738:
@@ -306,7 +332,7 @@ _cph_cups_is_scheme_valid_internal (const char *scheme)
          * interpreting URLs should treat upper case letters as equivalent to
          * lower case in scheme names (e.g., allow "HTTP" as well as "http").
          */
-        for (i = 0; i < strlen (scheme); i++) {
+        for (i = 0; i < len; i++) {
                 if (!g_ascii_isalnum (scheme[i]) &&
                     scheme[i] != '+' &&
                     scheme[i] != '.' &&
@@ -397,12 +423,12 @@ _cph_cups_is_scheme_valid (CphCups    *cups,
  *     printer-error-policy-supported and printer-op-policy-supported
  *     attributes.
  */
-_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE)
-_CPH_CUPS_IS_VALID (ppd, "PPD", TRUE)
-_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE)
-_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE)
-_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE)
-_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
+_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd, "PPD", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, CPH_STR_MAXLEN)
 
 /* Check for users. Those are some printable strings, which souldn't be NULL.
  * They should also not be empty, but it appears that it's possible to carry
@@ -411,7 +437,7 @@ _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE)
  * We could also check that the username exists on the system, but cups will do
  * it.
  */
-_CPH_CUPS_IS_VALID (user, "user", TRUE)
+_CPH_CUPS_IS_VALID (user, "user", TRUE, CPH_STR_MAXLEN)
 
 /* Check for options & values. Those are for sure some printable strings, but
  * can we do more? Let's see:
@@ -420,14 +446,14 @@ _CPH_CUPS_IS_VALID (user, "user", TRUE)
  *     and so we'll let cups handle that.
  *   + a value can be some text, and we don't know much more.
  */
-_CPH_CUPS_IS_VALID (option, "option", TRUE)
-_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE)
+_CPH_CUPS_IS_VALID (option, "option", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE, CPH_STR_MAXLEN)
 
 /* This is really just some text */
-_CPH_CUPS_IS_VALID (info, "description", FALSE)
-_CPH_CUPS_IS_VALID (location, "location", FALSE)
-_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE)
-_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
+_CPH_CUPS_IS_VALID (info, "description", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (location, "location", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, CPH_STR_MAXLEN)
 
 /* For put/get file: this is some text, but we could potentially do more
  * checks. We don't do them because cups will already do them.
@@ -435,8 +461,8 @@ _CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
  *   + for the filename, in the put case, we could check that the file exists
  *     and is a regular file (no socket, block device, etc.).
  */
-_CPH_CUPS_IS_VALID (resource, "resource", TRUE)
-_CPH_CUPS_IS_VALID (filename, "filename", TRUE)
+_CPH_CUPS_IS_VALID (resource, "resource", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
 
 /******************************************************
  * Helpers
