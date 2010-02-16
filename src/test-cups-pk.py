@@ -26,7 +26,7 @@ import sys
 import dbus
 
 def removeprinter(cups_pk, printer_name):
-    error = cups_pk.PrinterRemove(printer_name)
+    error = cups_pk.PrinterDelete(printer_name)
 
     if not type(error) in [dbus.String, dbus.UTF8String]:
            print 'unexpected return value'
