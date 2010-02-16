@@ -15,7 +15,7 @@ PKG_NAME="CUPS PolicyKit helper"
 
 
 which gnome-autogen.sh || {
-    echo "You need to install gnome-common from the GNOME SVN"
+    echo "You need to install gnome-common from a package or from GNOME git."
     exit 1
 }
 
