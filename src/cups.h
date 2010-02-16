@@ -67,6 +67,9 @@ gboolean cph_cups_is_class (CphCups    *cups,
 char *cph_cups_printer_get_uri (CphCups    *cups,
                                 const char *printer_name);
 
+gboolean cph_cups_is_printer_local (CphCups    *cups,
+                                    const char *printer_name);
+
 gboolean cph_cups_file_get (CphCups    *cups,
                             const char *resource,
                             const char *filename);
@@ -74,6 +77,17 @@ gboolean cph_cups_file_get (CphCups    *cups,
 gboolean cph_cups_file_put (CphCups    *cups,
                             const char *resource,
                             const char *filename);
+
+GHashTable *cph_cups_server_get_settings (CphCups *cups);
+
+gboolean cph_cups_server_set_settings (CphCups    *cups,
+                                       GHashTable *settings);
+
+GHashTable *cph_cups_devices_get (CphCups     *cups,
+                                  int          timeout,
+                                  int          limit,
+                                  const char **include_schemes,
+                                  const char **exclude_schemes);
 
 gboolean cph_cups_printer_add (CphCups    *cups,
                                const char *printer_name,
@@ -157,16 +171,6 @@ gboolean cph_cups_printer_class_set_option_default (CphCups     *cups,
                                                     const char  *option,
                                                     const char **values);
 
-GHashTable *cph_cups_server_get_settings (CphCups *cups);
-
-gboolean cph_cups_server_set_settings (CphCups    *cups,
-                                       GHashTable *settings);
-
-gboolean cph_cups_is_printer_local (CphCups    *cups,
-                                    const char *printer_name);
-
-gboolean cph_cups_is_printer_uri_local (const char *uri);
-
 gboolean cph_cups_job_cancel (CphCups    *cups,
                               int         job_id,
                               const char *user_name);
@@ -184,11 +188,7 @@ CphJobStatus cph_cups_job_get_status (CphCups    *cups,
                                       int         job_id,
                                       const char *user);
 
-GHashTable *cph_cups_devices_get (CphCups     *cups,
-                                  int          timeout,
-                                  int          limit,
-                                  const char **include_schemes,
-                                  const char **exclude_schemes);
+gboolean cph_cups_is_printer_uri_local (const char *uri);
 
 G_END_DECLS
 

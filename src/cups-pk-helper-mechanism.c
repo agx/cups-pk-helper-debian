@@ -567,6 +567,68 @@ cph_mechanism_file_put (CphMechanism          *mechanism,
 }
 
 gboolean
+cph_mechanism_server_get_settings (CphMechanism          *mechanism,
+                                   DBusGMethodInvocation *context)
+{
+        GHashTable *settings;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
+                return FALSE;
+
+        settings = cph_cups_server_get_settings (mechanism->priv->cups);
+        _cph_mechanism_return_error_and_value (mechanism, context,
+                                               settings == NULL, settings);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_server_set_settings (CphMechanism          *mechanism,
+                                   GHashTable            *settings,
+                                   DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
+                return FALSE;
+
+        ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_devices_get (CphMechanism           *mechanism,
+                           int                     timeout,
+                           int                     limit,
+                           const char            **include_schemes,
+                           const char            **exclude_schemes,
+                           DBusGMethodInvocation  *context)
+{
+        GHashTable *devices;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "devices-get"))
+                return FALSE;
+
+        devices = cph_cups_devices_get (mechanism->priv->cups,
+                                        timeout,
+                                        limit,
+                                        include_schemes,
+                                        exclude_schemes);
+        _cph_mechanism_return_error_and_value (mechanism, context,
+                                               devices == NULL, devices);
+
+        return TRUE;
+}
+
+gboolean
 cph_mechanism_printer_add (CphMechanism          *mechanism,
                            const char            *name,
                            const char            *uri,
@@ -628,6 +690,174 @@ cph_mechanism_printer_set_device (CphMechanism          *mechanism,
 
         ret = cph_cups_printer_set_uri (mechanism->priv->cups,
                                         name, device);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_default (CphMechanism          *mechanism,
+                                   const char            *name,
+                                   DBusGMethodInvocation *context)
+{
+        gboolean    ret;
+        const char *last_action;
+
+        reset_killtimer (mechanism);
+
+        last_action = _cph_mechanism_get_action_for_name (mechanism, name);
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove",
+                                         /* this is not the last check because
+                                          * it's likely most useful to the user
+                                          * to give "printer-X-edit" powers */
+                                         "printer-default",
+                                         /* quite important, since it's
+                                          * automatically called after adding a
+                                          * printer */
+                                         last_action,
+                                         NULL))
+                return FALSE;
+
+        ret = cph_cups_printer_set_default (mechanism->priv->cups, name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
+                                   const char            *name,
+                                   gboolean               enabled,
+                                   DBusGMethodInvocation *context)
+{
+        gboolean    ret;
+        const char *last_action;
+
+        reset_killtimer (mechanism);
+
+        last_action = _cph_mechanism_get_action_for_name (mechanism, name);
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove",
+                                         /* this is not the last check because
+                                          * it's likely most useful to the user
+                                          * to give "printer-X-edit" powers */
+                                         "printer-enable",
+                                         /* quite important, since it's
+                                          * automatically called after adding a
+                                          * printer */
+                                         last_action,
+                                         NULL))
+                return FALSE;
+
+        ret = cph_cups_printer_set_enabled (mechanism->priv->cups,
+                                            name, enabled);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
+                                       const char            *name,
+                                       gboolean               enabled,
+                                       const char            *reason,
+                                       DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_printer (mechanism, context, name, NULL))
+                return FALSE;
+
+        if (reason && reason[0] == '\0')
+                reason = NULL;
+
+        ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
+                                                name, enabled, reason);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_printer_delete (CphMechanism          *mechanism,
+                              const char            *name,
+                              DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_printer (mechanism, context, name, NULL))
+                return FALSE;
+
+        ret = cph_cups_printer_delete (mechanism->priv->cups, name);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_class_add_printer (CphMechanism          *mechanism,
+                                 const char            *name,
+                                 const char            *printer,
+                                 DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "class-edit",
+                                         NULL))
+                return FALSE;
+
+        ret = cph_cups_class_add_printer (mechanism->priv->cups,
+                                          name, printer);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
+                                    const char            *name,
+                                    const char            *printer,
+                                    DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "class-edit",
+                                         NULL))
+                return FALSE;
+
+        ret = cph_cups_class_delete_printer (mechanism->priv->cups,
+                                             name, printer);
+        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        return TRUE;
+}
+
+gboolean
+cph_mechanism_class_delete (CphMechanism          *mechanism,
+                            const char            *name,
+                            DBusGMethodInvocation *context)
+{
+        gboolean ret;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "printeraddremove", "class-edit",
+                                         NULL))
+                return FALSE;
+
+        ret = cph_cups_class_delete (mechanism->priv->cups, name);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         return TRUE;
@@ -837,210 +1067,6 @@ cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,
 }
 
 gboolean
-cph_mechanism_printer_delete (CphMechanism          *mechanism,
-                              const char            *name,
-                              DBusGMethodInvocation *context)
-{
-        gboolean ret;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_printer (mechanism, context, name, NULL))
-                return FALSE;
-
-        ret = cph_cups_printer_delete (mechanism->priv->cups, name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_class_add_printer (CphMechanism          *mechanism,
-                                 const char            *name,
-                                 const char            *printer,
-                                 DBusGMethodInvocation *context)
-{
-        gboolean ret;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "class-edit",
-                                         NULL))
-                return FALSE;
-
-        ret = cph_cups_class_add_printer (mechanism->priv->cups,
-                                          name, printer);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
-                                    const char            *name,
-                                    const char            *printer,
-                                    DBusGMethodInvocation *context)
-{
-        gboolean ret;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "class-edit",
-                                         NULL))
-                return FALSE;
-
-        ret = cph_cups_class_delete_printer (mechanism->priv->cups,
-                                             name, printer);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_class_delete (CphMechanism          *mechanism,
-                            const char            *name,
-                            DBusGMethodInvocation *context)
-{
-        gboolean ret;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "class-edit",
-                                         NULL))
-                return FALSE;
-
-        ret = cph_cups_class_delete (mechanism->priv->cups, name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_printer_set_default (CphMechanism          *mechanism,
-                                   const char            *name,
-                                   DBusGMethodInvocation *context)
-{
-        gboolean    ret;
-        const char *last_action;
-
-        reset_killtimer (mechanism);
-
-        last_action = _cph_mechanism_get_action_for_name (mechanism, name);
-        if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove",
-                                         /* this is not the last check because
-                                          * it's likely most useful to the user
-                                          * to give "printer-X-edit" powers */
-                                         "printer-default",
-                                         /* quite important, since it's
-                                          * automatically called after adding a
-                                          * printer */
-                                         last_action,
-                                         NULL))
-                return FALSE;
-
-        ret = cph_cups_printer_set_default (mechanism->priv->cups, name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
-                                   const char            *name,
-                                   gboolean               enabled,
-                                   DBusGMethodInvocation *context)
-{
-        gboolean    ret;
-        const char *last_action;
-
-        reset_killtimer (mechanism);
-
-        last_action = _cph_mechanism_get_action_for_name (mechanism, name);
-        if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove",
-                                         /* this is not the last check because
-                                          * it's likely most useful to the user
-                                          * to give "printer-X-edit" powers */
-                                         "printer-enable",
-                                         /* quite important, since it's
-                                          * automatically called after adding a
-                                          * printer */
-                                         last_action,
-                                         NULL))
-                return FALSE;
-
-        ret = cph_cups_printer_set_enabled (mechanism->priv->cups,
-                                            name, enabled);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
-                                       const char            *name,
-                                       gboolean               enabled,
-                                       const char            *reason,
-                                       DBusGMethodInvocation *context)
-{
-        gboolean ret;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_printer (mechanism, context, name, NULL))
-                return FALSE;
-
-        if (reason && reason[0] == '\0')
-                reason = NULL;
-
-        ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
-                                                name, enabled, reason);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_server_get_settings (CphMechanism          *mechanism,
-                                   DBusGMethodInvocation *context)
-{
-        GHashTable *settings;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return FALSE;
-
-        settings = cph_cups_server_get_settings (mechanism->priv->cups);
-        _cph_mechanism_return_error_and_value (mechanism, context,
-                                               settings == NULL, settings);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_server_set_settings (CphMechanism          *mechanism,
-                                   GHashTable            *settings,
-                                   DBusGMethodInvocation *context)
-{
-        gboolean ret;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return FALSE;
-
-        ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
-        _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
-}
-
-gboolean
 cph_mechanism_job_cancel (CphMechanism          *mechanism,
                           int                    id,
                           DBusGMethodInvocation *context)
@@ -1163,32 +1189,6 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         g_free (user_name);
-
-        return TRUE;
-}
-
-gboolean
-cph_mechanism_devices_get (CphMechanism           *mechanism,
-                           int                     timeout,
-                           int                     limit,
-                           const char            **include_schemes,
-                           const char            **exclude_schemes,
-                           DBusGMethodInvocation  *context)
-{
-        GHashTable *devices;
-
-        reset_killtimer (mechanism);
-
-        if (!_check_polkit_for_action (mechanism, context, "devices-get"))
-                return FALSE;
-
-        devices = cph_cups_devices_get (mechanism->priv->cups,
-                                        timeout,
-                                        limit,
-                                        include_schemes,
-                                        exclude_schemes);
-        _cph_mechanism_return_error_and_value (mechanism, context,
-                                               devices == NULL, devices);
 
         return TRUE;
 }

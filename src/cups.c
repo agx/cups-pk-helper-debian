@@ -1010,6 +1010,371 @@ cph_cups_file_put (CphCups    *cups,
                 cups->priv->last_status == HTTP_CREATED);
 }
 
+/* Functions that are for the server in general */
+
+GHashTable *
+cph_cups_server_get_settings (CphCups *cups)
+{
+        int            retval;
+        GHashTable    *hash;
+        cups_option_t *settings;
+        int            num_settings, i;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+
+        retval = cupsAdminGetServerSettings (cups->priv->connection,
+                                             &num_settings, &settings);
+
+        if (retval == 0) {
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot get server settings.");
+
+                return NULL;
+        }
+
+        hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                      g_free, g_free);
+
+        for (i = 0; i < num_settings; i++)
+                g_hash_table_replace (hash,
+                                      g_strdup (settings[i].name),
+                                      g_strdup (settings[i].value));
+
+        cupsFreeOptions (num_settings, settings);
+
+        return hash;
+}
+
+gboolean
+cph_cups_server_set_settings (CphCups    *cups,
+                              GHashTable *settings)
+{
+        int             retval;
+        GHashTableIter  iter;
+        /* key and value are strings, but we want to avoid compiler warnings */
+        gpointer        key;
+        gpointer        value;
+        cups_option_t  *cups_settings;
+        int             num_settings;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+        g_return_val_if_fail (settings != NULL, FALSE);
+
+        /* First pass to check the validity of the hashtable content */
+        g_hash_table_iter_init (&iter, settings);
+        while (g_hash_table_iter_next (&iter, &key, &value)) {
+                if (!_cph_cups_is_option_valid (cups, key))
+                        return FALSE;
+                if (!_cph_cups_is_option_value_valid (cups, value))
+                        return FALSE;
+        }
+
+        /* Second pass to actually set the settings */
+        cups_settings = NULL;
+        num_settings = 0;
+
+        g_hash_table_iter_init (&iter, settings);
+        while (g_hash_table_iter_next (&iter, &key, &value))
+                num_settings = cupsAddOption (key, value,
+                                              num_settings, &cups_settings);
+
+        retval = cupsAdminSetServerSettings (cups->priv->connection,
+                                             num_settings, cups_settings);
+
+        /* CUPS is being restarted, so we need to reconnect */
+        cph_cups_reconnect (cups);
+
+        cupsFreeOptions (num_settings, cups_settings);
+
+        if (retval == 0) {
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot set server settings.");
+
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
+typedef struct {
+        int         iter;
+        int         limit;
+        GHashTable *hash;
+} CphCupsGetDevices;
+
+static void
+_cph_cups_get_devices_cb (const char *device_class,
+                          const char *device_id,
+                          const char *device_info,
+                          const char *device_make_and_model,
+                          const char *device_uri,
+                          const char *device_location,
+                          void       *user_data)
+{
+        CphCupsGetDevices *data = user_data;
+
+        g_return_if_fail (data != NULL);
+
+        if (data->limit > 0 && data->iter >= data->limit)
+                return;
+
+        if (device_class && device_class[0] != '\0')
+                g_hash_table_replace (data->hash,
+                                      g_strdup_printf ("device-class:%d",
+                                                       data->iter),
+                                      g_strdup (device_class));
+        if (device_id && device_id[0] != '\0')
+                g_hash_table_replace (data->hash,
+                                      g_strdup_printf ("device-id:%d",
+                                                       data->iter),
+                                      g_strdup (device_id));
+        if (device_info && device_info[0] != '\0')
+                g_hash_table_replace (data->hash,
+                                      g_strdup_printf ("device-info:%d",
+                                                       data->iter),
+                                      g_strdup (device_info));
+        if (device_make_and_model && device_make_and_model[0] != '\0')
+                g_hash_table_replace (data->hash,
+                                      g_strdup_printf ("device-make-and-model:%d",
+                                                       data->iter),
+                                      g_strdup (device_make_and_model));
+        if (device_uri && device_uri[0] != '\0')
+                g_hash_table_replace (data->hash,
+                                      g_strdup_printf ("device-uri:%d",
+                                                       data->iter),
+                                      g_strdup (device_uri));
+        if (device_location && device_location[0] != '\0')
+                g_hash_table_replace (data->hash,
+                                      g_strdup_printf ("device-location:%d ",
+                                                       data->iter),
+                                      g_strdup (device_location));
+
+        data->iter++;
+}
+
+#if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
+static gboolean
+_cph_cups_devices_get_14 (CphCups            *cups,
+                          int                 timeout,
+                          int                 limit,
+                          const char        **include_schemes,
+                          const char        **exclude_schemes,
+                          int                 len_include,
+                          int                 len_exclude,
+                          CphCupsGetDevices  *data)
+{
+        ipp_status_t  retval;
+        int           timeout_param = CUPS_TIMEOUT_DEFAULT;
+        char         *include_schemes_param;
+        char         *exclude_schemes_param;
+
+        if (timeout > 0)
+                timeout_param = timeout;
+
+        if (include_schemes && len_include > 0)
+                include_schemes_param = g_strjoin (",", include_schemes);
+        else
+                include_schemes_param = g_strdup (CUPS_INCLUDE_ALL);
+
+        if (exclude_schemes && len_exclude > 0)
+                exclude_schemes_param = g_strjoin (",", exclude_schemes);
+        else
+                exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
+
+        retval = cupsGetDevices (cups->priv->connection,
+                                 timeout_param,
+                                 include_schemes_param,
+                                 exclude_schemes_param,
+                                 _cph_cups_get_devices_cb,
+                                 data);
+
+        g_free (include_schemes_param);
+        g_free (exclude_schemes_param);
+
+        if (retval != IPP_OK) {
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot get devices.");
+                return FALSE;
+        }
+
+        return TRUE;
+}
+#else
+static gboolean
+_cph_cups_devices_get_old (CphCups            *cups,
+                           int                 timeout,
+                           int                 limit,
+                           const char        **include_schemes,
+                           const char        **exclude_schemes,
+                           int                 len_include,
+                           int                 len_exclude,
+                           CphCupsGetDevices  *data)
+{
+        ipp_t           *request;
+        const char      *resource_char;
+        ipp_t           *reply;
+        ipp_attribute_t *attr;
+        const char      *device_class;
+        const char      *device_id;
+        const char      *device_info;
+        const char      *device_location;
+        const char      *device_make_and_model;
+        const char      *device_uri;
+
+        request = ippNewRequest (CUPS_GET_DEVICES);
+
+        if (timeout > 0)
+                ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
+                               "timeout", timeout);
+        if (limit > 0)
+                ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
+                               "limit", limit);
+
+        if (include_schemes && len_include > 0) {
+                int i;
+
+                attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                                      "include-schemes", len_include, NULL, NULL);
+                for (i = 0; i < len_include; i++)
+                        attr->values[i].string.text = g_strdup (include_schemes[i]);
+        }
+
+        if (exclude_schemes && len_exclude > 0) {
+                int i;
+
+                attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                                      "exclude-schemes", len_exclude, NULL, NULL);
+                for (i = 0; i < len_exclude; i++)
+                        attr->values[i].string.text = g_strdup (exclude_schemes[i]);
+        }
+
+        resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
+        reply = cupsDoRequest (cups->priv->connection,
+                               request, resource_char);
+
+        if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
+                _cph_cups_set_error_from_reply (cups, reply);
+                return FALSE;
+        }
+
+        for (attr = reply->attrs; attr; attr = attr->next) {
+                while (attr && attr->group_tag != IPP_TAG_PRINTER)
+                        attr = attr->next;
+
+                if (attr == NULL)
+                        break;
+
+                device_class          = NULL;
+                device_id             = NULL;
+                device_info           = NULL;
+                device_location       = NULL;
+                device_make_and_model = NULL;
+                device_uri            = NULL;
+
+                while (attr && attr->group_tag == IPP_TAG_PRINTER) {
+                        if (attr->name == NULL)
+                                /* nothing, just skip */;
+                        else if (strcmp (attr->name, "device-class") == 0 &&
+                                 attr->value_tag == IPP_TAG_KEYWORD)
+                                device_class = g_strdup (attr->values[0].string.text);
+                        else if (strcmp (attr->name, "device-id") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
+                                device_id = g_strdup (attr->values[0].string.text);
+                        else if (strcmp (attr->name, "device-info") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
+                                device_info = g_strdup (attr->values[0].string.text);
+                        else if (strcmp (attr->name, "device-location") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
+                                device_location = g_strdup (attr->values[0].string.text);
+                        else if (strcmp (attr->name, "device-make-and-model") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
+                                device_make_and_model = g_strdup (attr->values[0].string.text);
+                        else if (strcmp (attr->name, "device-uri") == 0 &&
+                                 attr->value_tag == IPP_TAG_URI)
+                                device_uri = g_strdup (attr->values[0].string.text);
+
+                        attr = attr->next;
+                }
+
+                if (device_uri)
+                        _cph_cups_get_devices_cb (device_class,
+                                                  device_id,
+                                                  device_info,
+                                                  device_make_and_model,
+                                                  device_uri,
+                                                  device_location,
+                                                  data);
+
+                if (attr == NULL)
+                        break;
+        }
+
+        ippDelete (reply);
+
+        return TRUE;
+}
+#endif
+
+GHashTable *
+cph_cups_devices_get (CphCups     *cups,
+                      int          timeout,
+                      int          limit,
+                      const char **include_schemes,
+                      const char **exclude_schemes)
+{
+        CphCupsGetDevices data;
+        int               len_include;
+        int               len_exclude;
+        gboolean          retval;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+
+        /* check the validity of values */
+        len_include = 0;
+        if (include_schemes) {
+                while (include_schemes[len_include] != NULL) {
+                        if (!_cph_cups_is_scheme_valid (cups, include_schemes[len_include]))
+                                return NULL;
+                        len_include++;
+                }
+        }
+
+        len_exclude = 0;
+        if (exclude_schemes) {
+                while (exclude_schemes[len_exclude] != NULL) {
+                        if (!_cph_cups_is_scheme_valid (cups, exclude_schemes[len_exclude]))
+                                return NULL;
+                        len_exclude++;
+                }
+        }
+
+        data.iter  = 0;
+        data.limit = -1;
+        data.hash  = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                            g_free, g_free);
+        if (limit > 0)
+                data.limit = limit;
+
+#if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
+        retval = _cph_cups_devices_get_14 (cups, timeout, limit,
+                                           include_schemes, exclude_schemes,
+                                           len_include, len_exclude,
+                                           &data);
+#else
+        retval = _cph_cups_devices_get_old (cups, timeout, limit,
+                                            include_schemes, exclude_schemes,
+                                            len_include, len_exclude,
+                                            &data);
+#endif
+
+        if (retval)
+                return data.hash;
+        else {
+                g_hash_table_destroy (data.hash);
+                return NULL;
+        }
+}
+
 /* Functions that work on a printer */
 
 gboolean
@@ -1667,92 +2032,6 @@ out:
         return retval;
 }
 
-/* Functions that are for the server in general */
-
-GHashTable *
-cph_cups_server_get_settings (CphCups *cups)
-{
-        int            retval;
-        GHashTable    *hash;
-        cups_option_t *settings;
-        int            num_settings, i;
-
-        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
-
-        retval = cupsAdminGetServerSettings (cups->priv->connection,
-                                             &num_settings, &settings);
-
-        if (retval == 0) {
-                _cph_cups_set_internal_status (cups,
-                                               "Cannot get server settings.");
-
-                return NULL;
-        }
-
-        hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                      g_free, g_free);
-
-        for (i = 0; i < num_settings; i++)
-                g_hash_table_replace (hash,
-                                      g_strdup (settings[i].name),
-                                      g_strdup (settings[i].value));
-
-        cupsFreeOptions (num_settings, settings);
-
-        return hash;
-}
-
-gboolean
-cph_cups_server_set_settings (CphCups    *cups,
-                              GHashTable *settings)
-{
-        int             retval;
-        GHashTableIter  iter;
-        /* key and value are strings, but we want to avoid compiler warnings */
-        gpointer        key;
-        gpointer        value;
-        cups_option_t  *cups_settings;
-        int             num_settings;
-
-        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
-        g_return_val_if_fail (settings != NULL, FALSE);
-
-        /* First pass to check the validity of the hashtable content */
-        g_hash_table_iter_init (&iter, settings);
-        while (g_hash_table_iter_next (&iter, &key, &value)) {
-                if (!_cph_cups_is_option_valid (cups, key))
-                        return FALSE;
-                if (!_cph_cups_is_option_value_valid (cups, value))
-                        return FALSE;
-        }
-
-        /* Second pass to actually set the settings */
-        cups_settings = NULL;
-        num_settings = 0;
-
-        g_hash_table_iter_init (&iter, settings);
-        while (g_hash_table_iter_next (&iter, &key, &value))
-                num_settings = cupsAddOption (key, value,
-                                              num_settings, &cups_settings);
-
-        retval = cupsAdminSetServerSettings (cups->priv->connection,
-                                             num_settings, cups_settings);
-
-        /* CUPS is being restarted, so we need to reconnect */
-        cph_cups_reconnect (cups);
-
-        cupsFreeOptions (num_settings, cups_settings);
-
-        if (retval == 0) {
-                _cph_cups_set_internal_status (cups,
-                                               "Cannot set server settings.");
-
-                return FALSE;
-        }
-
-        return TRUE;
-}
-
 /* Functions that work on jobs */
 
 gboolean
@@ -1842,285 +2121,6 @@ cph_cups_job_get_status (CphCups    *cups,
         cupsFreeJobs (num_jobs, jobs);
 
         return status;
-}
-
-typedef struct {
-        int         iter;
-        int         limit;
-        GHashTable *hash;
-} CphCupsGetDevices;
-
-static void
-_cph_cups_get_devices_cb (const char *device_class,
-                          const char *device_id,
-                          const char *device_info,
-                          const char *device_make_and_model,
-                          const char *device_uri,
-                          const char *device_location,
-                          void       *user_data)
-{
-        CphCupsGetDevices *data = user_data;
-
-        g_return_if_fail (data != NULL);
-
-        if (data->limit > 0 && data->iter >= data->limit)
-                return;
-
-        if (device_class && device_class[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-class:%d",
-                                                       data->iter),
-                                      g_strdup (device_class));
-        if (device_id && device_id[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-id:%d",
-                                                       data->iter),
-                                      g_strdup (device_id));
-        if (device_info && device_info[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-info:%d",
-                                                       data->iter),
-                                      g_strdup (device_info));
-        if (device_make_and_model && device_make_and_model[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-make-and-model:%d",
-                                                       data->iter),
-                                      g_strdup (device_make_and_model));
-        if (device_uri && device_uri[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-uri:%d",
-                                                       data->iter),
-                                      g_strdup (device_uri));
-        if (device_location && device_location[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-location:%d ",
-                                                       data->iter),
-                                      g_strdup (device_location));
-
-        data->iter++;
-}
-
-#if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
-static gboolean
-_cph_cups_devices_get_14 (CphCups            *cups,
-                          int                 timeout,
-                          int                 limit,
-                          const char        **include_schemes,
-                          const char        **exclude_schemes,
-                          int                 len_include,
-                          int                 len_exclude,
-                          CphCupsGetDevices  *data)
-{
-        ipp_status_t  retval;
-        int           timeout_param = CUPS_TIMEOUT_DEFAULT;
-        char         *include_schemes_param;
-        char         *exclude_schemes_param;
-
-        if (timeout > 0)
-                timeout_param = timeout;
-
-        if (include_schemes && len_include > 0)
-                include_schemes_param = g_strjoin (",", include_schemes);
-        else
-                include_schemes_param = g_strdup (CUPS_INCLUDE_ALL);
-
-        if (exclude_schemes && len_exclude > 0)
-                exclude_schemes_param = g_strjoin (",", exclude_schemes);
-        else
-                exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
-
-        retval = cupsGetDevices (cups->priv->connection,
-                                 timeout_param,
-                                 include_schemes_param,
-                                 exclude_schemes_param,
-                                 _cph_cups_get_devices_cb,
-                                 data);
-
-        g_free (include_schemes_param);
-        g_free (exclude_schemes_param);
-
-        if (retval != IPP_OK) {
-                _cph_cups_set_internal_status (cups,
-                                               "Cannot get devices.");
-                return FALSE;
-        }
-
-        return TRUE;
-}
-#else
-static gboolean
-_cph_cups_devices_get_old (CphCups            *cups,
-                           int                 timeout,
-                           int                 limit,
-                           const char        **include_schemes,
-                           const char        **exclude_schemes,
-                           int                 len_include,
-                           int                 len_exclude,
-                           CphCupsGetDevices  *data)
-{
-        ipp_t           *request;
-        const char      *resource_char;
-        ipp_t           *reply;
-        ipp_attribute_t *attr;
-        const char      *device_class;
-        const char      *device_id;
-        const char      *device_info;
-        const char      *device_location;
-        const char      *device_make_and_model;
-        const char      *device_uri;
-
-        request = ippNewRequest (CUPS_GET_DEVICES);
-
-        if (timeout > 0)
-                ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
-                               "timeout", timeout);
-        if (limit > 0)
-                ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
-                               "limit", limit);
-
-        if (include_schemes && len_include > 0) {
-                int i;
-
-                attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                                      "include-schemes", len_include, NULL, NULL);
-                for (i = 0; i < len_include; i++)
-                        attr->values[i].string.text = g_strdup (include_schemes[i]);
-        }
-
-        if (exclude_schemes && len_exclude > 0) {
-                int i;
-
-                attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                                      "exclude-schemes", len_exclude, NULL, NULL);
-                for (i = 0; i < len_exclude; i++)
-                        attr->values[i].string.text = g_strdup (exclude_schemes[i]);
-        }
-
-        resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
-        reply = cupsDoRequest (cups->priv->connection,
-                               request, resource_char);
-
-        if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
-                _cph_cups_set_error_from_reply (cups, reply);
-                return FALSE;
-        }
-
-        for (attr = reply->attrs; attr; attr = attr->next) {
-                while (attr && attr->group_tag != IPP_TAG_PRINTER)
-                        attr = attr->next;
-
-                if (attr == NULL)
-                        break;
-
-                device_class          = NULL;
-                device_id             = NULL;
-                device_info           = NULL;
-                device_location       = NULL;
-                device_make_and_model = NULL;
-                device_uri            = NULL;
-
-                while (attr && attr->group_tag == IPP_TAG_PRINTER) {
-                        if (attr->name == NULL)
-                                /* nothing, just skip */;
-                        else if (strcmp (attr->name, "device-class") == 0 &&
-                                 attr->value_tag == IPP_TAG_KEYWORD)
-                                device_class = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-id") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_id = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-info") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_info = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-location") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_location = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-make-and-model") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_make_and_model = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-uri") == 0 &&
-                                 attr->value_tag == IPP_TAG_URI)
-                                device_uri = g_strdup (attr->values[0].string.text);
-
-                        attr = attr->next;
-                }
-
-                if (device_uri)
-                        _cph_cups_get_devices_cb (device_class,
-                                                  device_id,
-                                                  device_info,
-                                                  device_make_and_model,
-                                                  device_uri,
-                                                  device_location,
-                                                  data);
-
-                if (attr == NULL)
-                        break;
-        }
-
-        ippDelete (reply);
-
-        return TRUE;
-}
-#endif
-
-GHashTable *
-cph_cups_devices_get (CphCups     *cups,
-                      int          timeout,
-                      int          limit,
-                      const char **include_schemes,
-                      const char **exclude_schemes)
-{
-        CphCupsGetDevices data;
-        int               len_include;
-        int               len_exclude;
-        gboolean          retval;
-
-        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
-
-        /* check the validity of values */
-        len_include = 0;
-        if (include_schemes) {
-                while (include_schemes[len_include] != NULL) {
-                        if (!_cph_cups_is_scheme_valid (cups, include_schemes[len_include]))
-                                return NULL;
-                        len_include++;
-                }
-        }
-
-        len_exclude = 0;
-        if (exclude_schemes) {
-                while (exclude_schemes[len_exclude] != NULL) {
-                        if (!_cph_cups_is_scheme_valid (cups, exclude_schemes[len_exclude]))
-                                return NULL;
-                        len_exclude++;
-                }
-        }
-
-        data.iter  = 0;
-        data.limit = -1;
-        data.hash  = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                            g_free, g_free);
-        if (limit > 0)
-                data.limit = limit;
-
-#if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
-        retval = _cph_cups_devices_get_14 (cups, timeout, limit,
-                                           include_schemes, exclude_schemes,
-                                           len_include, len_exclude,
-                                           &data);
-#else
-        retval = _cph_cups_devices_get_old (cups, timeout, limit,
-                                            include_schemes, exclude_schemes,
-                                            len_include, len_exclude,
-                                            &data);
-#endif
-
-        if (retval)
-                return data.hash;
-        else {
-                g_hash_table_destroy (data.hash);
-                return NULL;
-        }
 }
 
 /******************************************************
