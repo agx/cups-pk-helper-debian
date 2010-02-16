@@ -1957,8 +1957,7 @@ cph_cups_devices_get (CphCups    *cups,
                         attr = attr->next;
                 }
 
-                if (device_class && device_id && device_info && device_make_and_model &&
-                    device_uri)
+                if (device_uri)
                         _cph_cups_get_devices_cb (device_class,
                                                   device_id,
                                                   device_info,
