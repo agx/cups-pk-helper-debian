@@ -290,6 +290,33 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
 }
 
 static gboolean
+_cph_cups_is_scheme_valid_internal (const char *scheme)
+{
+        int i;
+
+        /* no empty string */
+        if (!scheme || scheme[0] == '\0')
+                return FALSE;
+
+        /* From RFC 1738:
+         * Scheme names consist of a sequence of characters. The lower case
+         * letters "a"--"z", digits, and the characters plus ("+"), period
+         * ("."), and hyphen ("-") are allowed. For resiliency, programs
+         * interpreting URLs should treat upper case letters as equivalent to
+         * lower case in scheme names (e.g., allow "HTTP" as well as "http").
+         */
+        for (i = 0; i < strlen (scheme); i++) {
+                if (!g_ascii_isalnum (scheme[i]) &&
+                    scheme[i] != '+' &&
+                    scheme[i] != '.' &&
+                    scheme[i] != '-')
+                        return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
 _cph_cups_is_printer_name_valid (CphCups    *cups,
                                  const char *name)
 {
@@ -332,6 +359,22 @@ _cph_cups_is_job_id_valid (CphCups *cups,
                 return TRUE;
 
         error = g_strdup_printf ("\"%d\" is not a valid job id.", job_id);
+        _cph_cups_set_internal_status (cups, error);
+        g_free (error);
+
+        return FALSE;
+}
+
+static gboolean
+_cph_cups_is_scheme_valid (CphCups    *cups,
+                           const char *scheme)
+{
+        char *error;
+
+        if (_cph_cups_is_scheme_valid_internal (scheme))
+                return TRUE;
+
+        error = g_strdup_printf ("\"%s\" is not a valid scheme.", scheme);
         _cph_cups_set_internal_status (cups, error);
         g_free (error);
 
@@ -384,10 +427,6 @@ _CPH_CUPS_IS_VALID (info, "description", FALSE)
 _CPH_CUPS_IS_VALID (location, "location", FALSE)
 _CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE)
 _CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
-
-/* Check for scheme. Unless we hardcode all schemes, we can only check it's
- * valid text. */
-_CPH_CUPS_IS_VALID (scheme, "scheme", TRUE)
 
 /* For put/get file: this is some text, but we could potentially do more
  * checks. We don't do them because cups will already do them.
