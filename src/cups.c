@@ -1911,6 +1911,11 @@ cph_cups_devices_get (CphCups    *cups,
         const char      *device_uri;
 
         request = ippNewRequest (CUPS_GET_DEVICES);
+
+        if (timeout > 0)
+                ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
+                               "timeout", timeout);
+
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
