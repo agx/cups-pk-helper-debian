@@ -21,53 +21,14 @@
  *
  */
 
-#include <unistd.h>
 
 #include <gtk/gtk.h>
 
 #include <glib.h>
-#include <glib-object.h>
 
 #include <dbus/dbus-glib.h>
-#include <dbus/dbus-glib-lowlevel.h>
 
 #define MECHANISM_BUS "org.opensuse.CupsPkHelper.Mechanism"
-
-static gboolean
-do_auth (DBusGConnection     *bus,
-         const gchar         *action,
-         const gchar         *result)
-{
-        DBusGProxy *proxy;
-        GError     *error;
-        gboolean    ret;
-        gboolean    ret_gained_privilege;
-
-        proxy = dbus_g_proxy_new_for_name (bus,
-                                           "org.freedesktop.PolicyKit.AuthenticationAgent",
-                                           "/",
-                                           "org.freedesktop.PolicyKit.AuthenticationAgent");
-
-        if (!proxy)
-                return FALSE;
-
-        error = NULL;
-        ret_gained_privilege = FALSE;
-        ret = dbus_g_proxy_call (proxy, "ObtainAuthorization", &error,
-                                 G_TYPE_STRING, action,  /* action_id */
-                                 G_TYPE_UINT, 0,         /* xid */
-                                 G_TYPE_UINT, getpid (), /* pid */
-                                 G_TYPE_INVALID,
-                                 G_TYPE_BOOLEAN, &ret_gained_privilege,
-                                 G_TYPE_INVALID);
-
-        if (!ret) {
-                g_print ("dbus error: %s\n", error->message);
-                g_error_free (error);
-        }
-
-        return ret_gained_privilege;
-}
 
 static gboolean
 printer_add (DBusGConnection  *bus,
@@ -117,8 +78,6 @@ int
 main (int argc, char **argv)
 {
         DBusGConnection *system_bus;
-        DBusGConnection *session_bus;
-        gboolean         try;
         gboolean         ret;
         GError          *error;
 
@@ -134,46 +93,18 @@ main (int argc, char **argv)
         }
 
         error = NULL;
-        session_bus = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-        if (session_bus == NULL) {
-                g_warning ("Could not connect to session bus: %s",
-                           error->message);
-                g_error_free (error);
-                return 1;
-        }
+        ret = printer_add (system_bus,
+                           "MyPrinter", "smb://really/cool",
+                           "HP/Business_Inkjet_2200-chp2200.ppd.gz",
+                           "This is my printer", "At home",
+                           &error);
 
-        try = TRUE;
-        while (try) {
-                try = FALSE;
-                error = NULL;
-                ret = printer_add (system_bus,
-                                   "MyPrinter", "smb://really/cool",
-                                   "HP/Business_Inkjet_2200-chp2200.ppd.gz",
-                                   "This is my printer", "At home",
-                                   &error);
-
-                if (!ret) {
-                        if (dbus_g_error_has_name (error, MECHANISM_BUS".NotPrivileged")) {
-                                gchar **tokens;
-
-                                tokens = g_strsplit (error->message, " ", 2);
-                                g_error_free (error);
-                                if (g_strv_length (tokens) == 2) {
-                                        /* Note: the async version fails
-                                         * because of timeout if the user waits
-                                         * too long */
-                                        try = do_auth (session_bus, tokens[0], tokens[1]);
-                                        if (!try)
-                                                g_print ("not authorized\n");
-                                } else
-                                        g_warning ("helper return string malformed");
-                                g_strfreev (tokens);
-                        } else if (error) {
-                                g_print ("dbus error: %s\n", error->message);
-                                g_error_free (error);
-                        } else
-                                g_print ("unknown error\n");
-                }
+        if (!ret) {
+                if (error) {
+                        g_print ("error: %s\n", error->message);
+                        g_error_free (error);
+                } else
+                        g_print ("unknown error\n");
         }
 
         return 0;
