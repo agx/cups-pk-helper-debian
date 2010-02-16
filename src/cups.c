@@ -385,6 +385,10 @@ _CPH_CUPS_IS_VALID (location, "location", FALSE)
 _CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE)
 _CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE)
 
+/* Check for scheme. Unless we hardcode all schemes, we can only check it's
+ * valid text. */
+_CPH_CUPS_IS_VALID (scheme, "scheme", TRUE)
+
 /* For put/get file: this is some text, but we could potentially do more
  * checks. We don't do them because cups will already do them.
  *   + for the resource, we could check that it starts with a /, for example.
@@ -1858,15 +1862,36 @@ _cph_cups_get_devices_cb (const char *device_class,
 }
 
 GHashTable *
-cph_cups_devices_get (CphCups    *cups,
-                      int         timeout,
-                      int         limit,
-                      const char *include_schemes,
-                      const char *exclude_schemes)
+cph_cups_devices_get (CphCups     *cups,
+                      int          timeout,
+                      int          limit,
+                      const char **include_schemes,
+                      const char **exclude_schemes)
 {
         struct _CphCupsGetDevices data;
+        int                       len_include;
+        int                       len_exclude;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+
+        /* check the validity of values */
+        len_include = 0;
+        if (include_schemes) {
+                while (include_schemes[len_include] != NULL) {
+                        if (!_cph_cups_is_scheme_valid (cups, include_schemes[len_include]))
+                                return NULL;
+                        len_include++;
+                }
+        }
+
+        len_exclude = 0;
+        if (exclude_schemes) {
+                while (exclude_schemes[len_exclude] != NULL) {
+                        if (!_cph_cups_is_scheme_valid (cups, exclude_schemes[len_exclude]))
+                                return NULL;
+                        len_exclude++;
+                }
+        }
 
         data.iter  = 0;
         data.limit = -1;
@@ -1878,17 +1903,21 @@ cph_cups_devices_get (CphCups    *cups,
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
         ipp_status_t  retval;
         int           timeout_param = CUPS_TIMEOUT_DEFAULT;
-        const char   *include_schemes_param = CUPS_INCLUDE_ALL;
-        const char   *exclude_schemes_param = CUPS_EXCLUDE_NONE;
+        char         *include_schemes_param;
+        char         *exclude_schemes_param;
 
         if (timeout > 0)
                 timeout_param = timeout;
 
-        if (include_schemes && strlen (include_schemes) > 0)
-                include_schemes_param = include_schemes;
+        if (include_schemes && len_include > 0)
+                include_schemes_param = g_strjoin (",", include_schemes);
+        else
+                include_schemes_param = g_strdup (CUPS_INCLUDE_ALL);
 
-        if (exclude_schemes && strlen (exclude_schemes) > 0)
-                exclude_schemes_param = exclude_schemes;
+        if (exclude_schemes && len_exclude > 0)
+                exclude_schemes_param = g_strjoin (",", exclude_schemes);
+        else
+                exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
 
         retval = cupsGetDevices (cups->priv->connection,
                                  timeout_param,
@@ -1896,6 +1925,9 @@ cph_cups_devices_get (CphCups    *cups,
                                  exclude_schemes_param,
                                  _cph_cups_get_devices_cb,
                                  &data);
+
+        g_free (include_schemes_param);
+        g_free (exclude_schemes_param);
 
         if (retval != IPP_OK)
                 goto out;

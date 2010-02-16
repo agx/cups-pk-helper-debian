@@ -1168,12 +1168,12 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
 }
 
 gboolean
-cph_mechanism_devices_get (CphMechanism          *mechanism,
-                           int                    timeout,
-                           int                    limit,
-                           const char            *include_schemes,
-                           const char            *exclude_schemes,
-                           DBusGMethodInvocation *context)
+cph_mechanism_devices_get (CphMechanism           *mechanism,
+                           int                     timeout,
+                           int                     limit,
+                           const char            **include_schemes,
+                           const char            **exclude_schemes,
+                           DBusGMethodInvocation  *context)
 {
         GHashTable *devices;
 

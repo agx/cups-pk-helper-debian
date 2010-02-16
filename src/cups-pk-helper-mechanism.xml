@@ -197,8 +197,8 @@
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="timeout"         direction="in"  type="i"/>
       <arg name="limit"           direction="in"  type="i"/>
-      <arg name="include_schemes" direction="in"  type="s"/>
-      <arg name="exclude_schemes" direction="in"  type="s"/>
+      <arg name="include_schemes" direction="in"  type="as"/>
+      <arg name="exclude_schemes" direction="in"  type="as"/>
       <arg name="error"           direction="out" type="s"/>
       <arg name="devices"         direction="out" type="a{ss}"/>
     </method>
