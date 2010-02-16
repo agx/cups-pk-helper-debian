@@ -1968,8 +1968,11 @@ cph_cups_devices_get (CphCups     *cups,
         g_free (include_schemes_param);
         g_free (exclude_schemes_param);
 
-        if (retval != IPP_OK)
-                goto out;
+        if (retval != IPP_OK) {
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot get devices.");
+                goto out_clean;
+        }
 #else
         ipp_t           *request;
         const char      *resource_char;
@@ -2013,8 +2016,10 @@ cph_cups_devices_get (CphCups     *cups,
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
 
-        if (!reply)
-                goto out;
+        if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
+                _cph_cups_set_error_from_reply (cups, reply);
+                goto out_clean;
+        }
 
         for (attr = reply->attrs; attr; attr = attr->next) {
                 while (attr && attr->group_tag != IPP_TAG_PRINTER)
@@ -2073,11 +2078,8 @@ cph_cups_devices_get (CphCups     *cups,
 
         return data.hash;
 
-out:
+out_clean:
         g_hash_table_destroy (data.hash);
-
-        _cph_cups_set_internal_status (cups,
-                                       "Cannot get devices.");
 
         return NULL;
 }
