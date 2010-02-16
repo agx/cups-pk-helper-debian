@@ -66,9 +66,9 @@ printer_add (DBusGConnection  *bus,
 
         if (ret) {
                 if (!ret_error || ret_error[0] == '\0')
-                        g_print ("worked\n");
+                        g_print ("Worked!\n");
                 else
-                        g_print ("ouch: %s\n", ret_error);
+                        g_print ("Ouch: %s\n", ret_error);
         }
 
         return ret;
@@ -101,10 +101,10 @@ main (int argc, char **argv)
 
         if (!ret) {
                 if (error) {
-                        g_print ("error: %s\n", error->message);
+                        g_print ("Error: %s\n", error->message);
                         g_error_free (error);
                 } else
-                        g_print ("unknown error\n");
+                        g_print ("Unknown error\n");
         }
 
         return 0;

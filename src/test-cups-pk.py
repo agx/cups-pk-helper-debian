@@ -29,49 +29,49 @@ def removeprinter(cups_pk, printer_name):
     error = cups_pk.PrinterDelete(printer_name)
 
     if not type(error) in [dbus.String, dbus.UTF8String]:
-           print 'unexpected return value'
+           print 'Unexpected return value'
            return
 
     if error == '':
-        print 'worked!'
+        print 'Worked!'
     else:
-        print 'ouch: %s' % error
+        print 'Ouch: %s' % error
 
 def addprinter(cups_pk, printer_name, printer_uri, ppd_file, info, location):
     error = cups_pk.PrinterAdd(printer_name, printer_uri, ppd_file, info, location)
 
     if not type(error) in [dbus.String, dbus.UTF8String]:
-           print 'unexpected return value'
+           print 'Unexpected return value'
            return
 
     if error == '':
-        print 'worked!'
+        print 'Worked!'
     else:
-        print 'ouch: %s' % error
+        print 'Ouch: %s' % error
 
 def acceptjobs(cups_pk, printer_name, enabled, reason):
     error = cups_pk.PrinterSetAcceptJobs(printer_name, enabled, reason)
 
     if not type(error) in [dbus.String, dbus.UTF8String]:
-           print 'unexpected return value'
+           print 'Unexpected return value'
            return
 
     if error == '':
-        print 'worked!'
+        print 'Worked!'
     else:
-        print 'ouch: %s' % error
+        print 'Ouch: %s' % error
 
 def changeoption(cups_pk, printer_name, option, value):
     error = cups_pk.PrinterAddOptionDefault(printer_name, option, value)
 
     if not type(error) in [dbus.String, dbus.UTF8String]:
-           print 'unexpected return value'
+           print 'Unexpected return value'
            return
 
     if error == '':
-        print 'worked!'
+        print 'Worked!'
     else:
-        print 'ouch: %s' % error
+        print 'Ouch: %s' % error
 
 def main(args):
     system_bus = dbus.SystemBus()
