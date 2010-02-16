@@ -1640,11 +1640,8 @@ cph_cups_server_get_settings (CphCups *cups)
                                              &num_settings, &settings);
 
         if (retval == 0) {
-                char *error;
-
-                error = g_strdup_printf ("Can not get server settings.");
-                _cph_cups_set_internal_status (cups, error);
-                g_free (error);
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot get server settings.");
 
                 return NULL;
         }
@@ -1704,11 +1701,8 @@ cph_cups_server_set_settings (CphCups    *cups,
         cupsFreeOptions (num_settings, cups_settings);
 
         if (retval == 0) {
-                char *error;
-
-                error = g_strdup_printf ("Can not set server settings.");
-                _cph_cups_set_internal_status (cups, error);
-                g_free (error);
+                _cph_cups_set_internal_status (cups,
+                                               "Cannot set server settings.");
 
                 return FALSE;
         }
@@ -1870,8 +1864,7 @@ cph_cups_devices_get (CphCups    *cups,
                       const char *include_schemes,
                       const char *exclude_schemes)
 {
-        struct _CphCupsGetDevices  data;
-        char                      *error;
+        struct _CphCupsGetDevices data;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
 
@@ -1994,9 +1987,8 @@ cph_cups_devices_get (CphCups    *cups,
 out:
         g_hash_table_destroy (data.hash);
 
-        error = g_strdup ("Can not get devices.");
-        _cph_cups_set_internal_status (cups, error);
-        g_free (error);
+        _cph_cups_set_internal_status (cups,
+                                       "Cannot get devices.");
 
         return NULL;
 }
