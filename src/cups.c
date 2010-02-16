@@ -1991,6 +1991,24 @@ cph_cups_devices_get (CphCups     *cups,
                 ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
                                "limit", limit);
 
+        if (include_schemes && len_include > 0) {
+                int i;
+
+                attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                                      "include-schemes", len_include, NULL, NULL);
+                for (i = 0; i < len_include; i++)
+                        attr->values[i].string.text = g_strdup (include_schemes[i]);
+        }
+
+        if (exclude_schemes && len_exclude > 0) {
+                int i;
+
+                attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                                      "exclude-schemes", len_exclude, NULL, NULL);
+                for (i = 0; i < len_exclude; i++)
+                        attr->values[i].string.text = g_strdup (exclude_schemes[i]);
+        }
+
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
