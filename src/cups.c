@@ -1866,7 +1866,7 @@ cph_cups_devices_get (CphCups    *cups,
                       const char *exclude_schemes)
 {
         struct _CphCupsGetDevices  data;
-        char                      *error_str;
+        char                      *error;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
 
@@ -1875,19 +1875,19 @@ cph_cups_devices_get (CphCups    *cups,
                                            g_free, g_free);
 
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
-        ipp_status_t   retval;
-        int            timeout_param = CUPS_TIMEOUT_DEFAULT;
-        char          *include_schemes_param = (char *) CUPS_INCLUDE_ALL;
-        char          *exclude_schemes_param = (char *) CUPS_EXCLUDE_NONE;
+        ipp_status_t  retval;
+        int           timeout_param = CUPS_TIMEOUT_DEFAULT;
+        const char   *include_schemes_param = CUPS_INCLUDE_ALL;
+        const char   *exclude_schemes_param = CUPS_EXCLUDE_NONE;
 
         if (timeout > 0)
                 timeout_param = timeout;
 
         if (include_schemes && strlen (include_schemes) > 0)
-                include_schemes_param = g_strdup (include_schemes);
+                include_schemes_param = include_schemes;
 
         if (exclude_schemes && strlen (exclude_schemes) > 0)
-                exclude_schemes_param = g_strdup (exclude_schemes);
+                exclude_schemes_param = exclude_schemes;
 
         retval = cupsGetDevices (cups->priv->connection,
                                  timeout_param,
@@ -1896,22 +1896,19 @@ cph_cups_devices_get (CphCups    *cups,
                                  _cph_cups_get_devices_cb,
                                  &data);
 
-        g_free (include_schemes_param);
-        g_free (exclude_schemes_param);
-
         if (retval != IPP_OK)
-                goto error;
+                goto out;
 #else
-        ipp_t              *request;
-        const char         *resource_char;
-        ipp_t              *reply;
-        ipp_attribute_t    *attr;
-        const char         *device_class;
-        const char         *device_id;
-        const char         *device_info;
-        const char         *device_location;
-        const char         *device_make_and_model;
-        const char         *device_uri;
+        ipp_t           *request;
+        const char      *resource_char;
+        ipp_t           *reply;
+        ipp_attribute_t *attr;
+        const char      *device_class;
+        const char      *device_id;
+        const char      *device_info;
+        const char      *device_location;
+        const char      *device_make_and_model;
+        const char      *device_uri;
 
         request = ippNewRequest (CUPS_GET_DEVICES);
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
@@ -1919,7 +1916,7 @@ cph_cups_devices_get (CphCups    *cups,
                                request, resource_char);
 
         if (!reply)
-                goto error;
+                goto out;
 
         for (attr = reply->attrs; attr; attr = attr->next) {
                 while (attr && attr->group_tag != IPP_TAG_PRINTER)
@@ -1931,35 +1928,30 @@ cph_cups_devices_get (CphCups    *cups,
                 device_class          = NULL;
                 device_id             = NULL;
                 device_info           = NULL;
-                device_location       = "";
+                device_location       = NULL;
                 device_make_and_model = NULL;
                 device_uri            = NULL;
 
                 while (attr && attr->group_tag == IPP_TAG_PRINTER) {
-                        g_message ("name: %s", attr->name);
-                        if (attr->name &&
-                            strcmp (attr->name, "device-class") == 0 &&
-                            attr->value_tag == IPP_TAG_KEYWORD)
+                        if (attr->name == NULL)
+                                /* nothing, just skip */;
+                        else if (strcmp (attr->name, "device-class") == 0 &&
+                                 attr->value_tag == IPP_TAG_KEYWORD)
                                 device_class = g_strdup (attr->values[0].string.text);
-                        else if (attr->name &&
-                            strcmp (attr->name, "device-id") == 0 &&
-                            attr->value_tag == IPP_TAG_TEXT)
+                        else if (strcmp (attr->name, "device-id") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
                                 device_id = g_strdup (attr->values[0].string.text);
-                        else if (attr->name &&
-                            strcmp (attr->name, "device-info") == 0 &&
-                            attr->value_tag == IPP_TAG_TEXT)
+                        else if (strcmp (attr->name, "device-info") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
                                 device_info = g_strdup (attr->values[0].string.text);
-                        else if (attr->name &&
-                            strcmp (attr->name, "device-location") == 0 &&
-                            attr->value_tag == IPP_TAG_TEXT)
+                        else if (strcmp (attr->name, "device-location") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
                                 device_location = g_strdup (attr->values[0].string.text);
-                        else if (attr->name &&
-                            strcmp (attr->name, "device-make-and-model") == 0 &&
-                            attr->value_tag == IPP_TAG_TEXT)
+                        else if (strcmp (attr->name, "device-make-and-model") == 0 &&
+                                 attr->value_tag == IPP_TAG_TEXT)
                                 device_make_and_model = g_strdup (attr->values[0].string.text);
-                        else if (attr->name &&
-                            strcmp (attr->name, "device-uri") == 0 &&
-                            attr->value_tag == IPP_TAG_URI)
+                        else if (strcmp (attr->name, "device-uri") == 0 &&
+                                 attr->value_tag == IPP_TAG_URI)
                                 device_uri = g_strdup (attr->values[0].string.text);
 
                         attr = attr->next;
@@ -1968,12 +1960,12 @@ cph_cups_devices_get (CphCups    *cups,
                 if (device_class && device_id && device_info && device_make_and_model &&
                     device_uri)
                         _cph_cups_get_devices_cb (device_class,
-                                        device_id,
-                                        device_info,
-                                        device_make_and_model,
-                                        device_uri,
-                                        device_location,
-                                        &data);
+                                                  device_id,
+                                                  device_info,
+                                                  device_make_and_model,
+                                                  device_uri,
+                                                  device_location,
+                                                  &data);
 
                 if (attr == NULL)
                         break;
@@ -1984,11 +1976,12 @@ cph_cups_devices_get (CphCups    *cups,
 
         return data.hash;
 
-error:
-        error_str = g_strdup ("Can not get devices.");
-        _cph_cups_set_internal_status (cups, error_str);
+out:
         g_hash_table_destroy (data.hash);
-        g_free (error_str);
+
+        error = g_strdup ("Can not get devices.");
+        _cph_cups_set_internal_status (cups, error);
+        g_free (error);
 
         return NULL;
 }
