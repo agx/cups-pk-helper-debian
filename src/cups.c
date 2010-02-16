@@ -1809,6 +1809,7 @@ cph_cups_job_get_status (CphCups    *cups,
 
 struct _CphCupsGetDevices {
         int         iter;
+        int         limit;
         GHashTable *hash;
 };
 
@@ -1824,6 +1825,9 @@ _cph_cups_get_devices_cb (const char *device_class,
         struct _CphCupsGetDevices *data = user_data;
 
         g_return_if_fail (data != NULL);
+
+        if (data->limit > 0 && data->iter >= data->limit)
+                return;
 
         if (device_class && device_class[0] != '\0')
                 g_hash_table_replace (data->hash,
@@ -1862,6 +1866,7 @@ _cph_cups_get_devices_cb (const char *device_class,
 GHashTable *
 cph_cups_devices_get (CphCups    *cups,
                       int         timeout,
+                      int         limit,
                       const char *include_schemes,
                       const char *exclude_schemes)
 {
@@ -1870,9 +1875,12 @@ cph_cups_devices_get (CphCups    *cups,
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
 
-        data.iter = 0;
-        data.hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                           g_free, g_free);
+        data.iter  = 0;
+        data.limit = -1;
+        data.hash  = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                            g_free, g_free);
+        if (limit > 0)
+                data.limit = limit;
 
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
         ipp_status_t  retval;
@@ -1915,6 +1923,9 @@ cph_cups_devices_get (CphCups    *cups,
         if (timeout > 0)
                 ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
                                "timeout", timeout);
+        if (limit > 0)
+                ippAddInteger (request, IPP_TAG_OPERATION, IPP_TAG_INTEGER,
+                               "limit", limit);
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,

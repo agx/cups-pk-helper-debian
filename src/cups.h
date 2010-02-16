@@ -186,6 +186,7 @@ CphJobStatus cph_cups_job_get_status (CphCups    *cups,
 
 GHashTable *cph_cups_devices_get (CphCups    *cups,
                                   int         timeout,
+                                  int         limit,
                                   const char *include_schemes,
                                   const char *exclude_schemes);
 
