@@ -413,7 +413,7 @@ _cph_mechanism_get_action_for_name (CphMechanism *mechanism,
         return "printer-remote-edit";
 }
 
-char *
+static char *
 _cph_mechanism_get_callers_user_name (CphMechanism          *mechanism,
                                       DBusGMethodInvocation *context)
 {
