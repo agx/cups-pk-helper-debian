@@ -86,6 +86,15 @@
     </defaults>
   </action>
 
+  <action id="org.opensuse.cupspkhelper.mechanism.devices-get">
+    <_description>Get devices</_description>
+    <_message>Privileges are required to get devices.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
   <!-- Deprecated -->
   <action id="org.opensuse.cupspkhelper.mechanism.printeraddremove">
     <_description>Add/Remove/Edit a printer</_description>

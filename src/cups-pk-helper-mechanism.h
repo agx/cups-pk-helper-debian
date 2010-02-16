@@ -236,6 +236,13 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                                   const char            *job_hold_until,
                                   DBusGMethodInvocation *context);
 
+gboolean
+cph_mechanism_devices_get (CphMechanism          *mechanism,
+                           int                    timeout,
+                           const char            *include_schemes,
+                           const char            *exclude_schemes,
+                           DBusGMethodInvocation *context);
+
 G_END_DECLS
 
 #endif /* CPH_MECHANISM_H */

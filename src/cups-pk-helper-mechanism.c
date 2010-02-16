@@ -1166,3 +1166,27 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
 
         return TRUE;
 }
+
+gboolean
+cph_mechanism_devices_get (CphMechanism          *mechanism,
+                           int                    timeout,
+                           const char            *include_schemes,
+                           const char            *exclude_schemes,
+                           DBusGMethodInvocation *context)
+{
+        GHashTable *devices;
+
+        reset_killtimer (mechanism);
+
+        if (!_check_polkit_for_action (mechanism, context, "devices-get"))
+                return FALSE;
+
+        devices = cph_cups_devices_get (mechanism->priv->cups,
+                                        timeout,
+                                        include_schemes,
+                                        exclude_schemes);
+        _cph_mechanism_return_error_and_value (mechanism, context,
+                                               devices == NULL, devices);
+
+        return TRUE;
+}

@@ -192,5 +192,14 @@
       <arg name="job_hold_until" direction="in"  type="s"/>
       <arg name="error"          direction="out" type="s"/>
     </method>
+
+    <method name="DevicesGet">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="timeout"         direction="in"  type="i"/>
+      <arg name="include_schemes" direction="in"  type="s"/>
+      <arg name="exclude_schemes" direction="in"  type="s"/>
+      <arg name="error"           direction="out" type="s"/>
+      <arg name="devices"         direction="out" type="a{ss}"/>
+    </method>
   </interface>
 </node>
