@@ -2,6 +2,7 @@ AC_INIT([cups-pk-helper], [0.0.4],
         [https://bugzilla.novell.com/enter_bug.cgi?classification=7340&product=openSUSE+11.1])
 AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_CONFIG_HEADER(config.h)
 
 AM_MAINTAINER_MODE

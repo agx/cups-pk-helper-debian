@@ -10,7 +10,7 @@ noinst_PROGRAMS = 	\
 	test-cups-pk
 
 cups-pk-helper-mechanism-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
-	dbus-binding-tool --prefix=cph_mechanism --mode=glib-server	\
+	$(AM_V_GEN)dbus-binding-tool --prefix=cph_mechanism --mode=glib-server	\
 			  --output=cups-pk-helper-mechanism-glue.h	\
 			  $(srcdir)/cups-pk-helper-mechanism.xml
 
@@ -54,7 +54,7 @@ polkit_in_files = org.opensuse.cupspkhelper.mechanism.policy.in
 dbus_services_DATA = $(dbus_services_in_files:.service.in=.service)
 
 $(dbus_services_DATA): $(dbus_services_in_files)
-	sed -e "s|\@LIBEXECDIR\@|$(libexecdir)|" $< > $@
+	$(AM_V_GEN)sed -e "s|\@LIBEXECDIR\@|$(libexecdir)|" $< > $@
 
 dbus_conf_DATA = org.opensuse.CupsPkHelper.Mechanism.conf
 
