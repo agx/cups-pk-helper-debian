@@ -249,6 +249,7 @@ static gboolean
 _check_polkit_for_action_internal (CphMechanism           *mechanism,
                                    DBusGMethodInvocation  *context,
                                    const char             *action_method,
+                                   gboolean                allow_user_interaction,
                                    GError                **error)
 {
         char *sender;
@@ -273,7 +274,9 @@ _check_polkit_for_action_internal (CphMechanism           *mechanism,
                                                                subject,
                                                                action,
                                                                NULL,
-                                                               POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
+                                                               allow_user_interaction ?
+                                                                POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION :
+                                                                POLKIT_CHECK_AUTHORIZATION_FLAGS_NONE,
                                                                NULL,
                                                                &local_error);
         g_object_unref (subject);
@@ -317,26 +320,31 @@ _check_polkit_for_action_v (CphMechanism          *mechanism,
         error = NULL;
 
         /* We check if the user is authorized for any of the specificed action
-         * methods. In case of failure, we'll fail for the last one. Therefore,
-         * we should choose with care the order, especially if we don't want
-         * to prompt for a password too often and if we don't want to authorize
-         * too many things at once. */
+         * methods. We only allow user interaction for the last one. Therefore,
+         * callers of this function should choose with care the order,
+         * especially if we don't want to prompt for a password too often and
+         * if we don't want to authorize too many things at once. */
         va_start (var_args, first_action_method);
         action_method = first_action_method;
 
         while (action_method) {
+                char *next_action_method;
+
                 if (error != NULL) {
                         g_error_free (error);
                         error = NULL;
                 }
 
+                next_action_method = va_arg (var_args, char *);
+
                 retval = _check_polkit_for_action_internal (mechanism, context,
                                                             action_method,
+                                                            next_action_method == NULL,
                                                             &error);
                 if (retval)
                         break;
 
-                action_method = va_arg (var_args, char *);
+                action_method = next_action_method;
         }
 
         va_end (var_args);
