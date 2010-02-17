@@ -28,6 +28,7 @@ po/Makefile
 po/Makefile.in
 po/Makefile.in.in
 po/POTFILES
+po/cups-pk-helper.pot
 po/stamp-it
 src/.deps/
 src/Makefile
