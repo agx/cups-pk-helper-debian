@@ -61,11 +61,6 @@ dbus_conf_DATA = org.opensuse.CupsPkHelper.Mechanism.conf
 @INTLTOOL_POLICY_RULE@
 polkit_DATA = $(polkit_in_files:.policy.in=.policy)
 
-
-check:
-	$(POLKIT_POLICY_FILE_VALIDATE) $(polkit_DATA)
-
-
 EXTRA_DIST =						\
 	$(dbus_services_in_files)			\
 	org.opensuse.CupsPkHelper.Mechanism.conf	\

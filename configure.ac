@@ -17,7 +17,6 @@ AM_PROG_CC_C_O
 
 # Additional programs that we need
 AC_PATH_PROG(GLIB_GENMARSHAL, [glib-genmarshal])
-AC_PATH_PROG([POLKIT_POLICY_FILE_VALIDATE], [polkit-policy-file-validate])
 
 # Internationalisation
 IT_PROG_INTLTOOL([0.40.0])
