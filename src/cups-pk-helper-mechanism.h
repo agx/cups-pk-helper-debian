@@ -234,6 +234,12 @@ cph_mechanism_job_cancel (CphMechanism          *mechanism,
                           DBusGMethodInvocation *context);
 
 gboolean
+cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
+                                int                    id,
+                                gboolean               purge,
+                                DBusGMethodInvocation *context);
+
+gboolean
 cph_mechanism_job_restart (CphMechanism          *mechanism,
                            int                    id,
                            DBusGMethodInvocation *context);

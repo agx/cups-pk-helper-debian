@@ -1024,6 +1024,15 @@ cph_mechanism_job_cancel (CphMechanism          *mechanism,
                           int                    id,
                           DBusGMethodInvocation *context)
 {
+        return cph_mechanism_job_cancel_purge (mechanism, id, FALSE, context);
+}
+
+gboolean
+cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
+                                int                    id,
+                                gboolean               purge,
+                                DBusGMethodInvocation *context)
+{
         CphJobStatus  job_status;
         gboolean      ret;
         char         *user_name;
@@ -1053,7 +1062,7 @@ cph_mechanism_job_cancel (CphMechanism          *mechanism,
                         return FALSE;
         }
 
-        ret = cph_cups_job_cancel (mechanism->priv->cups, id, user_name);
+        ret = cph_cups_job_cancel (mechanism->priv->cups, id, purge, user_name);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         g_free (user_name);

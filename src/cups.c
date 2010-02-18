@@ -2066,8 +2066,11 @@ out:
 gboolean
 cph_cups_job_cancel (CphCups    *cups,
                      int         job_id,
+                     gboolean    purge_job,
                      const char *user_name)
 {
+        ipp_t *request;
+
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         if (!_cph_cups_is_job_id_valid (cups, job_id))
@@ -2075,10 +2078,19 @@ cph_cups_job_cancel (CphCups    *cups,
         /* we don't check if the user name is valid or not because it comes
          * from getpwuid(), and not dbus */
 
-        return _cph_cups_send_new_simple_job_request (cups, IPP_CANCEL_JOB,
-                                                      job_id,
-                                                      user_name,
-                                                      CPH_RESOURCE_JOBS);
+        request = ippNewRequest (IPP_CANCEL_JOB);
+        _cph_cups_add_job_uri (request, job_id);
+
+        if (user_name != NULL)
+                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                              "requesting-user-name", NULL, user_name);
+
+#if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
+        if (purge_job)
+                ippAddBoolean (request, IPP_TAG_OPERATION, "purge-job", 1);
+#endif
+
+        return _cph_cups_send_request (cups, request, CPH_RESOURCE_JOBS);
 }
 
 gboolean
