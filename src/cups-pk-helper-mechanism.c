@@ -455,9 +455,11 @@ _cph_mechanism_return_error (CphMechanism          *mechanism,
 {
         const char *error;
 
-        if (failed)
+        if (failed) {
                 error = cph_cups_last_status_to_string (mechanism->priv->cups);
-        else
+                if (!error || error[0] == '\0')
+                        error = "Unknown error"
+        } else
                 error = "";
 
         dbus_g_method_return (context, error);
@@ -471,9 +473,11 @@ _cph_mechanism_return_error_and_value (CphMechanism          *mechanism,
 {
         const char *error;
 
-        if (failed)
+        if (failed) {
                 error = cph_cups_last_status_to_string (mechanism->priv->cups);
-        else
+                if (!error || error[0] == '\0')
+                        error = "Unknown error"
+        } else
                 error = "";
 
         dbus_g_method_return (context, error, value);
