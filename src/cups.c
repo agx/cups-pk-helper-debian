@@ -528,25 +528,37 @@ _cph_cups_set_error_from_reply (CphCups *cups,
 }
 
 static gboolean
-_cph_cups_handle_reply (CphCups *cups,
-                        ipp_t   *reply)
+_cph_cups_is_reply_ok (CphCups  *cups,
+                       ipp_t    *reply,
+                       gboolean  delete_reply_if_not_ok)
 {
-        gboolean retval;
-
         /* reset the internal status: we'll use the cups status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
-                retval = FALSE;
+        if (reply && reply->request.status.status_code <= IPP_OK_CONFLICT) {
+                cups->priv->last_status = IPP_OK;
+                return TRUE;
+        } else {
                 _cph_cups_set_error_from_reply (cups, reply);
 #if 0
                 /* Useful when debugging: */
                 g_print ("%s\n", cupsLastErrorString ());
 #endif
-        } else {
-                retval = TRUE;
-                cups->priv->last_status = IPP_OK;
+
+                if (delete_reply_if_not_ok && reply)
+                        ippDelete (reply);
+
+                return FALSE;
         }
+}
+
+static gboolean
+_cph_cups_handle_reply (CphCups *cups,
+                        ipp_t   *reply)
+{
+        gboolean retval;
+
+        retval = _cph_cups_is_reply_ok (cups, reply, FALSE);
 
         if (reply)
                 ippDelete (reply);
@@ -898,7 +910,7 @@ cph_cups_is_class (CphCups    *cups,
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
 
-        if (!reply)
+        if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return FALSE;
 
         /* Note: we need to look if the attribute is there, since we get a
@@ -937,7 +949,7 @@ cph_cups_printer_get_uri (CphCups    *cups,
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
 
-        if (!reply)
+        if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return NULL;
 
         const_uri = _cph_cups_get_attribute_string (reply->attrs, IPP_TAG_PRINTER,
@@ -1295,10 +1307,8 @@ _cph_cups_devices_get_old (CphCups            *cups,
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
 
-        if (!reply || reply->request.status.status_code > IPP_OK_CONFLICT) {
-                _cph_cups_set_error_from_reply (cups, reply);
+        if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return FALSE;
-        }
 
         for (attr = reply->attrs; attr; attr = attr->next) {
                 while (attr && attr->group_tag != IPP_TAG_PRINTER)
@@ -2176,7 +2186,7 @@ cph_cups_job_get_status (CphCups    *cups,
         reply = cupsDoRequest (cups->priv->connection,
                                request, resource_char);
 
-        if (!reply)
+        if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return CPH_JOB_STATUS_INVALID;
 
         orig_user = _cph_cups_get_attribute_string (reply->attrs, IPP_TAG_JOB,
