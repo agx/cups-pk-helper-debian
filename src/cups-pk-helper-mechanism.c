@@ -1003,24 +1003,25 @@ cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
-                                return;
+                                goto out;
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
                         if (!_check_polkit_for_action (mechanism, context,
                                                        "job-not-owned-edit"))
-                                return;
+                                goto out;
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
                         _cph_mechanism_return_error (mechanism, context, TRUE);
-                        return;
+                        goto out;
                 }
         }
 
         ret = cph_cups_job_cancel (mechanism->priv->cups, id, purge, user_name);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
+out:
         g_free (user_name);
 }
 
@@ -1045,24 +1046,25 @@ cph_mechanism_job_restart (CphMechanism          *mechanism,
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
-                                return;
+                                goto out;
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
                         if (!_check_polkit_for_action (mechanism, context,
                                                        "job-not-owned-edit"))
-                                return;
+                                goto out;
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
                         _cph_mechanism_return_error (mechanism, context, TRUE);
-                        return;
+                        goto out;
                 }
         }
 
         ret = cph_cups_job_restart (mechanism->priv->cups, id, user_name);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
+out:
         g_free (user_name);
 }
 
@@ -1088,23 +1090,24 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
-                                return;
+                                goto out;
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
                         if (!_check_polkit_for_action (mechanism, context,
                                                        "job-not-owned-edit"))
-                                return;
+                                goto out;
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
                         _cph_mechanism_return_error (mechanism, context, TRUE);
-                        return;
+                        goto out;
                 }
         }
 
         ret = cph_cups_job_set_hold_until (mechanism->priv->cups, id, job_hold_until, user_name);
         _cph_mechanism_return_error (mechanism, context, !ret);
 
+out:
         g_free (user_name);
 }
