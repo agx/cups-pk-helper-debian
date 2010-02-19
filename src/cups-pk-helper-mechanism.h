@@ -74,28 +74,28 @@ CphMechanism  *cph_mechanism_new         (void);
 
 /* exported methods */
 
-gboolean
+void
 cph_mechanism_file_get (CphMechanism          *mechanism,
                         const char            *resource,
                         const char            *filename,
                         DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_file_put (CphMechanism          *mechanism,
                         const char            *resource,
                         const char            *filename,
                         DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_server_get_settings (CphMechanism          *mechanism,
                                    DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_server_set_settings (CphMechanism          *mechanism,
                                    GHashTable            *settings,
                                    DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_devices_get (CphMechanism           *mechanism,
                            int                     timeout,
                            int                     limit,
@@ -103,7 +103,7 @@ cph_mechanism_devices_get (CphMechanism           *mechanism,
                            const char            **exclude_schemes,
                            DBusGMethodInvocation  *context);
 
-gboolean
+void
 cph_mechanism_printer_add (CphMechanism          *mechanism,
                            const char            *name,
                            const char            *uri,
@@ -112,7 +112,7 @@ cph_mechanism_printer_add (CphMechanism          *mechanism,
                            const char            *location,
                            DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_add_with_ppd_file (CphMechanism          *mechanism,
                                          const char            *name,
                                          const char            *uri,
@@ -121,130 +121,130 @@ cph_mechanism_printer_add_with_ppd_file (CphMechanism          *mechanism,
                                          const char            *location,
                                          DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_device (CphMechanism          *mechanism,
                                   const char            *name,
                                   const char            *device,
                                   DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                    const char            *name,
                                    DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                    const char            *name,
                                    gboolean               enabled,
                                    DBusGMethodInvocation *context);
 
 
-gboolean
+void
 cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
                                        const char            *name,
                                        gboolean               enabled,
                                        const char            *reason,
                                        DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_delete (CphMechanism          *mechanism,
                               const char            *name,
                               DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_class_add_printer (CphMechanism          *mechanism,
                                  const char            *name,
                                  const char            *printer,
                                  DBusGMethodInvocation *context);
-gboolean
+void
 cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
                                     const char            *name,
                                     const char            *printer,
                                     DBusGMethodInvocation *context);
-gboolean
+void
 cph_mechanism_class_delete (CphMechanism          *mechanism,
                             const char            *name,
                             DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_info (CphMechanism          *mechanism,
                                 const char            *name,
                                 const char            *info,
                                 DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_location (CphMechanism          *mechanism,
                                     const char            *name,
                                     const char            *location,
                                     DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_shared (CphMechanism          *mechanism,
                                   const char            *name,
                                   gboolean               shared,
                                   DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_job_sheets (CphMechanism          *mechanism,
                                       const char            *name,
                                       const char            *start,
                                       const char            *end,
                                       DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_error_policy (CphMechanism          *mechanism,
                                         const char            *name,
                                         const char            *policy,
                                         DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
                                      const char            *name,
                                      const char            *policy,
                                      DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_printer_set_users_allowed (CphMechanism           *mechanism,
                                          const char             *name,
                                          const char            **users,
                                          DBusGMethodInvocation  *context);
 
-gboolean
+void
 cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
                                         const char             *name,
                                         const char            **users,
                                         DBusGMethodInvocation  *context);
 
-gboolean
+void
 cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
                                           const char             *name,
                                           const char             *option,
                                           const char            **values,
                                           DBusGMethodInvocation  *context);
 
-gboolean
+void
 cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,
                                              const char            *name,
                                              const char            *option,
                                              DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_job_cancel (CphMechanism          *mechanism,
                           int                    id,
                           DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
                                 int                    id,
                                 gboolean               purge,
                                 DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_job_restart (CphMechanism          *mechanism,
                            int                    id,
                            DBusGMethodInvocation *context);
 
-gboolean
+void
 cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                                   int                    id,
                                   const char            *job_hold_until,

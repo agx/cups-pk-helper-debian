@@ -485,7 +485,7 @@ _cph_mechanism_return_error_and_value (CphMechanism          *mechanism,
 
 /* exported methods */
 
-gboolean
+void
 cph_mechanism_file_get (CphMechanism          *mechanism,
                         const char            *resource,
                         const char            *filename,
@@ -496,15 +496,13 @@ cph_mechanism_file_get (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return FALSE;
+                return;
 
         ret = cph_cups_file_get (mechanism->priv->cups, resource, filename);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_file_put (CphMechanism          *mechanism,
                         const char            *resource,
                         const char            *filename,
@@ -515,15 +513,13 @@ cph_mechanism_file_put (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return FALSE;
+                return;
 
         ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_server_get_settings (CphMechanism          *mechanism,
                                    DBusGMethodInvocation *context)
 {
@@ -532,16 +528,14 @@ cph_mechanism_server_get_settings (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return FALSE;
+                return;
 
         settings = cph_cups_server_get_settings (mechanism->priv->cups);
         _cph_mechanism_return_error_and_value (mechanism, context,
                                                settings == NULL, settings);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_server_set_settings (CphMechanism          *mechanism,
                                    GHashTable            *settings,
                                    DBusGMethodInvocation *context)
@@ -551,15 +545,13 @@ cph_mechanism_server_set_settings (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return FALSE;
+                return;
 
         ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_devices_get (CphMechanism           *mechanism,
                            int                     timeout,
                            int                     limit,
@@ -572,7 +564,7 @@ cph_mechanism_devices_get (CphMechanism           *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "devices-get"))
-                return FALSE;
+                return;
 
         devices = cph_cups_devices_get (mechanism->priv->cups,
                                         timeout,
@@ -581,11 +573,9 @@ cph_mechanism_devices_get (CphMechanism           *mechanism,
                                         exclude_schemes);
         _cph_mechanism_return_error_and_value (mechanism, context,
                                                devices == NULL, devices);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_add (CphMechanism          *mechanism,
                            const char            *name,
                            const char            *uri,
@@ -599,16 +589,14 @@ cph_mechanism_printer_add (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, uri))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_add (mechanism->priv->cups,
                                     name, uri, ppd, info, location);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_add_with_ppd_file (CphMechanism          *mechanism,
                                          const char            *name,
                                          const char            *uri,
@@ -622,17 +610,15 @@ cph_mechanism_printer_add_with_ppd_file (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, uri))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_add_with_ppd_file (mechanism->priv->cups,
                                                   name, uri, ppdfile,
                                                   info, location);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_device (CphMechanism          *mechanism,
                                   const char            *name,
                                   const char            *device,
@@ -643,16 +629,14 @@ cph_mechanism_printer_set_device (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, device))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_set_uri (mechanism->priv->cups,
                                         name, device);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                    const char            *name,
                                    DBusGMethodInvocation *context)
@@ -674,15 +658,13 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                           * printer */
                                          last_action,
                                          NULL))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_set_default (mechanism->priv->cups, name);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                    const char            *name,
                                    gboolean               enabled,
@@ -705,16 +687,14 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                           * printer */
                                          last_action,
                                          NULL))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_set_enabled (mechanism->priv->cups,
                                             name, enabled);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
                                        const char            *name,
                                        gboolean               enabled,
@@ -726,7 +706,7 @@ cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, NULL))
-                return FALSE;
+                return;
 
         if (reason && reason[0] == '\0')
                 reason = NULL;
@@ -734,11 +714,9 @@ cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
         ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
                                                 name, enabled, reason);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_delete (CphMechanism          *mechanism,
                               const char            *name,
                               DBusGMethodInvocation *context)
@@ -748,15 +726,13 @@ cph_mechanism_printer_delete (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, NULL))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_delete (mechanism->priv->cups, name);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_class_add_printer (CphMechanism          *mechanism,
                                  const char            *name,
                                  const char            *printer,
@@ -769,16 +745,14 @@ cph_mechanism_class_add_printer (CphMechanism          *mechanism,
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "printeraddremove", "class-edit",
                                          NULL))
-                return FALSE;
+                return;
 
         ret = cph_cups_class_add_printer (mechanism->priv->cups,
                                           name, printer);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
                                     const char            *name,
                                     const char            *printer,
@@ -791,16 +765,14 @@ cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "printeraddremove", "class-edit",
                                          NULL))
-                return FALSE;
+                return;
 
         ret = cph_cups_class_delete_printer (mechanism->priv->cups,
                                              name, printer);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_class_delete (CphMechanism          *mechanism,
                             const char            *name,
                             DBusGMethodInvocation *context)
@@ -812,15 +784,13 @@ cph_mechanism_class_delete (CphMechanism          *mechanism,
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "printeraddremove", "class-edit",
                                          NULL))
-                return FALSE;
+                return;
 
         ret = cph_cups_class_delete (mechanism->priv->cups, name);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_info (CphMechanism          *mechanism,
                                 const char            *name,
                                 const char            *info,
@@ -831,16 +801,14 @@ cph_mechanism_printer_set_info (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_info (mechanism->priv->cups,
                                                name, info);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_location (CphMechanism          *mechanism,
                                     const char            *name,
                                     const char            *location,
@@ -851,16 +819,14 @@ cph_mechanism_printer_set_location (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_location (mechanism->priv->cups,
                                                    name, location);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_shared (CphMechanism          *mechanism,
                                   const char            *name,
                                   gboolean               shared,
@@ -871,16 +837,14 @@ cph_mechanism_printer_set_shared (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_shared (mechanism->priv->cups,
                                                  name, shared);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_job_sheets (CphMechanism          *mechanism,
                                       const char            *name,
                                       const char            *start,
@@ -892,16 +856,14 @@ cph_mechanism_printer_set_job_sheets (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_job_sheets (mechanism->priv->cups,
                                                      name, start, end);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_error_policy (CphMechanism          *mechanism,
                                         const char            *name,
                                         const char            *policy,
@@ -912,16 +874,14 @@ cph_mechanism_printer_set_error_policy (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_error_policy (mechanism->priv->cups,
                                                        name, policy);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
                                      const char            *name,
                                      const char            *policy,
@@ -932,16 +892,14 @@ cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_op_policy (mechanism->priv->cups,
                                                     name, policy);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_users_allowed (CphMechanism           *mechanism,
                                          const char             *name,
                                          const char            **users,
@@ -952,16 +910,14 @@ cph_mechanism_printer_set_users_allowed (CphMechanism           *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_users_allowed (mechanism->priv->cups,
                                                         name, users);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
                                         const char             *name,
                                         const char            **users,
@@ -972,17 +928,15 @@ cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_users_denied (mechanism->priv->cups,
                                                        name, users);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
 
-gboolean
+void
 cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
                                           const char             *name,
                                           const char             *option,
@@ -994,16 +948,14 @@ cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
                                                          name, option, values);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,
                                              const char            *name,
                                              const char            *option,
@@ -1014,24 +966,22 @@ cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return FALSE;
+                return;
 
         ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
                                                          name, option, NULL);
         _cph_mechanism_return_error (mechanism, context, !ret);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_job_cancel (CphMechanism          *mechanism,
                           int                    id,
                           DBusGMethodInvocation *context)
 {
-        return cph_mechanism_job_cancel_purge (mechanism, id, FALSE, context);
+        cph_mechanism_job_cancel_purge (mechanism, id, FALSE, context);
 }
 
-gboolean
+void
 cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
                                 int                    id,
                                 gboolean               purge,
@@ -1053,18 +1003,18 @@ cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
-                                return FALSE;
+                                return;
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
                         if (!_check_polkit_for_action (mechanism, context,
                                                        "job-not-owned-edit"))
-                                return FALSE;
+                                return;
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
                         _cph_mechanism_return_error (mechanism, context, TRUE);
-                        return FALSE;
+                        return;
                 }
         }
 
@@ -1072,11 +1022,9 @@ cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         g_free (user_name);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_job_restart (CphMechanism          *mechanism,
                            int                    id,
                            DBusGMethodInvocation *context)
@@ -1097,18 +1045,18 @@ cph_mechanism_job_restart (CphMechanism          *mechanism,
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
-                                return FALSE;
+                                return;
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
                         if (!_check_polkit_for_action (mechanism, context,
                                                        "job-not-owned-edit"))
-                                return FALSE;
+                                return;
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
                         _cph_mechanism_return_error (mechanism, context, TRUE);
-                        return FALSE;
+                        return;
                 }
         }
 
@@ -1116,11 +1064,9 @@ cph_mechanism_job_restart (CphMechanism          *mechanism,
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         g_free (user_name);
-
-        return TRUE;
 }
 
-gboolean
+void
 cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                                   int                    id,
                                   const char            *job_hold_until,
@@ -1142,18 +1088,18 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
-                                return FALSE;
+                                return;
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
                         if (!_check_polkit_for_action (mechanism, context,
                                                        "job-not-owned-edit"))
-                                return FALSE;
+                                return;
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
                         _cph_mechanism_return_error (mechanism, context, TRUE);
-                        return FALSE;
+                        return;
                 }
         }
 
@@ -1161,6 +1107,4 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
         _cph_mechanism_return_error (mechanism, context, !ret);
 
         g_free (user_name);
-
-        return TRUE;
 }
