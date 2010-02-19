@@ -2139,19 +2139,34 @@ cph_cups_job_get_status (CphCups    *cups,
                          int         job_id,
                          const char *user)
 {
-        CphJobStatus  status = CPH_JOB_STATUS_INVALID;
-        cups_job_t   *jobs;
-        int           num_jobs;
-        int           i;
+        const char * const  attrs[1] = { "job-originating-user-name" };
+        ipp_t              *request;
+        const char         *resource_char;
+        ipp_t              *reply;
+        ipp_attribute_t    *attr;
+        CphJobStatus        status = CPH_JOB_STATUS_INVALID;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), CPH_JOB_STATUS_INVALID);
 
-        num_jobs = cupsGetJobs2 (cups->priv->connection, &jobs, NULL, 0, 0);
+        if (!_cph_cups_is_job_id_valid (cups, job_id))
+                return CPH_JOB_STATUS_INVALID;
 
-        for (i = 0; i < num_jobs; i++) {
-                if (jobs[i].id == job_id) {
-                        if (user != NULL &&
-                            g_strcmp0 (jobs[i].user, user) == 0)
+        request = ippNewRequest (IPP_GET_JOB_ATTRIBUTES);
+        _cph_cups_add_job_uri (request, job_id);
+        ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
+                       "requested-attributes", 1, NULL, attrs);
+
+        resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
+        reply = cupsDoRequest (cups->priv->connection,
+                               request, resource_char);
+
+        if (!reply)
+                return CPH_JOB_STATUS_INVALID;
+
+        for (attr = reply->attrs; attr; attr = attr->next) {
+                if (attr->name &&
+                    strcmp (attr->name, "job-originating-user-name") == 0) {
+                        if (g_strcmp0 (attr->values[0].string.text, user) == 0)
                                 status = CPH_JOB_STATUS_OWNED_BY_USER;
                         else
                                 status = CPH_JOB_STATUS_NOT_OWNED_BY_USER;
@@ -2159,7 +2174,7 @@ cph_cups_job_get_status (CphCups    *cups,
                 }
         }
 
-        cupsFreeJobs (num_jobs, jobs);
+        ippDelete (reply);
 
         return status;
 }
