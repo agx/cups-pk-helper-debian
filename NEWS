@@ -1,4 +1,22 @@
 =============
+Version 0.1.0
+=============
+
++ Port to PolicyKit 1. (Marek Kasik, Vincent)
++ Add DevicesGet method. (Marek Kasik, Vincent)
++ Add JobCancelPurge method. (Marek Kasik)
++ Support adding printer without device URI. (Tim Waugh)
++ Add check for string length in validity checks. (Vincent)
++ Improve performance of job-related methods. (Marek Kasik)
++ Make sure to correctly handle all CUPS replies. (Vincent)
++ Avoid timeout on job-related methods for invalid jobs. (Vincent)
++ Always return a non-empty error string in case of failures. (Vincent)
++ Remove GTK+/GIO requirements. (Vincent)
++ Minor fixes and improvements in tests. (Vincent)
++ Code cleanups. (Vincent)
++ Build system improvements. (Vincent)
+
+=============
 Version 0.0.4
 =============
 
