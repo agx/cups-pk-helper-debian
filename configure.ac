@@ -1,4 +1,4 @@
-AC_INIT([cups-pk-helper], [0.1.0],
+AC_INIT([cups-pk-helper], [0.1.1],
         [mailto:vuntz@novell.com])
 AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
