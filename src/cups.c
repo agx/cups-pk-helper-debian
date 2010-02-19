@@ -709,6 +709,38 @@ _cph_cups_send_new_job_attributes_request (CphCups     *cups,
         return _cph_cups_send_request (cups, request, resource);
 }
 
+static const char *
+_cph_cups_get_attribute_string (ipp_attribute_t *attrs,
+                                ipp_tag_t        group,
+                                const char      *name,
+                                ipp_tag_t        type)
+{
+        ipp_attribute_t *attr;
+
+        for (attr = attrs; attr; attr = attr->next) {
+                while (attr && attr->group_tag != group)
+                        attr = attr->next;
+
+                if (attr == NULL)
+                        break;
+
+                while (attr && attr->group_tag == group) {
+                        if (attr->name &&
+                            strcmp (attr->name, name) == 0 &&
+                            attr->value_tag == type) {
+                                return attr->values[0].string.text;
+                        }
+
+                        attr = attr->next;
+                }
+
+                if (attr == NULL)
+                        break;
+        }
+
+        return NULL;
+}
+
 static int
 _cph_cups_class_has_printer (CphCups     *cups,
                              const char  *class_name,
@@ -888,7 +920,7 @@ cph_cups_printer_get_uri (CphCups    *cups,
         ipp_t              *request;
         const char         *resource_char;
         ipp_t              *reply;
-        ipp_attribute_t    *attr;
+        const char         *const_uri;
         char               *uri;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
@@ -908,29 +940,13 @@ cph_cups_printer_get_uri (CphCups    *cups,
         if (!reply)
                 return NULL;
 
+        const_uri = _cph_cups_get_attribute_string (reply->attrs, IPP_TAG_PRINTER,
+                                                    attrs[0], IPP_TAG_URI);
+
         uri = NULL;
 
-        for (attr = reply->attrs; attr; attr = attr->next) {
-                while (attr && attr->group_tag != IPP_TAG_PRINTER)
-                        attr = attr->next;
-
-                if (attr == NULL)
-                        break;
-
-                while (attr && attr->group_tag == IPP_TAG_PRINTER) {
-                        if (attr->name &&
-                            strcmp (attr->name, attrs[0]) == 0 &&
-                            attr->value_tag == IPP_TAG_URI) {
-                                uri = g_strdup (attr->values[0].string.text);
-                                break;
-                        }
-
-                        attr = attr->next;
-                }
-
-                if (uri != NULL || attr == NULL)
-                        break;
-        }
+        if (const_uri)
+                uri = g_strdup (const_uri);
 
         ippDelete (reply);
 
@@ -2143,8 +2159,8 @@ cph_cups_job_get_status (CphCups    *cups,
         ipp_t              *request;
         const char         *resource_char;
         ipp_t              *reply;
-        ipp_attribute_t    *attr;
-        CphJobStatus        status = CPH_JOB_STATUS_INVALID;
+        const char         *orig_user;
+        CphJobStatus        status;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), CPH_JOB_STATUS_INVALID);
 
@@ -2163,15 +2179,16 @@ cph_cups_job_get_status (CphCups    *cups,
         if (!reply)
                 return CPH_JOB_STATUS_INVALID;
 
-        for (attr = reply->attrs; attr; attr = attr->next) {
-                if (attr->name &&
-                    strcmp (attr->name, "job-originating-user-name") == 0) {
-                        if (g_strcmp0 (attr->values[0].string.text, user) == 0)
-                                status = CPH_JOB_STATUS_OWNED_BY_USER;
-                        else
-                                status = CPH_JOB_STATUS_NOT_OWNED_BY_USER;
-                        break;
-                }
+        orig_user = _cph_cups_get_attribute_string (reply->attrs, IPP_TAG_JOB,
+                                                    attrs[0], IPP_TAG_NAME);
+
+        status = CPH_JOB_STATUS_INVALID;
+
+        if (orig_user) {
+                if (g_strcmp0 (orig_user, user) == 0)
+                        status = CPH_JOB_STATUS_OWNED_BY_USER;
+                else
+                        status = CPH_JOB_STATUS_NOT_OWNED_BY_USER;
         }
 
         ippDelete (reply);
