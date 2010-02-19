@@ -458,7 +458,7 @@ _cph_mechanism_return_error (CphMechanism          *mechanism,
         if (failed) {
                 error = cph_cups_last_status_to_string (mechanism->priv->cups);
                 if (!error || error[0] == '\0')
-                        error = "Unknown error"
+                        error = "Unknown error";
         } else
                 error = "";
 
@@ -476,7 +476,7 @@ _cph_mechanism_return_error_and_value (CphMechanism          *mechanism,
         if (failed) {
                 error = cph_cups_last_status_to_string (mechanism->priv->cups);
                 if (!error || error[0] == '\0')
-                        error = "Unknown error"
+                        error = "Unknown error";
         } else
                 error = "";
 
