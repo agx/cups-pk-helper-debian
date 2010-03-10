@@ -1,0 +1,19 @@
+cups-pk-helper
+==============
+
+cups-pk-helper is a PolicyKit helper to configure cups with fine-grained
+privileges.
+
+For example, it's possible to let users enable/disable printers without
+requiring a password, while still requiring a password for editing printer
+settings. The full list of policies is described in
+src/org.opensuse.cupspkhelper.mechanism.policy.in.
+
+The development occurs in git:
+  http://cgit.freedesktop.org/cups-pk-helper/
+
+Tarballs can be found at:
+  http://www.freedesktop.org/software/cups-pk-helper/releases/
+
+Bugs can be reported at:
+  https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper
