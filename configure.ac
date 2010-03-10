@@ -1,5 +1,5 @@
 AC_INIT([cups-pk-helper], [0.1.1],
-        [mailto:vuntz@novell.com])
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper])
 AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
