@@ -1227,12 +1227,12 @@ _cph_cups_devices_get_14 (CphCups            *cups,
                 timeout_param = timeout;
 
         if (include_schemes && len_include > 0)
-                include_schemes_param = g_strjoin (",", include_schemes);
+                include_schemes_param = g_strjoinv (",", (char **) include_schemes);
         else
                 include_schemes_param = g_strdup (CUPS_INCLUDE_ALL);
 
         if (exclude_schemes && len_exclude > 0)
-                exclude_schemes_param = g_strjoin (",", exclude_schemes);
+                exclude_schemes_param = g_strjoinv (",", (char **) exclude_schemes);
         else
                 exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
 
