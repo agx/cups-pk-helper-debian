@@ -518,6 +518,20 @@ _cph_cups_set_internal_status (CphCups    *cups,
 }
 
 static void
+_cph_cups_set_internal_status_from_http (CphCups       *cups,
+                                         http_status_t  status)
+{
+        if (cups->priv->internal_status)
+                g_free (cups->priv->internal_status);
+
+        /* Only 2xx answers are okay */
+        if (status < HTTP_OK ||
+            status >= HTTP_MULTIPLE_CHOICES)
+                cups->priv->internal_status = g_strdup (httpStatus (status));
+        else
+                cups->priv->internal_status = NULL;
+}
+static void
 _cph_cups_set_error_from_reply (CphCups *cups,
                                 ipp_t   *reply)
 {
@@ -997,9 +1011,10 @@ cph_cups_file_get (CphCups    *cups,
                    const char *resource,
                    const char *filename)
 {
-        struct stat file_stat;
-        uid_t       uid;
-        gid_t       gid;
+        http_status_t status;
+        struct stat   file_stat;
+        uid_t         uid;
+        gid_t         gid;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
@@ -1012,15 +1027,14 @@ cph_cups_file_get (CphCups    *cups,
         uid = file_stat.st_uid;
         gid = file_stat.st_gid;
 
-        /* reset the internal status: we'll use the cups status */
+        /* reset the internal status: we'll use the http status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        cups->priv->last_status = cupsGetFile (cups->priv->connection,
-                                               resource, filename);
+        status = cupsGetFile (cups->priv->connection, resource, filename);
 
         /* FIXME: There's a bug where the cups connection can fail with EPIPE.
          * We're work-arounding it here until it's fixed in cups. */
-        if (cups->priv->last_status != HTTP_OK) {
+        if (status != HTTP_OK) {
                 if (cph_cups_reconnect (cups)) {
                         int fd;
 
@@ -1031,13 +1045,14 @@ cph_cups_file_get (CphCups    *cups,
 
                         _cph_cups_set_internal_status (cups, NULL);
 
-                        cups->priv->last_status = cupsGetFile (cups->priv->connection,
-                                                               resource,
-                                                               filename);
+                        status = cupsGetFile (cups->priv->connection,
+                                              resource, filename);
                 }
         }
 
-        return cups->priv->last_status == HTTP_OK;
+        _cph_cups_set_internal_status_from_http (cups, status);
+
+        return (status == HTTP_OK);
 }
 
 gboolean
@@ -1045,6 +1060,8 @@ cph_cups_file_put (CphCups    *cups,
                    const char *resource,
                    const char *filename)
 {
+        http_status_t status;
+
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         if (!_cph_cups_is_resource_valid (cups, resource))
@@ -1052,17 +1069,18 @@ cph_cups_file_put (CphCups    *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
-        /* reset the internal status: we'll use the cups status */
+        /* reset the internal status: we'll use the http status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        cups->priv->last_status = cupsPutFile (cups->priv->connection,
-                                               resource, filename);
+        status = cupsPutFile (cups->priv->connection, resource, filename);
+
+        _cph_cups_set_internal_status_from_http (cups, status);
 
         /* CUPS is being restarted, so we need to reconnect */
         cph_cups_reconnect (cups);
 
-        return (cups->priv->last_status == HTTP_OK ||
-                cups->priv->last_status == HTTP_CREATED);
+        return (status == HTTP_OK ||
+                status == HTTP_CREATED);
 }
 
 /* Functions that are for the server in general */
