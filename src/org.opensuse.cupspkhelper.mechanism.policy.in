@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+
+<policyconfig>
+  <vendor>The openSUSE Project</vendor>
+  <vendor_url>http://www.opensuse.org/</vendor_url>
+  <icon_name>printer</icon_name>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.server-settings">
+    <_description>Get/Set server settings</_description>
+    <_message>Privileges are required to get/set server settings.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.devices-get">
+    <_description>Get devices</_description>
+    <_message>Privileges are required to get devices.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- Exists mainly so that it's possible to not require a password for this
+       operation: if some authorization is required, then the PolicyKit helper
+       will fallback on printer-X-edit. -->
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-set-default">
+    <_description>Set a printer as default printer</_description>
+    <_message>Privileges are required to set a printer, or a class, as default printer.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- Exists mainly so that it's possible to not require a password for this
+       operation: if some authorization is required, then the PolicyKit helper
+       will fallback on printer-X-edit. -->
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-enable">
+    <_description>Enable/Disable a printer</_description>
+    <_message>Privileges are required to enable/disable a printer, or a class.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-local-edit">
+    <_description>Add/Remove/Edit a local printer</_description>
+    <_message>Privileges are required to add/remove/edit a local printer.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.printer-remote-edit">
+    <_description>Add/Remove/Edit a remote printer</_description>
+    <_message>Privileges are required to add/remove/edit a remote printer.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.class-edit">
+    <_description>Add/Remove/Edit a class</_description>
+    <_message>Privileges are required to add/remove/edit a class.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.job-edit">
+    <_description>Restart/Cancel/Edit a job</_description>
+    <_message>Privileges are required to restart/cancel/edit a job.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.job-not-owned-edit">
+    <_description>Restart/Cancel/Edit a job owned by another user</_description>
+    <_message>Privileges are required to restart/cancel/edit a job owned by another user.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- Deprecated -->
+  <action id="org.opensuse.cupspkhelper.mechanism.printeraddremove">
+    <_description>Add/Remove/Edit a printer</_description>
+    <_message>Privileges are required to add/remove/edit a printer.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

@@ -1,0 +1,54 @@
+=============
+Version 0.1.0
+=============
+
++ Port to PolicyKit 1. (Marek Kasik, Vincent)
++ Add DevicesGet method. (Marek Kasik, Vincent)
++ Add JobCancelPurge method. (Marek Kasik)
++ Support adding printer without device URI. (Tim Waugh)
++ Add check for string length in validity checks. (Vincent)
++ Improve performance of job-related methods. (Marek Kasik)
++ Make sure to correctly handle all CUPS replies. (Vincent)
++ Avoid timeout on job-related methods for invalid jobs. (Vincent)
++ Always return a non-empty error string in case of failures. (Vincent)
++ Remove GTK+/GIO requirements. (Vincent)
++ Minor fixes and improvements in tests. (Vincent)
++ Code cleanups. (Vincent)
++ Build system improvements. (Vincent)
+
+=============
+Version 0.0.4
+=============
+
++ Remove bare send_interface lines in the DBus rules.
++ Add job related functions. (Marek Kasik)
++ Reconnect to the cups server if necessary. (Marek Kasik)
++ Accept file: URI as local. (Marek Kasik)
++ Change default policy for job-edit to yes (jobs are owned by the user).
++ Add more checks for the new job-related functions.
++ Code cleanups.
+
+=============
+Version 0.0.3
+=============
+
++ Make PrinterAddOptionDefault work for options with more than one value.
++ Implement PrinterSetUsersAllowed/PrinterSetUsersDenied methods.
++ Implement ServerGetSettings/ServerSetSettings methods.
++ Implement ClassAddPrinter/ClassDeletePrinter/ClassDelete methods.
++ Add more fine-grained policies, including local vs remote printers.
++ Fix major bug that made it impossible to change many settings.
++ Implement FileGet/FilePut methods.
+
+=============
+Version 0.0.2
+=============
+
++ Make the AcceptJobs method work.
++ Add checks to arguments passed over dbus, for more security.
+
+=============
+Version 0.0.1
+=============
+
+Initial release.

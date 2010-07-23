@@ -1,0 +1,4 @@
+Connection.restartJob now takes optional job_hold_until arg
+movejob
+cancelAllJobs
+authenticateJob ?
