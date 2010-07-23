@@ -1,0 +1,5 @@
+cups-pk-helper (0.1.0-1) unstable; urgency=low
+
+  * Initial release (Closes: #581513)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 23 Jul 2010 14:18:16 +0200
