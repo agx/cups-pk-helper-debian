@@ -11,6 +11,10 @@ Build-Depends: debhelper (>= 7.0.50~),
  libcups2-dev
 Standards-Version: 3.9.0
 Homepage: http://www.freedesktop.org/software/cups-pk-helper/
+Vcs-Git: git://git.debian.org/users/agx/cups-pk-helper.git
+Vcs-Browser: http://git.debian.org/?p=users/agx/cups-pk-helper.git
+X-Upstream-Vcs-Git: git://anongit.freedesktop.org/cups-pk-helper
+X-Upstream-Vcs-Browser: http://cgit.freedesktop.org/cups-pk-helper/
 
 Package: cups-pk-helper
 Architecture: any
