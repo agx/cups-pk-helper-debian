@@ -1,3 +1,10 @@
+cups-pk-helper (0.1.0-2) unstable; urgency=low
+
+  * [ee026be] New patch 0001-Use-g_strjoinv-instead-of-g_strjoin.patch:
+    Use g_strjoinv instead of g_strjoin to avoid crash
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Jul 2010 17:57:05 +0200
+
 cups-pk-helper (0.1.0-1) unstable; urgency=low
 
   * Initial release (Closes: #581513)
