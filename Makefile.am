@@ -1,1 +1,3 @@
 SUBDIRS = src po
+
+EXTRA_DIST = HACKING

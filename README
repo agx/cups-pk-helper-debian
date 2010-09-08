@@ -9,11 +9,31 @@ requiring a password, while still requiring a password for editing printer
 settings. The full list of policies is described in
 src/org.opensuse.cupspkhelper.mechanism.policy.in.
 
-The development occurs in git:
-  http://cgit.freedesktop.org/cups-pk-helper/
+You may download updates to the package from:
 
-Tarballs can be found at:
-  http://www.freedesktop.org/software/cups-pk-helper/releases/
+   http://www.freedesktop.org/software/cups-pk-helper/releases/
 
-Bugs can be reported at:
-  https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper
+
+Installation
+============
+
+See the file 'INSTALL'. If you are not using a released version of
+cups-pk-helper (for example, if you checked out the code from git), you
+first need to run './autogen.sh'.
+
+
+How to report bugs
+==================
+
+Bugs should be reported to the freedesktop.org bug tracking system:
+
+   https://bugs.freedesktop.org/ (product cups-pk-helper)
+
+You will need to create an account for yourself.
+
+Please read the following page on how to prepare a useful bug report:
+
+   https://bugs.freedesktop.org/page.cgi?id=bug-writing.html
+
+Please read the HACKING file for information on where to send changes or
+bugfixes for this package.
