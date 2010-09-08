@@ -18,8 +18,8 @@
   </action>
 
   <action id="org.opensuse.cupspkhelper.mechanism.devices-get">
-    <_description>Get devices</_description>
-    <_message>Privileges are required to get devices.</_message>
+    <_description>Get list of available devices</_description>
+    <_message>Privileges are required to get list of available devices.</_message>
     <defaults>
       <allow_inactive>no</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
