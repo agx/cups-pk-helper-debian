@@ -1,0 +1,100 @@
+# Czech translation of cups-pk-helper.
+# Copyright (C) 2010 cups-pk-helper'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the cups-pk-helper package.
+# Mrs Jenkins <mrs.jenkins.oh.yeah@gmail.com>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: cups-pk-helper\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2010-05-27 22:36+0200\n"
+"PO-Revision-Date: 2010-05-27 22:36+0200\n"
+"Last-Translator: Mrs Jenkins <mrs.jenkins.oh.yeah@gmail.com>\n"
+"Language-Team: Czech <cs@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
+msgid "Add/Remove/Edit a class"
+msgstr "Přidat/Odstranit/Upravit třídu"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
+msgid "Add/Remove/Edit a local printer"
+msgstr "Přidat/Odstranit/Upravit místní tiskárnu"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
+msgid "Add/Remove/Edit a printer"
+msgstr "Přidat/Odstranit/Upravit tiskárnu"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
+msgid "Add/Remove/Edit a remote printer"
+msgstr "Přidat/Odstranit/Upravit vzdálenou tiskárnu"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
+msgid "Enable/Disable a printer"
+msgstr "Povolit/Zakázat tiskárnu"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
+msgid "Get devices"
+msgstr "Získat zařízení"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
+msgid "Get/Set server settings"
+msgstr "Získat/Upravit nastavení serveru"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
+msgid "Privileges are required to add/remove/edit a class."
+msgstr "K přidání/odebrání/úpravě třídy jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
+msgid "Privileges are required to add/remove/edit a local printer."
+msgstr "K přidání/odebrání/úpravě místní tiskárny jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
+msgid "Privileges are required to add/remove/edit a printer."
+msgstr "K přidání/odebrání/úpravě tiskárny jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
+msgid "Privileges are required to add/remove/edit a remote printer."
+msgstr "K přidání/odebrání/úpravě vzdálené tiskárny jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
+msgid "Privileges are required to enable/disable a printer, or a class."
+msgstr "K povolení/zakázání tiskárny nebo třídy jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
+msgid "Privileges are required to get devices."
+msgstr "K získání zařízení jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
+msgid "Privileges are required to get/set server settings."
+msgstr "K získání/úpravě nastavení serveru jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
+msgid ""
+"Privileges are required to restart/cancel/edit a job owned by another user."
+msgstr ""
+"K restartu/zrušení/úpravě úlohy spuštěné pod jiným uživatelem jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
+msgid "Privileges are required to restart/cancel/edit a job."
+msgstr "K restartu/zrušení/úpravě úlohy jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
+msgid ""
+"Privileges are required to set a printer, or a class, as default printer."
+msgstr ""
+"K nastavení tiskárny nebo třídy jako výchozí tiskárny jsou vyžadována oprávnění."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
+msgid "Restart/Cancel/Edit a job"
+msgstr "Restartuj/Zruš/Uprav úlohu"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+msgid "Restart/Cancel/Edit a job owned by another user"
+msgstr "Restartovat/Zrušit/Upravit úlohu spuštěnou pod jiným uživatelem"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
+msgid "Set a printer as default printer"
+msgstr "Nastavit tiskárnu jako výchozí"
