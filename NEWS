@@ -1,4 +1,12 @@
 =============
+Version 0.1.2
+=============
+
++ Add all-edit action to enable authenticating only once in tools (Marek Kašík)
++ Build system improvements. (Vincent)
++ New/udpated translations: fr, hu, it, pl, tr, uk.
+
+=============
 Version 0.1.1
 =============
 
