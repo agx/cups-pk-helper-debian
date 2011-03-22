@@ -95,6 +95,15 @@
     </defaults>
   </action>
 
+  <action id="org.opensuse.cupspkhelper.mechanism.all-edit">
+    <_description>Change printer settings</_description>
+    <_message>Privileges are required to change printer settings. This should only be needed from the Printers system settings panel.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
   <!-- Deprecated -->
   <action id="org.opensuse.cupspkhelper.mechanism.printeraddremove">
     <_description>Add/Remove/Edit a printer</_description>

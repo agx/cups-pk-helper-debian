@@ -387,6 +387,7 @@ _check_polkit_for_printer (CphMechanism          *mechanism,
                    (!uri || cph_cups_is_printer_uri_local (uri));
 
         return _check_polkit_for_action_v (mechanism, context,
+                                           "all-edit",
                                            "printeraddremove",
                                            is_local ? "printer-local-edit"
                                                     : "printer-remote-edit",
@@ -400,6 +401,7 @@ _check_polkit_for_printer_class (CphMechanism          *mechanism,
 {
         if (cph_cups_is_class (mechanism->priv->cups, printer_name)) {
                 return _check_polkit_for_action_v (mechanism, context,
+                                                   "all-edit",
                                                    "printeraddremove",
                                                    "class-edit", NULL);
         } else {
@@ -563,7 +565,10 @@ cph_mechanism_devices_get (CphMechanism           *mechanism,
 
         reset_killtimer (mechanism);
 
-        if (!_check_polkit_for_action (mechanism, context, "devices-get"))
+        if (!_check_polkit_for_action_v (mechanism, context,
+                                         "all-edit",
+                                         "devices-get",
+                                         NULL))
                 return;
 
         devices = cph_cups_devices_get (mechanism->priv->cups,
@@ -648,6 +653,7 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
 
         last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
+                                         "all-edit",
                                          "printeraddremove",
                                          /* this is not the last check because
                                           * it's likely most useful to the user
@@ -677,6 +683,7 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
 
         last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
+                                         "all-edit",
                                          "printeraddremove",
                                          /* this is not the last check because
                                           * it's likely most useful to the user
@@ -743,7 +750,9 @@ cph_mechanism_class_add_printer (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "class-edit",
+                                         "all-edit",
+                                         "printeraddremove",
+                                         "class-edit",
                                          NULL))
                 return;
 
@@ -763,7 +772,9 @@ cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "class-edit",
+                                         "all-edit",
+                                         "printeraddremove",
+                                         "class-edit",
                                          NULL))
                 return;
 
@@ -782,7 +793,9 @@ cph_mechanism_class_delete (CphMechanism          *mechanism,
         reset_killtimer (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
-                                         "printeraddremove", "class-edit",
+                                         "all-edit",
+                                         "printeraddremove",
+                                         "class-edit",
                                          NULL))
                 return;
 
@@ -1000,6 +1013,7 @@ cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
         switch (job_status) {
                 case CPH_JOB_STATUS_OWNED_BY_USER: {
                         if (!_check_polkit_for_action_v (mechanism, context,
+                                                         "all-edit",
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
@@ -1007,8 +1021,10 @@ cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
-                        if (!_check_polkit_for_action (mechanism, context,
-                                                       "job-not-owned-edit"))
+                        if (!_check_polkit_for_action_v (mechanism, context,
+                                                         "all-edit",
+                                                         "job-not-owned-edit",
+                                                         NULL))
                                 goto out;
                         break;
                 }
@@ -1043,6 +1059,7 @@ cph_mechanism_job_restart (CphMechanism          *mechanism,
         switch (job_status) {
                 case CPH_JOB_STATUS_OWNED_BY_USER: {
                         if (!_check_polkit_for_action_v (mechanism, context,
+                                                         "all-edit",
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
@@ -1050,8 +1067,10 @@ cph_mechanism_job_restart (CphMechanism          *mechanism,
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
-                        if (!_check_polkit_for_action (mechanism, context,
-                                                       "job-not-owned-edit"))
+                        if (!_check_polkit_for_action_v (mechanism, context,
+                                                         "all-edit",
+                                                         "job-not-owned-edit",
+                                                         NULL))
                                 goto out;
                         break;
                 }
@@ -1087,6 +1106,7 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
         switch (job_status) {
                 case CPH_JOB_STATUS_OWNED_BY_USER: {
                         if (!_check_polkit_for_action_v (mechanism, context,
+                                                         "all-edit",
                                                          "job-not-owned-edit",
                                                          "job-edit",
                                                          NULL))
@@ -1094,8 +1114,10 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                         break;
                 }
                 case CPH_JOB_STATUS_NOT_OWNED_BY_USER: {
-                        if (!_check_polkit_for_action (mechanism, context,
-                                                       "job-not-owned-edit"))
+                        if (!_check_polkit_for_action_v (mechanism, context,
+                                                         "all-edit",
+                                                         "job-not-owned-edit",
+                                                         NULL))
                                 goto out;
                         break;
                 }
