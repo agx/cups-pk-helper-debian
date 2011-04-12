@@ -1,3 +1,12 @@
+cups-pk-helper (0.1.2-1) unstable; urgency=low
+
+  * [019a316] New upstream version 0.1.2 (Closes: #622366)
+  * [22a7fb4] Add Vcs links for Debian and Upstream
+  * [5acc7f6] Add watch file
+  * [e12aaf4] Drop patches, fixed upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 12 Apr 2011 19:01:48 +0200
+
 cups-pk-helper (0.1.0-2) unstable; urgency=low
 
   * [ee026be] New patch 0001-Use-g_strjoinv-instead-of-g_strjoin.patch:
