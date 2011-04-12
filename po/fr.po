@@ -1,0 +1,126 @@
+# French translation of cups-pk-helper.
+# Copyright (C) 2010
+# This file is distributed under the same license as the cups-pk-helper package.
+# Vincent Untz <vuntz@gnome.org>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: cups-pk-helper.master.fr\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-03-22 20:04+0100\n"
+"PO-Revision-Date: 2010-09-08 11:23+0200\n"
+"Last-Translator: Vincent Untz <vuntz@gnome.org>\n"
+"Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
+msgid "Add/Remove/Edit a class"
+msgstr "Ajouter/Supprimer/Modifier une classe"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
+msgid "Add/Remove/Edit a local printer"
+msgstr "Ajouter/Supprimer/Modifier une imprimante locale"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
+msgid "Add/Remove/Edit a printer"
+msgstr "Ajouter/Supprimer/Modifier une imprimante"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
+msgid "Add/Remove/Edit a remote printer"
+msgstr "Ajouter/Supprimer/Modifier une imprimante réseau"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
+msgid "Change printer settings"
+msgstr "Modifier les réglages des imprimantes"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
+msgid "Enable/Disable a printer"
+msgstr "Activer/Désactiver une imprimante"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
+msgid "Get list of available devices"
+msgstr "Obtenir la liste des périphériques disponibles"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
+msgid "Get/Set server settings"
+msgstr "Obtenir/Modifier les paramètres du serveur"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
+msgid "Privileges are required to add/remove/edit a class."
+msgstr "Des privilèges sont requis pour ajouter/supprimer/modifier une classe."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
+msgid "Privileges are required to add/remove/edit a local printer."
+msgstr ""
+"Des privilèges sont requis pour ajouter/supprimer/modifier une imprimante "
+"locale."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
+msgid "Privileges are required to add/remove/edit a printer."
+msgstr ""
+"Des privilèges sont requis pour ajouter/supprimer/modifier une imprimante."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
+msgid "Privileges are required to add/remove/edit a remote printer."
+msgstr ""
+"Des privilèges sont requis pour ajouter/supprimer/modifier une imprimante "
+"réseau"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
+msgid ""
+"Privileges are required to change printer settings. This should only be "
+"needed from the Printers system settings panel."
+msgstr ""
+"Des privilèges sont requis pour modifier les règlages des imprimantes. Cela "
+"ne devrait être nécessaire que pour le volet Imprimantes des réglages "
+"système."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
+msgid "Privileges are required to enable/disable a printer, or a class."
+msgstr ""
+"Des privilèges sont requis pour activer/désactiver une imprimante ou une "
+"classe."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
+msgid "Privileges are required to get list of available devices."
+msgstr ""
+"Des privilèges sont requis pour obtenir la liste des périphériques "
+"disponibles."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
+msgid "Privileges are required to get/set server settings."
+msgstr ""
+"Des privilèges sont requis pour obtenir/modifier les paramètres du serveur."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
+msgid ""
+"Privileges are required to restart/cancel/edit a job owned by another user."
+msgstr ""
+"Des privilèges sont requis pour redémarrer/annuler/modifier une tâche d'un "
+"autre utilisateur."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
+msgid "Privileges are required to restart/cancel/edit a job."
+msgstr "Des privilèges sont requis pour redémarrer/annuler/modifier une tâche."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+msgid ""
+"Privileges are required to set a printer, or a class, as default printer."
+msgstr ""
+"Des privilèges sont requis pour définir une imprimante ou une classe par "
+"défaut."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
+msgid "Restart/Cancel/Edit a job"
+msgstr "Redémarrer/Annuler/Modifier une tâche"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
+msgid "Restart/Cancel/Edit a job owned by another user"
+msgstr "Redémarrer/Annuler/Modifier une tâche d'un autre utilisateur"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
+msgid "Set a printer as default printer"
+msgstr "Définir une imprimante par défaut"
