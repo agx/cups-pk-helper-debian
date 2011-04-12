@@ -18,8 +18,8 @@
   </action>
 
   <action id="org.opensuse.cupspkhelper.mechanism.devices-get">
-    <_description>Get devices</_description>
-    <_message>Privileges are required to get devices.</_message>
+    <_description>Get list of available devices</_description>
+    <_message>Privileges are required to get list of available devices.</_message>
     <defaults>
       <allow_inactive>no</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
@@ -89,6 +89,15 @@
   <action id="org.opensuse.cupspkhelper.mechanism.job-not-owned-edit">
     <_description>Restart/Cancel/Edit a job owned by another user</_description>
     <_message>Privileges are required to restart/cancel/edit a job owned by another user.</_message>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.opensuse.cupspkhelper.mechanism.all-edit">
+    <_description>Change printer settings</_description>
+    <_message>Privileges are required to change printer settings. This should only be needed from the Printers system settings panel.</_message>
     <defaults>
       <allow_inactive>no</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>

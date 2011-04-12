@@ -1,0 +1,119 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: cups-pk-helper\n"
+"Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
+"POT-Creation-Date: 2010-12-20 18:33+0100\n"
+"PO-Revision-Date: 2011-03-22 15:19+0000\n"
+"Last-Translator: kelemeng <kelemeng@gnome.hu>\n"
+"Language-Team: Hungarian <openscope@googlegroups.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: hu\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
+msgid "Add/Remove/Edit a class"
+msgstr "Osztály hozzáadása/eltávolítása/szerkesztése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
+msgid "Add/Remove/Edit a local printer"
+msgstr "Helyi nyomtató hozzáadása/eltávolítása/szerkesztése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
+msgid "Add/Remove/Edit a printer"
+msgstr "Nyomtató hozzáadása/eltávolítása/szerkesztése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
+msgid "Add/Remove/Edit a remote printer"
+msgstr "Távoli nyomtató hozzáadása/eltávolítása/szerkesztése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
+msgid "Enable/Disable a printer"
+msgstr "Nyomtató engedélyezése/letiltása"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
+msgid "Get list of available devices"
+msgstr "Elérhető eszközök listájának lekérése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
+msgid "Get/Set server settings"
+msgstr "Kiszolgálóbeállítások lekérése/megadása"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
+msgid "Privileges are required to add/remove/edit a class."
+msgstr ""
+"Osztály hozzáadásához/eltávolításához/szerkesztéséhez jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
+msgid "Privileges are required to add/remove/edit a local printer."
+msgstr ""
+"Helyi nyomtató hozzáadásához/eltávolításához/szerkesztéséhez jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
+msgid "Privileges are required to add/remove/edit a printer."
+msgstr ""
+"Nyomtató hozzáadásához/eltávolításához/szerkesztéséhez jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
+msgid "Privileges are required to add/remove/edit a remote printer."
+msgstr ""
+"Távoli nyomtató hozzáadásához/eltávolításához/szerkesztéséhez jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
+msgid "Privileges are required to enable/disable a printer, or a class."
+msgstr ""
+"Nyomtató vagy osztály engedélyezéséhez/letiltásához jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
+msgid "Privileges are required to get list of available devices."
+msgstr ""
+"Az elérhető eszközök listájának lekéréséhez jogosultságok szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
+msgid "Privileges are required to get/set server settings."
+msgstr ""
+"A kiszolgáló beállításainak lekéréséhez/beállításához jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
+msgid ""
+"Privileges are required to restart/cancel/edit a job owned by another user."
+msgstr ""
+"Másik felhasználó feladatának "
+"újraindításához/megszakításához/szerkesztéséhez jogosultságok szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
+msgid "Privileges are required to restart/cancel/edit a job."
+msgstr ""
+"A feladat újraindításához/megszakításához/szerkesztéséhez jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
+msgid ""
+"Privileges are required to set a printer, or a class, as default printer."
+msgstr ""
+"Nyomtató vagy osztály alapértelmezettként való beállításához jogosultságok "
+"szükségesek."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
+msgid "Restart/Cancel/Edit a job"
+msgstr "Feladat újraindítása/megszakítása/szerkesztése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+msgid "Restart/Cancel/Edit a job owned by another user"
+msgstr "Másik felhasználó feladatának újraindítása/megszakítása/szerkesztése"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
+msgid "Set a printer as default printer"
+msgstr "Nyomtató beállítása alapértelmezettként"
