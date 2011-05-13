@@ -416,7 +416,8 @@ _cph_cups_is_scheme_valid (CphCups    *cups,
  *     Another reason to not do this ourselves is that it's really slow to
  *     fetch all the PPDs.
  *   + for the PPD filename, we could check that the file exists and is a
- *     regular file (no socket, block device, etc.).
+ *     regular file (no socket, block device, etc.). It can be NULL for raw
+ *     printers.
  *   + for the job sheet, we could check that the value is in the
  *     job-sheets-supported attribute.
  *   + for the policies, we could check that the value is in the
@@ -622,8 +623,13 @@ _cph_cups_post_request (CphCups     *cups,
         const char *resource_char;
 
         resource_char = _cph_cups_get_resource (resource);
-        reply = cupsDoFileRequest (cups->priv->connection, request,
-                                   resource_char, file);
+
+        if (file && file[0] != '\0')
+                reply = cupsDoFileRequest (cups->priv->connection, request,
+                                           resource_char, file);
+        else
+                reply = cupsDoFileRequest (cups->priv->connection, request,
+                                           resource_char, NULL);
 
         return _cph_cups_handle_reply (cups, reply);
 }
