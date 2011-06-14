@@ -1,32 +1,26 @@
 AC_INIT([cups-pk-helper], [0.1.3],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper])
 AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
-AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2])
+AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2 tar-ustar])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_CONFIG_HEADER(config.h)
 
-AM_MAINTAINER_MODE
-GNOME_MAINTAINER_MODE_DEFINES
-
 # Standard C stuff
 AC_PROG_CC
-AC_ISC_POSIX
-AC_HEADER_STDC
-AC_PROG_LIBTOOL
-AM_PROG_CC_C_O
 
 # Additional programs that we need
 AC_PATH_PROG(GLIB_GENMARSHAL, [glib-genmarshal])
 
 # Internationalisation
-IT_PROG_INTLTOOL([0.40.0])
+IT_PROG_INTLTOOL([0.40.6])
 GETTEXT_PACKAGE=cups-pk-helper
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Define the gettext package to be used])
 AM_GLIB_GNU_GETTEXT
 
 # Compiler Warnings
-GNOME_COMPILE_WARNINGS(maximum)
+GNOME_COMPILE_WARNINGS([maximum])
+GNOME_MAINTAINER_MODE_DEFINES
 
 AC_ARG_ENABLE(deprecation_flags,
               [AC_HELP_STRING([--enable-deprecation-flags],
