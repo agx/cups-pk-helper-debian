@@ -1,4 +1,12 @@
 =============
+Version 0.1.3
+=============
+
++ Allow file request with NULL filename, to add raw printers. (Marek Kašík)
++ Modernize build system a bit. (Vincent)
++ New/udpated translations: eo, id, pl, sl, uk.
+
+=============
 Version 0.1.2
 =============
 
