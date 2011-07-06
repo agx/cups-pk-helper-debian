@@ -14,10 +14,25 @@ cups_pk_helper_mechanism_SOURCES =	\
 	cups.h				\
 	cups-pk-helper-mechanism.c	\
 	cups-pk-helper-mechanism.h	\
-	main.c
+	main.c				\
+	$(cph_iface_mechanism)
 cups_pk_helper_mechanism_LDADD =	\
 	$(CUPS_PK_LIBS)			\
 	$(CUPS_LIBS)
+
+cph_iface_mechanism =		\
+	cph-iface-mechanism.c	\
+	cph-iface-mechanism.h
+
+$(cph_iface_mechanism): $(srcdir)/cups-pk-helper-mechanism.xml
+	$(AM_V_GEN)$(GDBUS_CODEGEN)					\
+			--interface-prefix=org.opensuse.CupsPkHelper.	\
+			--c-namespace CphIface				\
+			--generate-c-code cph-iface-mechanism		\
+			--c-generate-object-manager			\
+			$<
+
+BUILT_SOURCES = $(cph_iface_mechanism)
 
 test_cups_SOURCES =	\
 	cups.c		\
@@ -36,13 +51,6 @@ test_cups_pk_LDADD =		\
 	$(CUPS_PK_GNOME_LIBS)	\
 	$(CUPS_PK_LIBS)		\
 	$(CUPS_LIBS)
-
-cups-pk-helper-mechanism-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
-	$(AM_V_GEN)dbus-binding-tool --prefix=cph_mechanism --mode=glib-server	\
-			--output=cups-pk-helper-mechanism-glue.h	\
-			$(srcdir)/cups-pk-helper-mechanism.xml
-
-BUILT_SOURCES = cups-pk-helper-mechanism-glue.h
 
 dbus_confdir = $(sysconfdir)/dbus-1/system.d
 dbus_conf_DATA = org.opensuse.CupsPkHelper.Mechanism.conf
