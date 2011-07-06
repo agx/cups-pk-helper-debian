@@ -33,24 +33,19 @@ if test "x$enable_deprecation_flags" = "xyes"; then
 fi
 
 # Dependencies
-GLIB_REQUIRED=2.29.8
+GIO_REQUIRED=2.29.8
 DBUS_REQUIRED=1.1.2
 DBUS_GLIB_REQUIRED=0.74
 POLKIT_REQUIRED=0.97
 
 # pkg-config dependency checks
-PKG_CHECK_MODULES(CUPS_PK, glib-2.0 >= $GLIB_REQUIRED \
-			   gobject-2.0 \
-			   gio-2.0 \
-			   polkit-gobject-1 >= $POLKIT_REQUIRED)
+PKG_CHECK_MODULES(CUPS_PK, gio-2.0 >= $GIO_REQUIRED polkit-gobject-1 >= $POLKIT_REQUIRED)
 AC_SUBST(CUPS_PK_CFLAGS)
 AC_SUBST(CUPS_PK_LIBS)
 
-PKG_CHECK_MODULES(CUPS_PK_GNOME, glib-2.0 >= $GLIB_REQUIRED \
-				 dbus-1 >= $DBUS_REQUIRED \
-				 dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
-AC_SUBST(CUPS_PK_GNOME_CFLAGS)
-AC_SUBST(CUPS_PK_GNOME_LIBS)
+PKG_CHECK_MODULES(TEST, gio-2.0 >= $GIO_REQUIRED dbus-1 >= $DBUS_REQUIRED dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
+AC_SUBST(TEST_CFLAGS)
+AC_SUBST(TEST_LIBS)
 
 # check for cups
 AC_CHECK_HEADERS(cups/cups.h cups/http.h cups/ipp.h)
