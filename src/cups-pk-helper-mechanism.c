@@ -113,6 +113,7 @@ G_DEFINE_TYPE (CphMechanism, cph_mechanism, CPH_IFACE_TYPE_MECHANISM_SKELETON)
 struct CphMechanismPrivate
 {
         gboolean         exported;
+        gboolean         connected;
         PolkitAuthority *pol_auth;
         CphCups         *cups;
         GDBusProxy      *dbus_proxy;
@@ -168,6 +169,7 @@ cph_mechanism_init (CphMechanism *mechanism)
         mechanism->priv = CPH_MECHANISM_GET_PRIVATE (mechanism);
 
         mechanism->priv->exported = FALSE;
+        mechanism->priv->connected = FALSE;
         mechanism->priv->pol_auth = NULL;
         mechanism->priv->cups = NULL;
         mechanism->priv->dbus_proxy = NULL;
@@ -234,23 +236,27 @@ cph_mechanism_register (CphMechanism     *mechanism,
         gboolean ret;
 
         g_return_val_if_fail (CPH_IS_MECHANISM (mechanism), FALSE);
-        g_return_val_if_fail (!mechanism->priv->exported, FALSE);
         g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-        ret = g_dbus_interface_skeleton_export (G_DBUS_INTERFACE_SKELETON (mechanism),
-                                                connection,
-                                                object_path,
-                                                error);
-        if (!ret)
-                return FALSE;
+        if (mechanism->priv->exported && mechanism->priv->pol_auth != NULL)
+                return TRUE;
 
-        g_assert (mechanism->priv->pol_auth == NULL);
+        if (!mechanism->priv->exported) {
+                ret = g_dbus_interface_skeleton_export (G_DBUS_INTERFACE_SKELETON (mechanism),
+                                                        connection,
+                                                        object_path,
+                                                        error);
+                if (!ret)
+                        return FALSE;
 
-        mechanism->priv->exported = TRUE;
+                mechanism->priv->exported = TRUE;
+        }
 
-        mechanism->priv->pol_auth = polkit_authority_get_sync (NULL, error);
-        if (mechanism->priv->pol_auth == NULL)
-                return FALSE;
+        if (mechanism->priv->pol_auth == NULL) {
+                mechanism->priv->pol_auth = polkit_authority_get_sync (NULL, error);
+                if (mechanism->priv->pol_auth == NULL)
+                        return FALSE;
+        }
 
         cph_mechanism_connect_signals (mechanism);
 
@@ -1362,6 +1368,11 @@ static void
 cph_mechanism_connect_signals (CphMechanism *mechanism)
 {
         g_return_if_fail (CPH_IS_MECHANISM (mechanism));
+
+        if (mechanism->priv->connected)
+                return;
+
+        mechanism->priv->connected = TRUE;
 
         g_signal_connect (mechanism,
                           "handle-class-add-printer",
