@@ -54,6 +54,10 @@ typedef struct
 typedef struct
 {
         CphIfaceMechanismSkeletonClass parent_class;
+
+        /* signals */
+
+        void (*called)    (CphMechanism *mechanism);
 } CphMechanismClass;
 
 typedef enum

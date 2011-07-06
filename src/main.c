@@ -49,12 +49,47 @@
 #define CPH_SERVICE     "org.opensuse.CupsPkHelper.Mechanism"
 #define CPH_PATH        "/"
 
+/* Time after which we exit if there's no activity (in seconds) */
+#define INACTIVITY_EXIT 30
+
 typedef struct
 {
         CphMechanism *mechanism;
         GMainLoop    *loop;
+        unsigned int  timeout_id;
         gboolean      name_acquired;
 } cph_main;
+
+static gboolean
+quit_loop (gpointer user_data)
+{
+        cph_main *data = (cph_main *) user_data;
+
+        g_main_loop_quit (data->loop);
+
+        data->timeout_id = 0;
+
+        return FALSE;
+}
+
+static void
+reset_timeout (cph_main *data)
+{
+        if (data->timeout_id > 0)
+                g_source_remove (data->timeout_id);
+
+        data->timeout_id = g_timeout_add_seconds (INACTIVITY_EXIT,
+                                                  quit_loop, data);
+}
+
+static void
+mechanism_got_called (CphMechanism *mechanism,
+                      gpointer      user_data)
+{
+        cph_main *data = (cph_main *) user_data;
+
+        reset_timeout (data);
+}
 
 static void
 on_bus_acquired (GDBusConnection *connection,
@@ -122,6 +157,11 @@ main (int argc, char **argv)
         }
 
         data.loop = g_main_loop_new (NULL, FALSE);
+
+        reset_timeout (&data);
+
+        g_signal_connect (data.mechanism, "called",
+                          G_CALLBACK (mechanism_got_called), &data);
 
         owner_id = g_bus_own_name (G_BUS_TYPE_SYSTEM,
                                    CPH_SERVICE,

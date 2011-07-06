@@ -55,30 +55,6 @@
 #define CPH_PATH_DBUS         "/org/freedesktop/DBus"
 #define CPH_INTERFACE_DBUS    "org.freedesktop.DBus"
 
-/* exit timer */
-
-static gboolean
-do_exit (gpointer user_data)
-{
-        if (user_data != NULL)
-                g_object_unref (CPH_MECHANISM (user_data));
-
-        exit (0);
-
-        return FALSE;
-}
-
-static void
-reset_killtimer (CphMechanism *mechanism)
-{
-        static guint timer_id = 0;
-
-        if (timer_id > 0)
-                g_source_remove (timer_id);
-
-        timer_id = g_timeout_add_seconds (30, do_exit, mechanism);
-}
-
 /* error */
 
 static const GDBusErrorEntry cph_error_entries[] =
@@ -119,6 +95,13 @@ struct CphMechanismPrivate
         GDBusProxy      *dbus_proxy;
 };
 
+enum {
+        CALLED,
+        LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 static GObject *cph_mechanism_constructor (GType                  type,
                                            guint                  n_construct_properties,
                                            GObjectConstructParam *construct_properties);
@@ -135,6 +118,16 @@ cph_mechanism_class_init (CphMechanismClass *klass)
         object_class->constructor = cph_mechanism_constructor;
         object_class->dispose = cph_mechanism_dispose;
         object_class->finalize = cph_mechanism_finalize;
+
+        signals[CALLED] =
+                g_signal_new ("called",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              G_STRUCT_OFFSET (CphMechanismClass, called),
+                              NULL, NULL,
+                              g_cclosure_marshal_VOID__VOID,
+                              G_TYPE_NONE,
+                              0);
 
         g_type_class_add_private (klass, sizeof (CphMechanismPrivate));
 }
@@ -259,8 +252,6 @@ cph_mechanism_register (CphMechanism     *mechanism,
         }
 
         cph_mechanism_connect_signals (mechanism);
-
-        reset_killtimer (mechanism);
 
         return TRUE;
 }
@@ -553,6 +544,12 @@ _cph_mechanism_return_error (CphMechanism *mechanism,
         return error;
 }
 
+static void
+_cph_mechanism_emit_called (CphMechanism *mechanism)
+{
+        g_signal_emit (mechanism, signals[CALLED], 0);
+}
+
 /* exported methods */
 
 static gboolean
@@ -564,7 +561,7 @@ cph_mechanism_file_get (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
@@ -586,7 +583,7 @@ cph_mechanism_file_put (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
@@ -607,7 +604,7 @@ cph_mechanism_server_get_settings (CphIfaceMechanism     *object,
         gboolean      ret;
         GVariant     *settings = NULL;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
@@ -633,7 +630,7 @@ cph_mechanism_server_set_settings (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
@@ -658,7 +655,7 @@ cph_mechanism_devices_get (CphIfaceMechanism      *object,
         gboolean      ret;
         GVariant     *devices = NULL;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
@@ -695,7 +692,7 @@ cph_mechanism_printer_add (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, uri))
                 return TRUE;
@@ -721,7 +718,7 @@ cph_mechanism_printer_add_with_ppd_file (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, uri))
                 return TRUE;
@@ -745,7 +742,7 @@ cph_mechanism_printer_set_device (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, device))
                 return TRUE;
@@ -768,7 +765,7 @@ cph_mechanism_printer_set_default (CphIfaceMechanism     *object,
         gboolean     ret;
         const char  *last_action;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
@@ -803,7 +800,7 @@ cph_mechanism_printer_set_enabled (CphIfaceMechanism     *object,
         gboolean     ret;
         const char  *last_action;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
@@ -839,7 +836,7 @@ cph_mechanism_printer_set_accept_jobs (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, NULL))
                 return TRUE;
@@ -864,7 +861,7 @@ cph_mechanism_printer_delete (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, NULL))
                 return TRUE;
@@ -886,7 +883,7 @@ cph_mechanism_class_add_printer (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
@@ -913,7 +910,7 @@ cph_mechanism_class_delete_printer (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
@@ -939,7 +936,7 @@ cph_mechanism_class_delete (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
@@ -965,7 +962,7 @@ cph_mechanism_printer_set_info (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -988,7 +985,7 @@ cph_mechanism_printer_set_location (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1011,7 +1008,7 @@ cph_mechanism_printer_set_shared (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1035,7 +1032,7 @@ cph_mechanism_printer_set_job_sheets (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1058,7 +1055,7 @@ cph_mechanism_printer_set_error_policy (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1081,7 +1078,7 @@ cph_mechanism_printer_set_op_policy (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1104,7 +1101,7 @@ cph_mechanism_printer_set_users_allowed (CphIfaceMechanism      *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1127,7 +1124,7 @@ cph_mechanism_printer_set_users_denied (CphIfaceMechanism      *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1151,7 +1148,7 @@ cph_mechanism_printer_add_option_default (CphIfaceMechanism      *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1174,7 +1171,7 @@ cph_mechanism_printer_delete_option_default (CphIfaceMechanism     *object,
         CphMechanism *mechanism = CPH_MECHANISM (object);
         gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
                 return TRUE;
@@ -1199,7 +1196,7 @@ cph_mechanism_job_cancel_purge (CphIfaceMechanism     *object,
         gboolean      ret;
         char         *user_name;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         user_name = _cph_mechanism_get_sender_user_name (mechanism, context);
         job_status = cph_cups_job_get_status (mechanism->priv->cups,
@@ -1263,7 +1260,7 @@ cph_mechanism_job_restart (CphIfaceMechanism     *object,
         gboolean      ret;
         char         *user_name;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         user_name = _cph_mechanism_get_sender_user_name (mechanism, context);
         job_status = cph_cups_job_get_status (mechanism->priv->cups,
@@ -1318,7 +1315,7 @@ cph_mechanism_job_set_hold_until (CphIfaceMechanism     *object,
         gboolean      ret;
         char         *user_name;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         user_name = _cph_mechanism_get_sender_user_name (mechanism, context);
         job_status = cph_cups_job_get_status (mechanism->priv->cups,
