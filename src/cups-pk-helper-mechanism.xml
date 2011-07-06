@@ -199,6 +199,7 @@
     <!-- JobCancel is deprecated; JobCancelPurge should be used instead -->
     <method name="JobCancel">
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg name="jobid"    direction="in"  type="i"/>
       <arg name="error"    direction="out" type="s"/>
     </method>
