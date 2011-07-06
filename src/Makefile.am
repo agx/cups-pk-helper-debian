@@ -48,7 +48,8 @@ test_cups_LDADD =	\
 	$(CUPS_LIBS)
 
 test_cups_pk_SOURCES =	\
-	test-cups-pk.c
+	test-cups-pk.c	\
+	$(cph_iface_mechanism)
 test_cups_pk_CFLAGS =	\
 	$(AM_CFLAGS)	\
 	$(TEST_CFLAGS)
