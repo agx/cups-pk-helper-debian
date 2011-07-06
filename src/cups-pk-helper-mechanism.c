@@ -241,14 +241,17 @@ cph_mechanism_register (CphMechanism     *mechanism,
                                                 connection,
                                                 object_path,
                                                 error);
-
         if (!ret)
                 return FALSE;
 
         g_assert (mechanism->priv->pol_auth == NULL);
 
         mechanism->priv->exported = TRUE;
-        mechanism->priv->pol_auth = polkit_authority_get ();
+
+        mechanism->priv->pol_auth = polkit_authority_get_sync (NULL, error);
+        if (mechanism->priv->pol_auth == NULL)
+                return FALSE;
+
         cph_mechanism_connect_signals (mechanism);
 
         reset_killtimer (mechanism);
