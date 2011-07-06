@@ -110,9 +110,6 @@ main (int argc, char **argv)
         cph_main data;
         guint    owner_id;
 
-        if (!g_thread_supported ())
-                g_thread_init (NULL);
-
         g_type_init ();
 
         memset (&data, 0, sizeof (data));

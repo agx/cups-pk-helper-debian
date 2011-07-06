@@ -41,7 +41,6 @@ POLKIT_REQUIRED=0.97
 # pkg-config dependency checks
 PKG_CHECK_MODULES(CUPS_PK, glib-2.0 >= $GLIB_REQUIRED \
 			   gobject-2.0 \
-			   gthread-2.0 \
 			   gio-2.0 \
 			   polkit-gobject-1 >= $POLKIT_REQUIRED)
 AC_SUBST(CUPS_PK_CFLAGS)
