@@ -2,13 +2,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # 
+#   <kelemeng@gnome.hu>, 2011.
 # kelemeng <kelemeng@gnome.hu>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2011-03-23 00:10+0000\n"
+"PO-Revision-Date: 2011-07-22 15:40+0000\n"
 "Last-Translator: kelemeng <kelemeng@gnome.hu>\n"
 "Language-Team: Hungarian <openscope@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -35,7 +36,7 @@ msgstr "Távoli nyomtató hozzáadása/eltávolítása/szerkesztése"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
 msgid "Change printer settings"
-msgstr ""
+msgstr "Nyomtatóbeállítások módosítása"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
@@ -78,6 +79,8 @@ msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
 msgstr ""
+"A nyomtatóbeállítások módosításához jogosultságok szükségesek. Ez csak a "
+"Nyomtatók rendszerbeállító panelról lehet szükséges."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
