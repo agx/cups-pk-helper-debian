@@ -1,4 +1,16 @@
 =============
+Version 0.2.0
+=============
+
++ Port to GDBus. (Vincent)
++ Stop using deprecated polkit API. (Vincent)
++ Drop gthread handling. (Vincent)
++ Add org.freedesktop.DBus.Deprecated annotation to JobCancel. (Vincent)
++ Code cleanups. (Vincent)
++ Build system improvements. (Vincent)
++ New/udpated translations: hu.
+
+=============
 Version 0.1.3
 =============
 
