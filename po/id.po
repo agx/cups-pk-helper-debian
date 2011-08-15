@@ -2,123 +2,127 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # 
-# ozancaglayan <ozan@pardus.org.tr>, 2011.
+# Andika Triwidada <andika@gmail.com>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2011-03-23 00:10+0000\n"
-"Last-Translator: ozancaglayan <ozan@pardus.org.tr>\n"
-"Language-Team: Turkish (http://www.transifex.net/projects/p/freedesktop/team/tr/)\n"
+"PO-Revision-Date: 2011-05-15 14:41+0000\n"
+"Last-Translator: andika <andika@gmail.com>\n"
+"Language-Team: Indonesian (http://www.transifex.net/projects/p/freedesktop/team/id/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: tr\n"
+"Language: id\n"
 "Plural-Forms: nplurals=1; plural=0\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
-msgstr "Sınıf ekle/kaldır/düzenle"
+msgstr "Tambah/hapus/sunting suatu kelas"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
 msgid "Add/Remove/Edit a local printer"
-msgstr "Yerel yazıcı ekle/kaldır/düzenle"
+msgstr "Tambah/hapus/sunting pencetak lokal"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
 msgid "Add/Remove/Edit a printer"
-msgstr "Yazıcı ekle/kaldır/düzenle"
+msgstr "Tambah/hapus/sunting suatu pencetak"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
 msgid "Add/Remove/Edit a remote printer"
-msgstr "Uzak yazıcı ekle/kaldır/düzenle"
+msgstr "Tambah/hapus/sunting pencetak jauh"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
 msgid "Change printer settings"
-msgstr ""
+msgstr "Ubah pengaturan pencetak"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
-msgstr "Bir yazıcıyı etkinleştir/devre dışı bırak"
+msgstr "Aktifkan/matikan suatu pencetak"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
 msgid "Get list of available devices"
-msgstr "Mevcut aygıtların listesini al"
+msgstr "Ambil daftar perangkat tersedia"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
-msgstr "Sunucu ayarlarını al/değiştir"
+msgstr "Baca/tulis pengaturan server"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
 msgstr ""
-"Bir yazıcı sınıfı eklemek, kaldırmak veya düzenlemek için yetki gerekiyor."
+"Diperlukan hak khusus untuk menambah/menghapus/menyunting suatu kelas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
 msgstr ""
-"Yerel bir yazıcı eklemek, kaldırmak veya düzenlemek için yetki gerekiyor."
+"Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak "
+"lokal."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
-msgstr "Bir yazıcı eklemek, kaldırmak veya düzenlemek için yetki gerekiyor."
+msgstr ""
+"Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr "Bir uzak yazıcı eklemek, kaldırmak, düzenlemek için yetki gerekiyor."
+msgstr ""
+"Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak "
+"jauh."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
 msgstr ""
+"Diperlukan hak khusus untuk mengubah pengaturan pencetak. Ini mestinya hanya"
+" diperlukan dari Panel pengaturan sistem pencetak."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
 msgstr ""
-"Bir yazıcıyı veya yazıcı sınıfını etkinleştirmek veya devre dışı bırakmak "
-"için yetki gerekiyor."
+"Diperlukan hak khusus untuk mengaktifkan/mematikan sebuah pencetak atau "
+"suatu kelas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
-msgstr "Mevcut aygıtların listesini almak için yetki gerekiyor."
+msgstr "Diperlukan hak khusus untuk mendapat daftar perangkat yang tersedia."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
-msgstr ""
-"Sunucu ayarlarına gözatmak veya ayarları değiştirmek için yetki gerekiyor."
+msgstr "Diperlukan hak khusus untuk membaca/menulis pengaturan server."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
 msgstr ""
-"Başka bir kullanıcıya ait yazdırma görevini yeniden başlatmak, iptal etmek "
-"veya değiştirmek için yetki gerekiyor."
+"Diperlukan hak khusus untuk memulai ulang/membatalkan/menyunting suatu tugas"
+" yang dimiliki oleh pengguna lain."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
 msgstr ""
-"Bir yazdırma görevini yeniden başlatmak, iptal etmek veya düzenlemek için "
-"yetki gerekiyor."
+"Diperlukan hak khusus untuk memulai ulang/membatalkan/menyunting suatu "
+"tugas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
 msgstr ""
-"Bir yazıcıyı veya yazıcı sınıfını öntanımlı yazıcı olarak ayarlamak için "
-"yetki gerekiyor."
+"Diperlukan hak khusus untuk mengatur agar suatu pencetak atau sebuah kelas "
+"menjadi pencetak bawaan."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
-msgstr "Bir yazdırma görevini yeniden başlat/iptal et/değiştir"
+msgstr "Mulai ulang/batalkan/sunting suatu tugas"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
-msgstr ""
-"Başka bir kullanıcıya ait yazdırma görevini yeniden başlat/iptal et/değiştir"
+msgstr "Mulai ulang/batalkan/sunting suatu tugas yang dimiliki pengguna lain"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
-msgstr "Bir yazıcıyı öntanımlı yazıcı olarak ayarla"
+msgstr "Jadikan suatu pencetak sebagai bawaan"
 
 

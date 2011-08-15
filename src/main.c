@@ -42,106 +42,141 @@
 
 #include <glib.h>
 #include <glib-object.h>
-
-#include <dbus/dbus-glib.h>
-#include <dbus/dbus-glib-lowlevel.h>
+#include <gio/gio.h>
 
 #include "cups-pk-helper-mechanism.h"
 
-#define BUS_NAME "org.opensuse.CupsPkHelper.Mechanism"
+#define CPH_SERVICE     "org.opensuse.CupsPkHelper.Mechanism"
+#define CPH_PATH        "/"
 
-static DBusGProxy *
-get_bus_proxy (DBusGConnection *connection)
+/* Time after which we exit if there's no activity (in seconds) */
+#define INACTIVITY_EXIT 30
+
+typedef struct
 {
-        DBusGProxy *bus_proxy;
-
-        bus_proxy = dbus_g_proxy_new_for_name (connection,
-                                               DBUS_SERVICE_DBUS,
-                                               DBUS_PATH_DBUS,
-                                               DBUS_INTERFACE_DBUS);
-        return bus_proxy;
-}
+        CphMechanism *mechanism;
+        GMainLoop    *loop;
+        unsigned int  timeout_id;
+        gboolean      name_acquired;
+} cph_main;
 
 static gboolean
-acquire_name_on_proxy (DBusGProxy  *bus_proxy,
-                       GError     **error)
+quit_loop (gpointer user_data)
 {
-        guint    result;
-        gboolean res;
+        cph_main *data = (cph_main *) user_data;
 
-        g_assert (bus_proxy != NULL);
+        g_main_loop_quit (data->loop);
 
-        res = dbus_g_proxy_call (bus_proxy,
-                                 "RequestName",
-                                 error,
-                                 G_TYPE_STRING, BUS_NAME,
-                                 G_TYPE_UINT, 0,
-                                 G_TYPE_INVALID,
-                                 G_TYPE_UINT, &result,
-                                 G_TYPE_INVALID);
-        if (!res ||
-            result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
-                return FALSE;
+        data->timeout_id = 0;
 
-        return TRUE;
+        return FALSE;
+}
+
+static void
+reset_timeout (cph_main *data)
+{
+        if (data->timeout_id > 0)
+                g_source_remove (data->timeout_id);
+
+        data->timeout_id = g_timeout_add_seconds (INACTIVITY_EXIT,
+                                                  quit_loop, data);
+}
+
+static void
+mechanism_got_called (CphMechanism *mechanism,
+                      gpointer      user_data)
+{
+        cph_main *data = (cph_main *) user_data;
+
+        reset_timeout (data);
+}
+
+static void
+on_bus_acquired (GDBusConnection *connection,
+                 const gchar     *name,
+                 gpointer         user_data)
+{
+        cph_main *data = (cph_main *) user_data;
+        GError   *error = NULL;
+
+        if (!cph_mechanism_register (data->mechanism,
+                                     connection, CPH_PATH,
+                                     &error)) {
+                if (error)
+                        g_printerr ("Could not register mechanism object: %s\n", error->message);
+                else
+                        g_printerr ("Could not register mechanism object\n");
+
+                g_error_free (error);
+                g_main_loop_quit (data->loop);
+
+                return;
+        }
+}
+
+static void
+on_name_acquired (GDBusConnection *connection,
+                  const gchar     *name,
+                  gpointer         user_data)
+{
+        cph_main *data = (cph_main *) user_data;
+
+        data->name_acquired = TRUE;
+}
+
+static void
+on_name_lost (GDBusConnection *connection,
+              const gchar     *name,
+              gpointer         user_data)
+{
+        cph_main *data = (cph_main *) user_data;
+
+        if (connection == NULL)
+                g_printerr ("Cannot connect to the bus\n");
+        else if (!data->name_acquired)
+                g_printerr ("Cannot acquire %s on the bus\n", CPH_SERVICE);
+
+        g_main_loop_quit (data->loop);
 }
 
 int
 main (int argc, char **argv)
 {
-        GError          *error;
-        GMainLoop       *loop;
-        CphMechanism    *mechanism;
-        DBusGProxy      *bus_proxy;
-        DBusGConnection *connection;
+        cph_main data;
+        guint    owner_id;
 
-        if (!g_thread_supported ())
-                g_thread_init (NULL);
-
-        dbus_g_thread_init ();
         g_type_init ();
 
-        error = NULL;
+        memset (&data, 0, sizeof (data));
 
-        connection = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-        if (connection == NULL) {
-                g_warning ("Could not connect to system bus: %s",
-                           error->message);
-                g_error_free (error);
+        data.mechanism = cph_mechanism_new ();
+
+        if (data.mechanism == NULL) {
+                g_printerr ("Could not create mechanism object\n");
                 return 1;
         }
 
-        bus_proxy = get_bus_proxy (connection);
-        if (bus_proxy == NULL) {
-                g_warning ("Could not construct bus_proxy objects");
-                return 1;
-        }
+        data.loop = g_main_loop_new (NULL, FALSE);
 
-        if (!acquire_name_on_proxy (bus_proxy, &error) ) {
-                if (error != NULL) {
-                        g_warning ("Could not acquire name: %s",
-                                   error->message);
-                        g_error_free (error);
-                } else {
-                        g_warning ("Could not acquire name");
-                }
+        reset_timeout (&data);
 
-                return 1;
-        }
+        g_signal_connect (data.mechanism, "called",
+                          G_CALLBACK (mechanism_got_called), &data);
 
-        mechanism = cph_mechanism_new ();
+        owner_id = g_bus_own_name (G_BUS_TYPE_SYSTEM,
+                                   CPH_SERVICE,
+                                   G_BUS_NAME_OWNER_FLAGS_NONE,
+                                   on_bus_acquired,
+                                   on_name_acquired,
+                                   on_name_lost,
+                                   &data,
+                                   NULL);
 
-        if (mechanism == NULL) {
-                g_warning ("Could not create mechanism object");
-                return 1;
-        }
+        g_main_loop_run (data.loop);
 
-        loop = g_main_loop_new (NULL, FALSE);
-
-        g_main_loop_run (loop);
-
-        g_object_unref (mechanism);
-        g_main_loop_unref (loop);
+        g_object_unref (data.mechanism);
+        g_bus_unown_name (owner_id);
+        g_main_loop_unref (data.loop);
 
         return 0;
 }

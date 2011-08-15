@@ -41,98 +41,74 @@
 
 #include <glib.h>
 #include <glib-object.h>
-
-#include <dbus/dbus-glib.h>
-#include <dbus/dbus-glib-lowlevel.h>
+#include <gio/gio.h>
 
 #include <polkit/polkit.h>
 
 #include <pwd.h>
 
 #include "cups-pk-helper-mechanism.h"
-#include "cups-pk-helper-mechanism-glue.h"
+#include "cph-iface-mechanism.h"
 #include "cups.h"
 
-/* exit timer */
-
-static gboolean
-do_exit (gpointer user_data)
-{
-        if (user_data != NULL)
-                g_object_unref (CPH_MECHANISM (user_data));
-
-        exit (0);
-
-        return FALSE;
-}
-
-static void
-reset_killtimer (CphMechanism *mechanism)
-{
-        static guint timer_id = 0;
-
-        if (timer_id > 0)
-                g_source_remove (timer_id);
-
-        timer_id = g_timeout_add_seconds (30, do_exit, mechanism);
-}
+#define CPH_SERVICE_DBUS      "org.freedesktop.DBus"
+#define CPH_PATH_DBUS         "/org/freedesktop/DBus"
+#define CPH_INTERFACE_DBUS    "org.freedesktop.DBus"
 
 /* error */
+
+static const GDBusErrorEntry cph_error_entries[] =
+{
+        { CPH_MECHANISM_ERROR_GENERAL,        "org.opensuse.CupsPkHelper.Mechanism.GeneralError"  },
+        { CPH_MECHANISM_ERROR_NOT_PRIVILEGED, "org.opensuse.CupsPkHelper.Mechanism.NotPrivileged" }
+};
 
 GQuark
 cph_mechanism_error_quark (void)
 {
         static GQuark ret = 0;
 
-        if (ret == 0)
-                ret = g_quark_from_static_string ("cph_mechanism_error");
+        if (ret == 0) {
+                g_assert (CPH_MECHANISM_NUM_ERRORS == G_N_ELEMENTS (cph_error_entries));
+
+                g_dbus_error_register_error_domain ("cph-mechanism-error",
+                                                    &ret,
+                                                    cph_error_entries,
+                                                    G_N_ELEMENTS (cph_error_entries));
+        }
 
         return ret;
 }
 
-#define ENUM_ENTRY(NAME, DESC) { NAME, "" #NAME "", DESC }
-
-GType
-cph_mechanism_error_get_type (void)
-{
-        static GType etype = 0;
-
-        if (etype == 0) {
-                static const GEnumValue values[] =
-                        {
-                                ENUM_ENTRY (CPH_MECHANISM_ERROR_GENERAL,
-                                            "GeneralError"),
-                                ENUM_ENTRY (CPH_MECHANISM_ERROR_NOT_PRIVILEGED,
-                                            "NotPrivileged"),
-                                { 0, 0, 0 }
-                        };
-
-                g_assert (CPH_MECHANISM_NUM_ERRORS == G_N_ELEMENTS (values) - 1);
-
-                etype = g_enum_register_static ("CphMechanismError", values);
-        }
-
-        return etype;
-}
-
 /* mechanism object */
 
-G_DEFINE_TYPE (CphMechanism, cph_mechanism, G_TYPE_OBJECT)
+G_DEFINE_TYPE (CphMechanism, cph_mechanism, CPH_IFACE_TYPE_MECHANISM_SKELETON)
 
 #define CPH_MECHANISM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CPH_TYPE_MECHANISM, CphMechanismPrivate))
 
 struct CphMechanismPrivate
 {
-        DBusGConnection *system_bus_connection;
+        gboolean         exported;
+        gboolean         connected;
         PolkitAuthority *pol_auth;
         CphCups         *cups;
+        GDBusProxy      *dbus_proxy;
 };
+
+enum {
+        CALLED,
+        LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 static GObject *cph_mechanism_constructor (GType                  type,
                                            guint                  n_construct_properties,
                                            GObjectConstructParam *construct_properties);
+static void     cph_mechanism_dispose     (GObject *object);
 static void     cph_mechanism_finalize    (GObject *object);
 
+static void     cph_mechanism_connect_signals (CphMechanism *mechanism);
 
 static void
 cph_mechanism_class_init (CphMechanismClass *klass)
@@ -140,15 +116,20 @@ cph_mechanism_class_init (CphMechanismClass *klass)
         GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
         object_class->constructor = cph_mechanism_constructor;
+        object_class->dispose = cph_mechanism_dispose;
         object_class->finalize = cph_mechanism_finalize;
 
+        signals[CALLED] =
+                g_signal_new ("called",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              G_STRUCT_OFFSET (CphMechanismClass, called),
+                              NULL, NULL,
+                              g_cclosure_marshal_VOID__VOID,
+                              G_TYPE_NONE,
+                              0);
+
         g_type_class_add_private (klass, sizeof (CphMechanismPrivate));
-
-        dbus_g_object_type_install_info (CPH_TYPE_MECHANISM,
-                                         &dbus_glib_cph_mechanism_object_info);
-
-        dbus_g_error_domain_register (CPH_MECHANISM_ERROR, NULL,
-                                      CPH_MECHANISM_TYPE_ERROR);
 }
 
 static GObject *
@@ -180,7 +161,36 @@ cph_mechanism_init (CphMechanism *mechanism)
 {
         mechanism->priv = CPH_MECHANISM_GET_PRIVATE (mechanism);
 
+        mechanism->priv->exported = FALSE;
+        mechanism->priv->connected = FALSE;
+        mechanism->priv->pol_auth = NULL;
         mechanism->priv->cups = NULL;
+        mechanism->priv->dbus_proxy = NULL;
+}
+
+static void
+cph_mechanism_dispose (GObject *object)
+{
+        CphMechanism *mechanism;
+
+        g_return_if_fail (object != NULL);
+        g_return_if_fail (CPH_IS_MECHANISM (object));
+
+        mechanism = CPH_MECHANISM (object);
+
+        if (mechanism->priv->pol_auth != NULL)
+                g_object_unref (mechanism->priv->pol_auth);
+        mechanism->priv->pol_auth = NULL;
+
+        if (mechanism->priv->cups != NULL)
+                g_object_unref (mechanism->priv->cups);
+        mechanism->priv->cups = NULL;
+
+        if (mechanism->priv->dbus_proxy != NULL)
+                g_object_unref (mechanism->priv->dbus_proxy);
+        mechanism->priv->dbus_proxy = NULL;
+
+        G_OBJECT_CLASS (cph_mechanism_parent_class)->dispose (object);
 }
 
 static void
@@ -193,42 +203,12 @@ cph_mechanism_finalize (GObject *object)
 
         mechanism = CPH_MECHANISM (object);
 
-        if (mechanism->priv->cups)
-                g_object_unref (mechanism->priv->cups);
-        mechanism->priv->cups = NULL;
+        if (mechanism->priv->exported)
+                g_dbus_interface_skeleton_unexport (G_DBUS_INTERFACE_SKELETON (mechanism));
+        mechanism->priv->exported = FALSE;
 
         G_OBJECT_CLASS (cph_mechanism_parent_class)->finalize (object);
 }
-
-static gboolean
-register_mechanism (CphMechanism *mechanism)
-{
-        GError *error;
-
-        mechanism->priv->pol_auth = polkit_authority_get ();
-
-        error = NULL;
-        mechanism->priv->system_bus_connection = dbus_g_bus_get (DBUS_BUS_SYSTEM,
-                                                                 &error);
-        if (mechanism->priv->system_bus_connection == NULL) {
-                if (error != NULL) {
-                        g_critical ("error getting system bus: %s",
-                                    error->message);
-                        g_error_free (error);
-                } else {
-                        g_critical ("error getting system bus");
-                }
-                return FALSE;
-        }
-
-        dbus_g_connection_register_g_object (mechanism->priv->system_bus_connection, "/",
-                                             G_OBJECT (mechanism));
-
-        reset_killtimer (mechanism);
-
-        return TRUE;
-}
-
 
 CphMechanism *
 cph_mechanism_new (void)
@@ -237,22 +217,55 @@ cph_mechanism_new (void)
 
         object = g_object_new (CPH_TYPE_MECHANISM, NULL);
 
-        if (!register_mechanism (CPH_MECHANISM (object))) {
-                g_object_unref (object);
-                return NULL;
-        }
-
         return CPH_MECHANISM (object);
 }
 
+gboolean
+cph_mechanism_register (CphMechanism     *mechanism,
+                        GDBusConnection  *connection,
+                        const char       *object_path,
+                        GError          **error)
+{
+        gboolean ret;
+
+        g_return_val_if_fail (CPH_IS_MECHANISM (mechanism), FALSE);
+        g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+        if (mechanism->priv->exported && mechanism->priv->pol_auth != NULL)
+                return TRUE;
+
+        if (!mechanism->priv->exported) {
+                ret = g_dbus_interface_skeleton_export (G_DBUS_INTERFACE_SKELETON (mechanism),
+                                                        connection,
+                                                        object_path,
+                                                        error);
+                if (!ret)
+                        return FALSE;
+
+                mechanism->priv->exported = TRUE;
+        }
+
+        if (mechanism->priv->pol_auth == NULL) {
+                mechanism->priv->pol_auth = polkit_authority_get_sync (NULL, error);
+                if (mechanism->priv->pol_auth == NULL)
+                        return FALSE;
+        }
+
+        cph_mechanism_connect_signals (mechanism);
+
+        return TRUE;
+}
+
+/* polkit helpers */
+
 static gboolean
 _check_polkit_for_action_internal (CphMechanism           *mechanism,
-                                   DBusGMethodInvocation  *context,
+                                   GDBusMethodInvocation  *context,
                                    const char             *action_method,
                                    gboolean                allow_user_interaction,
                                    GError                **error)
 {
-        char *sender;
+        const char *sender;
         PolkitSubject *subject;
         PolkitAuthorizationResult *pk_result;
         char *action;
@@ -266,9 +279,8 @@ _check_polkit_for_action_internal (CphMechanism           *mechanism,
                                   action_method);
 
         /* Check that caller is privileged */
-        sender = dbus_g_method_get_sender (context);
+        sender = g_dbus_method_invocation_get_sender (context);
         subject = polkit_system_bus_name_new (sender);
-        g_free (sender);
 
         pk_result = polkit_authority_check_authorization_sync (mechanism->priv->pol_auth,
                                                                subject,
@@ -307,7 +319,7 @@ _check_polkit_for_action_internal (CphMechanism           *mechanism,
 
 static gboolean
 _check_polkit_for_action_v (CphMechanism          *mechanism,
-                            DBusGMethodInvocation *context,
+                            GDBusMethodInvocation *context,
                             const char            *first_action_method,
                             ...)
 {
@@ -358,7 +370,7 @@ _check_polkit_for_action_v (CphMechanism          *mechanism,
                                              "authorization");
                 }
 
-                dbus_g_method_return_error (context, error);
+                g_dbus_method_invocation_return_gerror (context, error);
                 g_error_free (error);
         }
 
@@ -367,7 +379,7 @@ _check_polkit_for_action_v (CphMechanism          *mechanism,
 
 static gboolean
 _check_polkit_for_action (CphMechanism          *mechanism,
-                          DBusGMethodInvocation *context,
+                          GDBusMethodInvocation *context,
                           const char            *action_method)
 {
         return _check_polkit_for_action_v (mechanism, context,
@@ -376,7 +388,7 @@ _check_polkit_for_action (CphMechanism          *mechanism,
 
 static gboolean
 _check_polkit_for_printer (CphMechanism          *mechanism,
-                           DBusGMethodInvocation *context,
+                           GDBusMethodInvocation *context,
                            const char            *printer_name,
                            const char            *uri)
 {
@@ -396,7 +408,7 @@ _check_polkit_for_printer (CphMechanism          *mechanism,
 
 static gboolean
 _check_polkit_for_printer_class (CphMechanism          *mechanism,
-                                 DBusGMethodInvocation *context,
+                                 GDBusMethodInvocation *context,
                                  const char            *printer_name)
 {
         if (cph_cups_is_class (mechanism->priv->cups, printer_name)) {
@@ -423,37 +435,102 @@ _cph_mechanism_get_action_for_name (CphMechanism *mechanism,
         return "printer-remote-edit";
 }
 
-static char *
-_cph_mechanism_get_callers_user_name (CphMechanism          *mechanism,
-                                      DBusGMethodInvocation *context)
+static void
+_cph_mechanism_ensure_dbus_proxy (CphMechanism    *mechanism,
+                                  GDBusConnection *connection)
 {
-        unsigned long  sender_uid;
+        GError *error = NULL;
+
+        if (mechanism->priv->dbus_proxy != NULL)
+                return;
+
+        mechanism->priv->dbus_proxy = g_dbus_proxy_new_sync (connection,
+                                                             G_DBUS_PROXY_FLAGS_NONE,
+                                                             NULL,
+                                                             CPH_SERVICE_DBUS,
+                                                             CPH_PATH_DBUS,
+                                                             CPH_INTERFACE_DBUS,
+                                                             NULL,
+                                                             &error);
+
+        if (mechanism->priv->dbus_proxy == NULL) {
+                if (error)
+                        g_warning ("Could not get proxy to dbus service: %s", error->message);
+                else
+                        g_warning ("Could not get proxy to dbus service user");
+
+                g_error_free (error);
+        }
+}
+
+static gboolean
+_cph_mechanism_get_sender_uid (CphMechanism          *mechanism,
+                               GDBusMethodInvocation *context,
+                               unsigned int          *sender_uid)
+{
+        GError          *error;
+        GDBusConnection *connection;
+        const char      *sender;
+        GVariant        *result;
+
+        *sender_uid = 0;
+
+        connection = g_dbus_method_invocation_get_connection (context);
+        _cph_mechanism_ensure_dbus_proxy (mechanism, connection);
+        if (mechanism->priv->dbus_proxy == NULL)
+                return FALSE;
+
+        sender = g_dbus_method_invocation_get_sender (context);
+
+        error = NULL;
+        result = g_dbus_proxy_call_sync (mechanism->priv->dbus_proxy,
+                                         "GetConnectionUnixUser",
+                                         g_variant_new ("(s)", sender),
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         -1,
+                                         NULL,
+                                         &error);
+
+        if (result == NULL) {
+                if (error)
+                        g_warning ("Could not get unix user: %s", error->message);
+                else
+                        g_warning ("Could not get unix user");
+
+                g_error_free (error);
+                return FALSE;
+        }
+
+        g_variant_get (result, "(u)", sender_uid);
+        g_variant_unref (result);
+
+        return TRUE;
+}
+
+static char *
+_cph_mechanism_get_sender_user_name (CphMechanism          *mechanism,
+                                     GDBusMethodInvocation *context)
+{
+        unsigned int   sender_uid;
         struct passwd *password_entry;
-        DBusError      dbus_error;
-        gchar         *sender;
         char          *user_name = NULL;
 
-        sender = dbus_g_method_get_sender (context);
-        dbus_error_init (&dbus_error);
-        sender_uid = dbus_bus_get_unix_user (
-                        dbus_g_connection_get_connection (mechanism->priv->system_bus_connection),
-                        sender, &dbus_error);
+        if (!_cph_mechanism_get_sender_uid (mechanism, context, &sender_uid))
+                return NULL;
+
         password_entry = getpwuid ((uid_t) sender_uid);
 
         if (password_entry != NULL)
                 user_name = g_strdup (password_entry->pw_name);
-
-        g_free (sender);
 
         return user_name;
 }
 
 /* helpers */
 
-static void
-_cph_mechanism_return_error (CphMechanism          *mechanism,
-                             DBusGMethodInvocation *context,
-                             gboolean               failed)
+static const char *
+_cph_mechanism_return_error (CphMechanism *mechanism,
+                             gboolean      failed)
 {
         const char *error;
 
@@ -464,192 +541,231 @@ _cph_mechanism_return_error (CphMechanism          *mechanism,
         } else
                 error = "";
 
-        dbus_g_method_return (context, error);
+        return error;
 }
 
 static void
-_cph_mechanism_return_error_and_value (CphMechanism          *mechanism,
-                                       DBusGMethodInvocation *context,
-                                       gboolean               failed,
-                                       gpointer               value)
+_cph_mechanism_emit_called (CphMechanism *mechanism)
 {
-        const char *error;
-
-        if (failed) {
-                error = cph_cups_last_status_to_string (mechanism->priv->cups);
-                if (!error || error[0] == '\0')
-                        error = "Unknown error";
-        } else
-                error = "";
-
-        dbus_g_method_return (context, error, value);
+        g_signal_emit (mechanism, signals[CALLED], 0);
 }
 
 /* exported methods */
 
-void
-cph_mechanism_file_get (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_file_get (CphIfaceMechanism     *object,
+                        GDBusMethodInvocation *context,
                         const char            *resource,
-                        const char            *filename,
-                        DBusGMethodInvocation *context)
+                        const char            *filename)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return;
+                return TRUE;
 
         ret = cph_cups_file_get (mechanism->priv->cups, resource, filename);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_file_get (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_file_put (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_file_put (CphIfaceMechanism     *object,
+                        GDBusMethodInvocation *context,
                         const char            *resource,
-                        const char            *filename,
-                        DBusGMethodInvocation *context)
+                        const char            *filename)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return;
+                return TRUE;
 
         ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_file_put (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_server_get_settings (CphMechanism          *mechanism,
-                                   DBusGMethodInvocation *context)
+static gboolean
+cph_mechanism_server_get_settings (CphIfaceMechanism     *object,
+                                   GDBusMethodInvocation *context)
 {
-        GHashTable *settings;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
+        GVariant     *settings = NULL;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return;
+                return TRUE;
 
-        settings = cph_cups_server_get_settings (mechanism->priv->cups);
-        _cph_mechanism_return_error_and_value (mechanism, context,
-                                               settings == NULL, settings);
+        ret = cph_cups_server_get_settings (mechanism->priv->cups,
+                                            &settings);
+
+        if (settings == NULL)
+                settings = g_variant_new_array (G_VARIANT_TYPE_DICT_ENTRY, NULL, 0);
+
+        cph_iface_mechanism_complete_server_get_settings (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret),
+                        settings);
+        return TRUE;
 }
 
-void
-cph_mechanism_server_set_settings (CphMechanism          *mechanism,
-                                   GHashTable            *settings,
-                                   DBusGMethodInvocation *context)
+static gboolean
+cph_mechanism_server_set_settings (CphIfaceMechanism     *object,
+                                   GDBusMethodInvocation *context,
+                                   GVariant              *settings)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
-                return;
+                return TRUE;
 
         ret = cph_cups_server_set_settings (mechanism->priv->cups, settings);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_server_set_settings (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_devices_get (CphMechanism           *mechanism,
+static gboolean
+cph_mechanism_devices_get (CphIfaceMechanism      *object,
+                           GDBusMethodInvocation  *context,
                            int                     timeout,
                            int                     limit,
-                           const char            **include_schemes,
-                           const char            **exclude_schemes,
-                           DBusGMethodInvocation  *context)
+                           const char *const      *include_schemes,
+                           const char *const      *exclude_schemes)
 {
-        GHashTable *devices;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
+        GVariant     *devices = NULL;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
                                          "devices-get",
                                          NULL))
-                return;
+                return TRUE;
 
-        devices = cph_cups_devices_get (mechanism->priv->cups,
-                                        timeout,
-                                        limit,
-                                        include_schemes,
-                                        exclude_schemes);
-        _cph_mechanism_return_error_and_value (mechanism, context,
-                                               devices == NULL, devices);
+        ret = cph_cups_devices_get (mechanism->priv->cups,
+                                    timeout,
+                                    limit,
+                                    include_schemes,
+                                    exclude_schemes,
+                                    &devices);
+
+        if (devices == NULL)
+                devices = g_variant_new_array (G_VARIANT_TYPE_DICT_ENTRY, NULL, 0);
+
+        cph_iface_mechanism_complete_devices_get (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret),
+                        devices);
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_add (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_add (CphIfaceMechanism     *object,
+                           GDBusMethodInvocation *context,
                            const char            *name,
                            const char            *uri,
                            const char            *ppd,
                            const char            *info,
-                           const char            *location,
-                           DBusGMethodInvocation *context)
+                           const char            *location)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, uri))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_add (mechanism->priv->cups,
                                     name, uri, ppd, info, location);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_add (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_add_with_ppd_file (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_add_with_ppd_file (CphIfaceMechanism     *object,
+                                         GDBusMethodInvocation *context,
                                          const char            *name,
                                          const char            *uri,
                                          const char            *ppdfile,
                                          const char            *info,
-                                         const char            *location,
-                                         DBusGMethodInvocation *context)
+                                         const char            *location)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, uri))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_add_with_ppd_file (mechanism->priv->cups,
                                                   name, uri, ppdfile,
                                                   info, location);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_add_with_ppd_file (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_device (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_device (CphIfaceMechanism     *object,
+                                  GDBusMethodInvocation *context,
                                   const char            *name,
-                                  const char            *device,
-                                  DBusGMethodInvocation *context)
+                                  const char            *device)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, device))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_set_uri (mechanism->priv->cups,
                                         name, device);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_device (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_default (CphMechanism          *mechanism,
-                                   const char            *name,
-                                   DBusGMethodInvocation *context)
+static gboolean
+cph_mechanism_printer_set_default (CphIfaceMechanism     *object,
+                                   GDBusMethodInvocation *context,
+                                   const char            *name)
 {
-        gboolean    ret;
-        const char *last_action;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean     ret;
+        const char  *last_action;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
@@ -664,22 +780,27 @@ cph_mechanism_printer_set_default (CphMechanism          *mechanism,
                                           * printer */
                                          last_action,
                                          NULL))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_set_default (mechanism->priv->cups, name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_default (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_enabled (CphIfaceMechanism     *object,
+                                   GDBusMethodInvocation *context,
                                    const char            *name,
-                                   gboolean               enabled,
-                                   DBusGMethodInvocation *context)
+                                   gboolean               enabled)
 {
-        gboolean    ret;
-        const char *last_action;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean     ret;
+        const char  *last_action;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         last_action = _cph_mechanism_get_action_for_name (mechanism, name);
         if (!_check_polkit_for_action_v (mechanism, context,
@@ -694,319 +815,390 @@ cph_mechanism_printer_set_enabled (CphMechanism          *mechanism,
                                           * printer */
                                          last_action,
                                          NULL))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_set_enabled (mechanism->priv->cups,
                                             name, enabled);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_enabled (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_accept_jobs (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_accept_jobs (CphIfaceMechanism     *object,
+                                       GDBusMethodInvocation *context,
                                        const char            *name,
                                        gboolean               enabled,
-                                       const char            *reason,
-                                       DBusGMethodInvocation *context)
+                                       const char            *reason)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, NULL))
-                return;
+                return TRUE;
 
         if (reason && reason[0] == '\0')
                 reason = NULL;
 
         ret = cph_cups_printer_set_accept_jobs (mechanism->priv->cups,
                                                 name, enabled, reason);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_accept_jobs (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_delete (CphMechanism          *mechanism,
-                              const char            *name,
-                              DBusGMethodInvocation *context)
+static gboolean
+cph_mechanism_printer_delete (CphIfaceMechanism     *object,
+                              GDBusMethodInvocation *context,
+                              const char            *name)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer (mechanism, context, name, NULL))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_delete (mechanism->priv->cups, name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_delete (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_class_add_printer (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_class_add_printer (CphIfaceMechanism     *object,
+                                 GDBusMethodInvocation *context,
                                  const char            *name,
-                                 const char            *printer,
-                                 DBusGMethodInvocation *context)
+                                 const char            *printer)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
                                          "printeraddremove",
                                          "class-edit",
                                          NULL))
-                return;
+                return TRUE;
 
         ret = cph_cups_class_add_printer (mechanism->priv->cups,
                                           name, printer);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_class_add_printer (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_class_delete_printer (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_class_delete_printer (CphIfaceMechanism     *object,
+                                    GDBusMethodInvocation *context,
                                     const char            *name,
-                                    const char            *printer,
-                                    DBusGMethodInvocation *context)
+                                    const char            *printer)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
                                          "printeraddremove",
                                          "class-edit",
                                          NULL))
-                return;
+                return TRUE;
 
         ret = cph_cups_class_delete_printer (mechanism->priv->cups,
                                              name, printer);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_class_delete_printer (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_class_delete (CphMechanism          *mechanism,
-                            const char            *name,
-                            DBusGMethodInvocation *context)
+static gboolean
+cph_mechanism_class_delete (CphIfaceMechanism     *object,
+                            GDBusMethodInvocation *context,
+                            const char            *name)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_action_v (mechanism, context,
                                          "all-edit",
                                          "printeraddremove",
                                          "class-edit",
                                          NULL))
-                return;
+                return TRUE;
 
         ret = cph_cups_class_delete (mechanism->priv->cups, name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_class_delete (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_info (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_info (CphIfaceMechanism     *object,
+                                GDBusMethodInvocation *context,
                                 const char            *name,
-                                const char            *info,
-                                DBusGMethodInvocation *context)
+                                const char            *info)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_info (mechanism->priv->cups,
                                                name, info);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_info (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_location (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_location (CphIfaceMechanism     *object,
+                                    GDBusMethodInvocation *context,
                                     const char            *name,
-                                    const char            *location,
-                                    DBusGMethodInvocation *context)
+                                    const char            *location)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_location (mechanism->priv->cups,
                                                    name, location);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_location (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_shared (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_shared (CphIfaceMechanism     *object,
+                                  GDBusMethodInvocation *context,
                                   const char            *name,
-                                  gboolean               shared,
-                                  DBusGMethodInvocation *context)
+                                  gboolean               shared)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_shared (mechanism->priv->cups,
                                                  name, shared);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_shared (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_job_sheets (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_job_sheets (CphIfaceMechanism     *object,
+                                      GDBusMethodInvocation *context,
                                       const char            *name,
                                       const char            *start,
-                                      const char            *end,
-                                      DBusGMethodInvocation *context)
+                                      const char            *end)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_job_sheets (mechanism->priv->cups,
                                                      name, start, end);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_job_sheets (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_error_policy (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_error_policy (CphIfaceMechanism     *object,
+                                        GDBusMethodInvocation *context,
                                         const char            *name,
-                                        const char            *policy,
-                                        DBusGMethodInvocation *context)
+                                        const char            *policy)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_error_policy (mechanism->priv->cups,
                                                        name, policy);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_error_policy (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_op_policy (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_set_op_policy (CphIfaceMechanism     *object,
+                                     GDBusMethodInvocation *context,
                                      const char            *name,
-                                     const char            *policy,
-                                     DBusGMethodInvocation *context)
+                                     const char            *policy)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_op_policy (mechanism->priv->cups,
                                                     name, policy);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_op_policy (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_users_allowed (CphMechanism           *mechanism,
+static gboolean
+cph_mechanism_printer_set_users_allowed (CphIfaceMechanism      *object,
+                                         GDBusMethodInvocation  *context,
                                          const char             *name,
-                                         const char            **users,
-                                         DBusGMethodInvocation  *context)
+                                         const char *const      *users)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_users_allowed (mechanism->priv->cups,
                                                         name, users);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_users_allowed (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_set_users_denied (CphMechanism           *mechanism,
+static gboolean
+cph_mechanism_printer_set_users_denied (CphIfaceMechanism      *object,
+                                        GDBusMethodInvocation  *context,
                                         const char             *name,
-                                        const char            **users,
-                                        DBusGMethodInvocation  *context)
+                                        const char *const      *users)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_users_denied (mechanism->priv->cups,
                                                        name, users);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_set_users_denied (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-
-void
-cph_mechanism_printer_add_option_default (CphMechanism           *mechanism,
+static gboolean
+cph_mechanism_printer_add_option_default (CphIfaceMechanism      *object,
+                                          GDBusMethodInvocation  *context,
                                           const char             *name,
                                           const char             *option,
-                                          const char            **values,
-                                          DBusGMethodInvocation  *context)
+                                          const char *const      *values)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
                                                          name, option, values);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_add_option_default (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_printer_delete_option_default (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_printer_delete_option_default (CphIfaceMechanism     *object,
+                                             GDBusMethodInvocation *context,
                                              const char            *name,
-                                             const char            *option,
-                                             DBusGMethodInvocation *context)
+                                             const char            *option)
 {
-        gboolean ret;
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
         if (!_check_polkit_for_printer_class (mechanism, context, name))
-                return;
+                return TRUE;
 
         ret = cph_cups_printer_class_set_option_default (mechanism->priv->cups,
                                                          name, option, NULL);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_printer_delete_option_default (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
 }
 
-void
-cph_mechanism_job_cancel (CphMechanism          *mechanism,
-                          int                    id,
-                          DBusGMethodInvocation *context)
-{
-        cph_mechanism_job_cancel_purge (mechanism, id, FALSE, context);
-}
-
-void
-cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_job_cancel_purge (CphIfaceMechanism     *object,
+                                GDBusMethodInvocation *context,
                                 int                    id,
-                                gboolean               purge,
-                                DBusGMethodInvocation *context)
+                                gboolean               purge)
 {
+        CphMechanism *mechanism = CPH_MECHANISM (object);
         CphJobStatus  job_status;
         gboolean      ret;
         char         *user_name;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
-        user_name = _cph_mechanism_get_callers_user_name (mechanism, context);
+        user_name = _cph_mechanism_get_sender_user_name (mechanism, context);
         job_status = cph_cups_job_get_status (mechanism->priv->cups,
                                               id, user_name);
 
@@ -1029,30 +1221,48 @@ cph_mechanism_job_cancel_purge (CphMechanism          *mechanism,
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
-                        _cph_mechanism_return_error (mechanism, context, TRUE);
+                        cph_iface_mechanism_complete_job_cancel_purge (
+                                        object, context,
+                                        _cph_mechanism_return_error (mechanism, TRUE));
                         goto out;
                 }
         }
 
         ret = cph_cups_job_cancel (mechanism->priv->cups, id, purge, user_name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_job_cancel_purge (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
 
 out:
         g_free (user_name);
+
+        return TRUE;
 }
 
-void
-cph_mechanism_job_restart (CphMechanism          *mechanism,
-                           int                    id,
-                           DBusGMethodInvocation *context)
+static gboolean
+cph_mechanism_job_cancel (CphIfaceMechanism     *object,
+                          GDBusMethodInvocation *context,
+                          int                    id)
 {
+        /* This only works because cph_iface_mechanism_complete_job_cancel and
+         * cph_iface_mechanism_complete_job_cancel_purge do the same thing. */
+        return cph_mechanism_job_cancel_purge (object, context, id, FALSE);
+}
+
+static gboolean
+cph_mechanism_job_restart (CphIfaceMechanism     *object,
+                           GDBusMethodInvocation *context,
+                           int                    id)
+{
+        CphMechanism *mechanism = CPH_MECHANISM (object);
         CphJobStatus  job_status;
         gboolean      ret;
         char         *user_name;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
-        user_name = _cph_mechanism_get_callers_user_name (mechanism, context);
+        user_name = _cph_mechanism_get_sender_user_name (mechanism, context);
         job_status = cph_cups_job_get_status (mechanism->priv->cups,
                                               id, user_name);
 
@@ -1075,31 +1285,39 @@ cph_mechanism_job_restart (CphMechanism          *mechanism,
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
-                        _cph_mechanism_return_error (mechanism, context, TRUE);
+                        cph_iface_mechanism_complete_job_restart (
+                                        object, context,
+                                        _cph_mechanism_return_error (mechanism, TRUE));
                         goto out;
                 }
         }
 
         ret = cph_cups_job_restart (mechanism->priv->cups, id, user_name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_job_restart (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
 
 out:
         g_free (user_name);
+
+        return TRUE;
 }
 
-void
-cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
+static gboolean
+cph_mechanism_job_set_hold_until (CphIfaceMechanism     *object,
+                                  GDBusMethodInvocation *context,
                                   int                    id,
-                                  const char            *job_hold_until,
-                                  DBusGMethodInvocation *context)
+                                  const char            *job_hold_until)
 {
+        CphMechanism *mechanism = CPH_MECHANISM (object);
         CphJobStatus  job_status;
         gboolean      ret;
         char         *user_name;
 
-        reset_killtimer (mechanism);
+        _cph_mechanism_emit_called (mechanism);
 
-        user_name = _cph_mechanism_get_callers_user_name (mechanism, context);
+        user_name = _cph_mechanism_get_sender_user_name (mechanism, context);
         job_status = cph_cups_job_get_status (mechanism->priv->cups,
                                               id, user_name);
 
@@ -1122,14 +1340,151 @@ cph_mechanism_job_set_hold_until (CphMechanism          *mechanism,
                         break;
                 }
                 case CPH_JOB_STATUS_INVALID: {
-                        _cph_mechanism_return_error (mechanism, context, TRUE);
+                        cph_iface_mechanism_complete_job_set_hold_until (
+                                        object, context,
+                                        _cph_mechanism_return_error (mechanism, TRUE));
                         goto out;
                 }
         }
 
         ret = cph_cups_job_set_hold_until (mechanism->priv->cups, id, job_hold_until, user_name);
-        _cph_mechanism_return_error (mechanism, context, !ret);
+
+        cph_iface_mechanism_complete_job_set_hold_until (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
 
 out:
         g_free (user_name);
+
+        return TRUE;
+}
+
+/* connect methors */
+
+static void
+cph_mechanism_connect_signals (CphMechanism *mechanism)
+{
+        g_return_if_fail (CPH_IS_MECHANISM (mechanism));
+
+        if (mechanism->priv->connected)
+                return;
+
+        mechanism->priv->connected = TRUE;
+
+        g_signal_connect (mechanism,
+                          "handle-class-add-printer",
+                          G_CALLBACK (cph_mechanism_class_add_printer),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-class-delete",
+                          G_CALLBACK (cph_mechanism_class_delete),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-class-delete-printer",
+                          G_CALLBACK (cph_mechanism_class_delete_printer),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-devices-get",
+                          G_CALLBACK (cph_mechanism_devices_get),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-file-get",
+                          G_CALLBACK (cph_mechanism_file_get),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-file-put",
+                          G_CALLBACK (cph_mechanism_file_put),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-job-cancel",
+                          G_CALLBACK (cph_mechanism_job_cancel),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-job-cancel-purge",
+                          G_CALLBACK (cph_mechanism_job_cancel_purge),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-job-restart",
+                          G_CALLBACK (cph_mechanism_job_restart),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-job-set-hold-until",
+                          G_CALLBACK (cph_mechanism_job_set_hold_until),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-add",
+                          G_CALLBACK (cph_mechanism_printer_add),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-add-option-default",
+                          G_CALLBACK (cph_mechanism_printer_add_option_default),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-add-with-ppd-file",
+                          G_CALLBACK (cph_mechanism_printer_add_with_ppd_file),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-delete",
+                          G_CALLBACK (cph_mechanism_printer_delete),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-delete-option-default",
+                          G_CALLBACK (cph_mechanism_printer_delete_option_default),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-accept-jobs",
+                          G_CALLBACK (cph_mechanism_printer_set_accept_jobs),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-default",
+                          G_CALLBACK (cph_mechanism_printer_set_default),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-device",
+                          G_CALLBACK (cph_mechanism_printer_set_device),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-enabled",
+                          G_CALLBACK (cph_mechanism_printer_set_enabled),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-error-policy",
+                          G_CALLBACK (cph_mechanism_printer_set_error_policy),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-info",
+                          G_CALLBACK (cph_mechanism_printer_set_info),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-job-sheets",
+                          G_CALLBACK (cph_mechanism_printer_set_job_sheets),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-location",
+                          G_CALLBACK (cph_mechanism_printer_set_location),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-op-policy",
+                          G_CALLBACK (cph_mechanism_printer_set_op_policy),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-shared",
+                          G_CALLBACK (cph_mechanism_printer_set_shared),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-users-allowed",
+                          G_CALLBACK (cph_mechanism_printer_set_users_allowed),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-set-users-denied",
+                          G_CALLBACK (cph_mechanism_printer_set_users_denied),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-server-get-settings",
+                          G_CALLBACK (cph_mechanism_server_get_settings),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-server-set-settings",
+                          G_CALLBACK (cph_mechanism_server_set_settings),
+                          NULL);
 }
