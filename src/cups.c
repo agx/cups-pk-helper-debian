@@ -416,7 +416,8 @@ _cph_cups_is_scheme_valid (CphCups    *cups,
  *     Another reason to not do this ourselves is that it's really slow to
  *     fetch all the PPDs.
  *   + for the PPD filename, we could check that the file exists and is a
- *     regular file (no socket, block device, etc.).
+ *     regular file (no socket, block device, etc.). It can be NULL for raw
+ *     printers.
  *   + for the job sheet, we could check that the value is in the
  *     job-sheets-supported attribute.
  *   + for the policies, we could check that the value is in the
@@ -622,8 +623,13 @@ _cph_cups_post_request (CphCups     *cups,
         const char *resource_char;
 
         resource_char = _cph_cups_get_resource (resource);
-        reply = cupsDoFileRequest (cups->priv->connection, request,
-                                   resource_char, file);
+
+        if (file && file[0] != '\0')
+                reply = cupsDoFileRequest (cups->priv->connection, request,
+                                           resource_char, file);
+        else
+                reply = cupsDoFileRequest (cups->priv->connection, request,
+                                           resource_char, NULL);
 
         return _cph_cups_handle_reply (cups, reply);
 }
@@ -818,11 +824,11 @@ out:
 }
 
 static gboolean
-_cph_cups_printer_class_set_users (CphCups     *cups,
-                                   const char  *printer_name,
-                                   const char **users,
-                                   const char  *request_name,
-                                   const char  *default_value)
+_cph_cups_printer_class_set_users (CphCups           *cups,
+                                   const char        *printer_name,
+                                   const char *const *users,
+                                   const char        *request_name,
+                                   const char        *default_value)
 {
         int              real_len;
         int              len;
@@ -1085,45 +1091,52 @@ cph_cups_file_put (CphCups    *cups,
 
 /* Functions that are for the server in general */
 
-GHashTable *
-cph_cups_server_get_settings (CphCups *cups)
+gboolean
+cph_cups_server_get_settings (CphCups   *cups,
+                              GVariant **settings)
 {
-        int            retval;
-        GHashTable    *hash;
-        cups_option_t *settings;
-        int            num_settings, i;
+        int              retval;
+        GVariantBuilder *builder;
+        cups_option_t   *cups_settings;
+        int              num_settings, i;
 
-        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+        g_return_val_if_fail (settings != NULL, FALSE);
+
+        *settings = NULL;
 
         retval = cupsAdminGetServerSettings (cups->priv->connection,
-                                             &num_settings, &settings);
+                                             &num_settings, &cups_settings);
 
         if (retval == 0) {
                 _cph_cups_set_internal_status (cups,
                                                "Cannot get server settings.");
 
-                return NULL;
+                return FALSE;
         }
 
-        hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                      g_free, g_free);
+        builder = g_variant_builder_new (G_VARIANT_TYPE ("a{ss}"));
 
         for (i = 0; i < num_settings; i++)
-                g_hash_table_replace (hash,
-                                      g_strdup (settings[i].name),
-                                      g_strdup (settings[i].value));
+                g_variant_builder_add (builder, "{ss}",
+                                       cups_settings[i].name,
+                                       cups_settings[i].value);
 
-        cupsFreeOptions (num_settings, settings);
+        cupsFreeOptions (num_settings, cups_settings);
 
-        return hash;
+        *settings = g_variant_builder_end (builder);
+
+        g_variant_builder_unref (builder);
+
+        return TRUE;
 }
 
 gboolean
-cph_cups_server_set_settings (CphCups    *cups,
-                              GHashTable *settings)
+cph_cups_server_set_settings (CphCups  *cups,
+                              GVariant *settings)
 {
         int             retval;
-        GHashTableIter  iter;
+        GVariantIter   *iter;
         /* key and value are strings, but we want to avoid compiler warnings */
         gpointer        key;
         gpointer        value;
@@ -1134,22 +1147,24 @@ cph_cups_server_set_settings (CphCups    *cups,
         g_return_val_if_fail (settings != NULL, FALSE);
 
         /* First pass to check the validity of the hashtable content */
-        g_hash_table_iter_init (&iter, settings);
-        while (g_hash_table_iter_next (&iter, &key, &value)) {
+        g_variant_get (settings, "a{ss}", &iter);
+        while (g_variant_iter_loop (iter, "{ss}", &key, &value)) {
                 if (!_cph_cups_is_option_valid (cups, key))
                         return FALSE;
                 if (!_cph_cups_is_option_value_valid (cups, value))
                         return FALSE;
         }
+        g_variant_iter_free (iter);
 
         /* Second pass to actually set the settings */
         cups_settings = NULL;
         num_settings = 0;
 
-        g_hash_table_iter_init (&iter, settings);
-        while (g_hash_table_iter_next (&iter, &key, &value))
+        g_variant_get (settings, "a{ss}", &iter);
+        while (g_variant_iter_loop (iter, "{ss}", &key, &value))
                 num_settings = cupsAddOption (key, value,
                                               num_settings, &cups_settings);
+        g_variant_iter_free (iter);
 
         retval = cupsAdminSetServerSettings (cups->priv->connection,
                                              num_settings, cups_settings);
@@ -1170,9 +1185,9 @@ cph_cups_server_set_settings (CphCups    *cups,
 }
 
 typedef struct {
-        int         iter;
-        int         limit;
-        GHashTable *hash;
+        int              iter;
+        int              limit;
+        GVariantBuilder *builder;
 } CphCupsGetDevices;
 
 static void
@@ -1185,56 +1200,63 @@ _cph_cups_get_devices_cb (const char *device_class,
                           void       *user_data)
 {
         CphCupsGetDevices *data = user_data;
+        char              *key;
 
         g_return_if_fail (data != NULL);
 
         if (data->limit > 0 && data->iter >= data->limit)
                 return;
 
-        if (device_class && device_class[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-class:%d",
-                                                       data->iter),
-                                      g_strdup (device_class));
-        if (device_id && device_id[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-id:%d",
-                                                       data->iter),
-                                      g_strdup (device_id));
-        if (device_info && device_info[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-info:%d",
-                                                       data->iter),
-                                      g_strdup (device_info));
-        if (device_make_and_model && device_make_and_model[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-make-and-model:%d",
-                                                       data->iter),
-                                      g_strdup (device_make_and_model));
-        if (device_uri && device_uri[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-uri:%d",
-                                                       data->iter),
-                                      g_strdup (device_uri));
-        if (device_location && device_location[0] != '\0')
-                g_hash_table_replace (data->hash,
-                                      g_strdup_printf ("device-location:%d ",
-                                                       data->iter),
-                                      g_strdup (device_location));
+        if (device_class && device_class[0] != '\0') {
+                key  = g_strdup_printf ("device-class:%d", data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                       key, device_class);
+                g_free (key);
+        }
+        if (device_id && device_id[0] != '\0') {
+                key  = g_strdup_printf ("device-id:%d", data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                       key, device_id);
+                g_free (key);
+        }
+        if (device_info && device_info[0] != '\0') {
+                key  = g_strdup_printf ("device-info:%d", data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                       key, device_info);
+                g_free (key);
+        }
+        if (device_make_and_model && device_make_and_model[0] != '\0') {
+                key  = g_strdup_printf ("device-make-and-model:%d", data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                       key, device_make_and_model);
+                g_free (key);
+        }
+        if (device_uri && device_uri[0] != '\0') {
+                key  = g_strdup_printf ("device-uri:%d", data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                       key, device_uri);
+                g_free (key);
+        }
+        if (device_location && device_location[0] != '\0') {
+                key  = g_strdup_printf ("device-location:%d", data->iter);
+                g_variant_builder_add (data->builder, "{ss}",
+                                       key, device_location);
+                g_free (key);
+        }
 
         data->iter++;
 }
 
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
 static gboolean
-_cph_cups_devices_get_14 (CphCups            *cups,
-                          int                 timeout,
-                          int                 limit,
-                          const char        **include_schemes,
-                          const char        **exclude_schemes,
-                          int                 len_include,
-                          int                 len_exclude,
-                          CphCupsGetDevices  *data)
+_cph_cups_devices_get_14 (CphCups           *cups,
+                          int                timeout,
+                          int                limit,
+                          const char *const *include_schemes,
+                          const char *const *exclude_schemes,
+                          int                len_include,
+                          int                len_exclude,
+                          CphCupsGetDevices *data)
 {
         ipp_status_t  retval;
         int           timeout_param = CUPS_TIMEOUT_DEFAULT;
@@ -1274,14 +1296,14 @@ _cph_cups_devices_get_14 (CphCups            *cups,
 }
 #else
 static gboolean
-_cph_cups_devices_get_old (CphCups            *cups,
-                           int                 timeout,
-                           int                 limit,
-                           const char        **include_schemes,
-                           const char        **exclude_schemes,
-                           int                 len_include,
-                           int                 len_exclude,
-                           CphCupsGetDevices  *data)
+_cph_cups_devices_get_old (CphCups           *cups,
+                           int                timeout,
+                           int                limit,
+                           const char *const *include_schemes,
+                           const char *const *exclude_schemes,
+                           int                len_include,
+                           int                len_exclude,
+                           CphCupsGetDevices *data)
 {
         ipp_t           *request;
         const char      *resource_char;
@@ -1386,26 +1408,30 @@ _cph_cups_devices_get_old (CphCups            *cups,
 }
 #endif
 
-GHashTable *
-cph_cups_devices_get (CphCups     *cups,
-                      int          timeout,
-                      int          limit,
-                      const char **include_schemes,
-                      const char **exclude_schemes)
+gboolean
+cph_cups_devices_get (CphCups            *cups,
+                      int                 timeout,
+                      int                 limit,
+                      const char *const  *include_schemes,
+                      const char *const  *exclude_schemes,
+                      GVariant          **devices)
 {
         CphCupsGetDevices data;
         int               len_include;
         int               len_exclude;
         gboolean          retval;
 
-        g_return_val_if_fail (CPH_IS_CUPS (cups), NULL);
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+        g_return_val_if_fail (devices != NULL, FALSE);
+
+        *devices = NULL;
 
         /* check the validity of values */
         len_include = 0;
         if (include_schemes) {
                 while (include_schemes[len_include] != NULL) {
                         if (!_cph_cups_is_scheme_valid (cups, include_schemes[len_include]))
-                                return NULL;
+                                return FALSE;
                         len_include++;
                 }
         }
@@ -1414,15 +1440,14 @@ cph_cups_devices_get (CphCups     *cups,
         if (exclude_schemes) {
                 while (exclude_schemes[len_exclude] != NULL) {
                         if (!_cph_cups_is_scheme_valid (cups, exclude_schemes[len_exclude]))
-                                return NULL;
+                                return FALSE;
                         len_exclude++;
                 }
         }
 
-        data.iter  = 0;
-        data.limit = -1;
-        data.hash  = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                            g_free, g_free);
+        data.iter    = 0;
+        data.limit   = -1;
+        data.builder = g_variant_builder_new (G_VARIANT_TYPE ("a{ss}"));
         if (limit > 0)
                 data.limit = limit;
 
@@ -1439,11 +1464,11 @@ cph_cups_devices_get (CphCups     *cups,
 #endif
 
         if (retval)
-                return data.hash;
-        else {
-                g_hash_table_destroy (data.hash);
-                return NULL;
-        }
+                *devices = g_variant_builder_end (data.builder);
+
+        g_variant_builder_unref (data.builder);
+
+        return retval;
 }
 
 /* Functions that work on a printer */
@@ -1951,9 +1976,9 @@ cph_cups_printer_class_set_op_policy (CphCups    *cups,
 
 /* set users to NULL to allow all users */
 gboolean
-cph_cups_printer_class_set_users_allowed (CphCups     *cups,
-                                          const char  *printer_name,
-                                          const char **users)
+cph_cups_printer_class_set_users_allowed (CphCups           *cups,
+                                          const char        *printer_name,
+                                          const char *const *users)
 {
         int len;
 
@@ -1979,9 +2004,9 @@ cph_cups_printer_class_set_users_allowed (CphCups     *cups,
 
 /* set users to NULL to deny no user */
 gboolean
-cph_cups_printer_class_set_users_denied (CphCups     *cups,
-                                         const char  *printer_name,
-                                         const char **users)
+cph_cups_printer_class_set_users_denied (CphCups           *cups,
+                                         const char        *printer_name,
+                                         const char *const *users)
 {
         int len;
 
@@ -2007,10 +2032,10 @@ cph_cups_printer_class_set_users_denied (CphCups     *cups,
 
 /* set values to NULL to delete the default */
 gboolean
-cph_cups_printer_class_set_option_default (CphCups     *cups,
-                                           const char  *printer_name,
-                                           const char  *option,
-                                           const char **values)
+cph_cups_printer_class_set_option_default (CphCups           *cups,
+                                           const char        *printer_name,
+                                           const char        *option,
+                                           const char *const *values)
 {
         char            *option_name;
         int              len;

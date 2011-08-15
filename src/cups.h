@@ -78,16 +78,18 @@ gboolean cph_cups_file_put (CphCups    *cups,
                             const char *resource,
                             const char *filename);
 
-GHashTable *cph_cups_server_get_settings (CphCups *cups);
+gboolean cph_cups_server_get_settings (CphCups   *cups,
+                                       GVariant **settings);
 
-gboolean cph_cups_server_set_settings (CphCups    *cups,
-                                       GHashTable *settings);
+gboolean cph_cups_server_set_settings (CphCups  *cups,
+                                       GVariant *settings);
 
-GHashTable *cph_cups_devices_get (CphCups     *cups,
-                                  int          timeout,
-                                  int          limit,
-                                  const char **include_schemes,
-                                  const char **exclude_schemes);
+gboolean cph_cups_devices_get (CphCups            *cups,
+                               int                 timeout,
+                               int                 limit,
+                               const char *const  *include_schemes,
+                               const char *const  *exclude_schemes,
+                               GVariant          **devices);
 
 gboolean cph_cups_printer_add (CphCups    *cups,
                                const char *printer_name,
@@ -158,18 +160,18 @@ gboolean cph_cups_printer_class_set_op_policy (CphCups    *cups,
                                                const char *printer_name,
                                                const char *policy);
 
-gboolean cph_cups_printer_class_set_users_allowed (CphCups     *cups,
-                                                   const char  *printer_name,
-                                                   const char **users);
+gboolean cph_cups_printer_class_set_users_allowed (CphCups           *cups,
+                                                   const char        *printer_name,
+                                                   const char *const *users);
 
-gboolean cph_cups_printer_class_set_users_denied (CphCups     *cups,
-                                                  const char  *printer_name,
-                                                  const char **users);
+gboolean cph_cups_printer_class_set_users_denied (CphCups           *cups,
+                                                  const char        *printer_name,
+                                                  const char *const *users);
 
-gboolean cph_cups_printer_class_set_option_default (CphCups     *cups,
-                                                    const char  *printer_name,
-                                                    const char  *option,
-                                                    const char **values);
+gboolean cph_cups_printer_class_set_option_default (CphCups           *cups,
+                                                    const char        *printer_name,
+                                                    const char        *option,
+                                                    const char *const *values);
 
 gboolean cph_cups_job_cancel (CphCups    *cups,
                               int         job_id,

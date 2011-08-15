@@ -24,74 +24,78 @@
 
 #include <glib.h>
 
-#include <dbus/dbus-glib.h>
-
-#define MECHANISM_BUS "org.opensuse.CupsPkHelper.Mechanism"
+#include "cph-iface-mechanism.h"
 
 static gboolean
-printer_add (DBusGConnection  *bus,
-             const char       *printer_name,
-             const char       *printer_uri,
-             const char       *ppd_file,
-             const char       *info,
-             const char       *location,
-             GError          **error)
+printer_add (GDBusProxy  *proxy,
+             const char  *printer_name,
+             const char  *printer_uri,
+             const char  *ppd_file,
+             const char  *info,
+             const char  *location,
+             GError     **error)
 {
-        DBusGProxy *proxy;
-        gboolean    ret;
-        char       *ret_error;
-
-        proxy = dbus_g_proxy_new_for_name (bus,
-                                           MECHANISM_BUS,
-                                           "/",
-                                           MECHANISM_BUS);
-
-        if (!proxy)
-                return FALSE;
+        GVariant *result;
+        char     *ret_error;
 
         *error = NULL;
         ret_error = NULL;
 
-        ret = dbus_g_proxy_call (proxy, "PrinterAdd", error,
-                                 G_TYPE_STRING, printer_name,
-                                 G_TYPE_STRING, printer_uri,
-                                 G_TYPE_STRING, ppd_file,
-                                 G_TYPE_STRING, info,
-                                 G_TYPE_STRING, location,
-                                 G_TYPE_INVALID,
-                                 G_TYPE_STRING, &ret_error,
-                                 G_TYPE_INVALID);
+        result = g_dbus_proxy_call_sync (proxy,
+                                         "PrinterAdd",
+                                         g_variant_new ("(sssss)",
+                                                        printer_name,
+                                                        printer_uri,
+                                                        ppd_file,
+                                                        info,
+                                                        location),
+                                         G_DBUS_CALL_FLAGS_NONE,
+                                         -1,
+                                         NULL,
+                                         error);
 
-        if (ret) {
-                if (!ret_error || ret_error[0] == '\0')
-                        g_print ("Worked!\n");
-                else
-                        g_print ("Ouch: %s\n", ret_error);
-        }
+        if (result == NULL)
+                return FALSE;
 
-        return ret;
+        g_variant_get (result, "(s)", &ret_error);
+        g_variant_unref (result);
+
+        if (!ret_error || ret_error[0] == '\0')
+                g_print ("Worked!\n");
+        else
+                g_print ("Ouch: %s\n", ret_error);
+
+        g_free (ret_error);
+
+        return TRUE;
 }
 
 int
 main (int argc, char **argv)
 {
-        DBusGConnection *system_bus;
-        gboolean         ret;
-        GError          *error;
+        CphIfaceMechanism *proxy;
+        gboolean           ret;
+        GError            *error;
 
         g_type_init ();
 
         error = NULL;
-        system_bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-        if (system_bus == NULL) {
-                g_warning ("Could not connect to system bus: %s",
+        proxy = cph_iface_mechanism_proxy_new_for_bus_sync (
+                                G_BUS_TYPE_SYSTEM,
+                                G_DBUS_PROXY_FLAGS_NONE,
+                                "org.opensuse.CupsPkHelper.Mechanism",
+                                "/",
+                                NULL,
+                                &error);
+        if (proxy == NULL) {
+                g_warning ("Could not get proxy: %s",
                            error->message);
                 g_error_free (error);
                 return 1;
         }
 
         error = NULL;
-        ret = printer_add (system_bus,
+        ret = printer_add (G_DBUS_PROXY (proxy),
                            "MyPrinter", "smb://really/cool",
                            "HP/Business_Inkjet_2200-chp2200.ppd.gz",
                            "This is my printer", "At home",
@@ -104,6 +108,8 @@ main (int argc, char **argv)
                 } else
                         g_print ("Unknown error\n");
         }
+
+        g_object_unref (proxy);
 
         return 0;
 }

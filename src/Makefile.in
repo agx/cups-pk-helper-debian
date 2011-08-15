@@ -33,8 +33,6 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = @build@
-host_triplet = @host@
 libexec_PROGRAMS = cups-pk-helper-mechanism$(EXEEXT)
 noinst_PROGRAMS = test-cups$(EXEEXT) test-cups-pk$(EXEEXT)
 subdir = src
@@ -51,36 +49,43 @@ am__installdirs = "$(DESTDIR)$(libexecdir)" \
 	"$(DESTDIR)$(dbus_confdir)" "$(DESTDIR)$(dbus_servicesdir)" \
 	"$(DESTDIR)$(polkitdir)"
 PROGRAMS = $(libexec_PROGRAMS) $(noinst_PROGRAMS)
-am_cups_pk_helper_mechanism_OBJECTS = cups.$(OBJEXT) \
-	cups-pk-helper-mechanism.$(OBJEXT) main.$(OBJEXT)
+am__objects_1 =  \
+	cups_pk_helper_mechanism-cph-iface-mechanism.$(OBJEXT)
+am_cups_pk_helper_mechanism_OBJECTS =  \
+	cups_pk_helper_mechanism-cups.$(OBJEXT) \
+	cups_pk_helper_mechanism-cups-pk-helper-mechanism.$(OBJEXT) \
+	cups_pk_helper_mechanism-main.$(OBJEXT) $(am__objects_1)
 cups_pk_helper_mechanism_OBJECTS =  \
 	$(am_cups_pk_helper_mechanism_OBJECTS)
 am__DEPENDENCIES_1 =
 cups_pk_helper_mechanism_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
-AM_V_lt = $(am__v_lt_$(V))
-am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
-am__v_lt_0 = --silent
-am_test_cups_OBJECTS = cups.$(OBJEXT) test-cups.$(OBJEXT)
+cups_pk_helper_mechanism_LINK = $(CCLD) \
+	$(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am_test_cups_OBJECTS = test_cups-cups.$(OBJEXT) \
+	test_cups-test-cups.$(OBJEXT)
 test_cups_OBJECTS = $(am_test_cups_OBJECTS)
 test_cups_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-am_test_cups_pk_OBJECTS = test_cups_pk-test-cups-pk.$(OBJEXT)
+test_cups_LINK = $(CCLD) $(test_cups_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am__objects_2 = test_cups_pk-cph-iface-mechanism.$(OBJEXT)
+am_test_cups_pk_OBJECTS = test_cups_pk-test-cups-pk.$(OBJEXT) \
+	$(am__objects_2)
 test_cups_pk_OBJECTS = $(am_test_cups_pk_OBJECTS)
 test_cups_pk_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-test_cups_pk_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(test_cups_pk_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(am__DEPENDENCIES_1)
+test_cups_pk_LINK = $(CCLD) $(test_cups_pk_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CFLAGS) $(CFLAGS)
 AM_V_CC = $(am__v_CC_$(V))
 am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
 am__v_CC_0 = @echo "  CC    " $@;
@@ -88,9 +93,7 @@ AM_V_at = $(am__v_at_$(V))
 am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
 am__v_at_0 = @
 CCLD = $(CC)
-LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_CCLD = $(am__v_CCLD_$(V))
 am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
 am__v_CCLD_0 = @echo "  CCLD  " $@;
@@ -130,7 +133,6 @@ ACLOCAL = @ACLOCAL@
 ALL_LINGUAS = @ALL_LINGUAS@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
-AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -144,8 +146,6 @@ CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CUPS_LIBS = @CUPS_LIBS@
 CUPS_PK_CFLAGS = @CUPS_PK_CFLAGS@
-CUPS_PK_GNOME_CFLAGS = @CUPS_PK_GNOME_CFLAGS@
-CUPS_PK_GNOME_LIBS = @CUPS_PK_GNOME_LIBS@
 CUPS_PK_LIBS = @CUPS_PK_LIBS@
 CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
@@ -153,14 +153,12 @@ DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DISABLE_DEPRECATED = @DISABLE_DEPRECATED@
 DISABLE_DEPRECATED_CFLAGS = @DISABLE_DEPRECATED_CFLAGS@
-DSYMUTIL = @DSYMUTIL@
-DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-FGREP = @FGREP@
+GDBUS_CODEGEN = @GDBUS_CODEGEN@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GLIB_GENMARSHAL = @GLIB_GENMARSHAL@
 GMOFILES = @GMOFILES@
@@ -177,13 +175,9 @@ INTLTOOL_EXTRACT = @INTLTOOL_EXTRACT@
 INTLTOOL_MERGE = @INTLTOOL_MERGE@
 INTLTOOL_PERL = @INTLTOOL_PERL@
 INTLTOOL_UPDATE = @INTLTOOL_UPDATE@
-LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBTOOL = @LIBTOOL@
-LIPO = @LIPO@
-LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
@@ -192,12 +186,7 @@ MKINSTALLDIRS = @MKINSTALLDIRS@
 MSGFMT = @MSGFMT@
 MSGFMT_OPTS = @MSGFMT_OPTS@
 MSGMERGE = @MSGMERGE@
-NM = @NM@
-NMEDIT = @NMEDIT@
-OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
-OTOOL = @OTOOL@
-OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -213,11 +202,11 @@ POFILES = @POFILES@
 POSUB = @POSUB@
 PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
 PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
-RANLIB = @RANLIB@
-SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TEST_CFLAGS = @TEST_CFLAGS@
+TEST_LIBS = @TEST_LIBS@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
 WARN_CFLAGS = @WARN_CFLAGS@
@@ -227,29 +216,20 @@ abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
-ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
 bindir = @bindir@
-build = @build@
 build_alias = @build_alias@
-build_cpu = @build_cpu@
-build_os = @build_os@
-build_vendor = @build_vendor@
 builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
-host = @host@
 host_alias = @host_alias@
-host_cpu = @host_cpu@
-host_os = @host_os@
-host_vendor = @host_vendor@
 htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
@@ -258,7 +238,6 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -275,7 +254,6 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = \
-	$(CUPS_PK_CFLAGS)		\
 	$(DISABLE_DEPRECATED_CFLAGS)
 
 AM_CFLAGS = $(WARN_CFLAGS)
@@ -284,34 +262,47 @@ cups_pk_helper_mechanism_SOURCES = \
 	cups.h				\
 	cups-pk-helper-mechanism.c	\
 	cups-pk-helper-mechanism.h	\
-	main.c
+	main.c				\
+	$(cph_iface_mechanism)
+
+cups_pk_helper_mechanism_CFLAGS = \
+	$(AM_CFLAGS)			\
+	$(CUPS_PK_CFLAGS)
 
 cups_pk_helper_mechanism_LDADD = \
 	$(CUPS_PK_LIBS)			\
 	$(CUPS_LIBS)
 
+cph_iface_mechanism = \
+	cph-iface-mechanism.c	\
+	cph-iface-mechanism.h
+
+BUILT_SOURCES = $(cph_iface_mechanism)
 test_cups_SOURCES = \
 	cups.c		\
 	cups.h		\
 	test-cups.c
 
+test_cups_CFLAGS = \
+	$(AM_CFLAGS)	\
+	$(TEST_CFLAGS)
+
 test_cups_LDADD = \
-	$(CUPS_PK_LIBS)	\
+	$(TEST_LIBS)	\
 	$(CUPS_LIBS)
 
 test_cups_pk_SOURCES = \
-	test-cups-pk.c
+	test-cups-pk.c	\
+	$(cph_iface_mechanism)
 
 test_cups_pk_CFLAGS = \
 	$(AM_CFLAGS)	\
-	$(CUPS_PK_GNOME_CFLAGS)
+	$(TEST_CFLAGS)
 
 test_cups_pk_LDADD = \
-	$(CUPS_PK_GNOME_LIBS)	\
-	$(CUPS_PK_LIBS)		\
+	$(TEST_LIBS)	\
 	$(CUPS_LIBS)
 
-BUILT_SOURCES = cups-pk-helper-mechanism-glue.h
 dbus_confdir = $(sysconfdir)/dbus-1/system.d
 dbus_conf_DATA = org.opensuse.CupsPkHelper.Mechanism.conf
 dbus_servicesdir = $(datadir)/dbus-1/system-services
@@ -335,7 +326,7 @@ all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .lo .o .obj
+.SUFFIXES: .c .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -372,7 +363,7 @@ install-libexecPROGRAMS: $(libexec_PROGRAMS)
 	@list='$(libexec_PROGRAMS)'; test -n "$(libexecdir)" || list=; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p || test -f $$p1; \
+	while read p p1; do if test -f $$p; \
 	  then echo "$$p"; echo "$$p"; else :; fi; \
 	done | \
 	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
@@ -386,8 +377,8 @@ install-libexecPROGRAMS: $(libexec_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(libexecdir)$$dir'"; \
-	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(libexecdir)$$dir" || exit $$?; \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(libexecdir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(libexecdir)$$dir" || exit $$?; \
 	    } \
 	; done
 
@@ -402,28 +393,16 @@ uninstall-libexecPROGRAMS:
 	cd "$(DESTDIR)$(libexecdir)" && rm -f $$files
 
 clean-libexecPROGRAMS:
-	@list='$(libexec_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
+	-test -z "$(libexec_PROGRAMS)" || rm -f $(libexec_PROGRAMS)
 
 clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 cups-pk-helper-mechanism$(EXEEXT): $(cups_pk_helper_mechanism_OBJECTS) $(cups_pk_helper_mechanism_DEPENDENCIES) 
 	@rm -f cups-pk-helper-mechanism$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(cups_pk_helper_mechanism_OBJECTS) $(cups_pk_helper_mechanism_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(cups_pk_helper_mechanism_LINK) $(cups_pk_helper_mechanism_OBJECTS) $(cups_pk_helper_mechanism_LDADD) $(LIBS)
 test-cups$(EXEEXT): $(test_cups_OBJECTS) $(test_cups_DEPENDENCIES) 
 	@rm -f test-cups$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_cups_OBJECTS) $(test_cups_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(test_cups_LINK) $(test_cups_OBJECTS) $(test_cups_LDADD) $(LIBS)
 test-cups-pk$(EXEEXT): $(test_cups_pk_OBJECTS) $(test_cups_pk_DEPENDENCIES) 
 	@rm -f test-cups-pk$(EXEEXT)
 	$(AM_V_CCLD)$(test_cups_pk_LINK) $(test_cups_pk_OBJECTS) $(test_cups_pk_LDADD) $(LIBS)
@@ -434,10 +413,13 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cups-pk-helper-mechanism.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cups.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-cups.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cups_pk_helper_mechanism-cups.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cups_pk_helper_mechanism-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_cups-cups.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_cups-test-cups.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_cups_pk-cph-iface-mechanism.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_cups_pk-test-cups-pk.Po@am__quote@
 
 .c.o:
@@ -456,13 +438,101 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
-.c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+cups_pk_helper_mechanism-cups.o: cups.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-cups.o -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-cups.Tpo -c -o cups_pk_helper_mechanism-cups.o `test -f 'cups.c' || echo '$(srcdir)/'`cups.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-cups.Tpo $(DEPDIR)/cups_pk_helper_mechanism-cups.Po
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cups.c' object='cups_pk_helper_mechanism-cups.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-cups.o `test -f 'cups.c' || echo '$(srcdir)/'`cups.c
+
+cups_pk_helper_mechanism-cups.obj: cups.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-cups.obj -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-cups.Tpo -c -o cups_pk_helper_mechanism-cups.obj `if test -f 'cups.c'; then $(CYGPATH_W) 'cups.c'; else $(CYGPATH_W) '$(srcdir)/cups.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-cups.Tpo $(DEPDIR)/cups_pk_helper_mechanism-cups.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cups.c' object='cups_pk_helper_mechanism-cups.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-cups.obj `if test -f 'cups.c'; then $(CYGPATH_W) 'cups.c'; else $(CYGPATH_W) '$(srcdir)/cups.c'; fi`
+
+cups_pk_helper_mechanism-cups-pk-helper-mechanism.o: cups-pk-helper-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-cups-pk-helper-mechanism.o -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Tpo -c -o cups_pk_helper_mechanism-cups-pk-helper-mechanism.o `test -f 'cups-pk-helper-mechanism.c' || echo '$(srcdir)/'`cups-pk-helper-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Tpo $(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cups-pk-helper-mechanism.c' object='cups_pk_helper_mechanism-cups-pk-helper-mechanism.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-cups-pk-helper-mechanism.o `test -f 'cups-pk-helper-mechanism.c' || echo '$(srcdir)/'`cups-pk-helper-mechanism.c
+
+cups_pk_helper_mechanism-cups-pk-helper-mechanism.obj: cups-pk-helper-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-cups-pk-helper-mechanism.obj -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Tpo -c -o cups_pk_helper_mechanism-cups-pk-helper-mechanism.obj `if test -f 'cups-pk-helper-mechanism.c'; then $(CYGPATH_W) 'cups-pk-helper-mechanism.c'; else $(CYGPATH_W) '$(srcdir)/cups-pk-helper-mechanism.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Tpo $(DEPDIR)/cups_pk_helper_mechanism-cups-pk-helper-mechanism.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cups-pk-helper-mechanism.c' object='cups_pk_helper_mechanism-cups-pk-helper-mechanism.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-cups-pk-helper-mechanism.obj `if test -f 'cups-pk-helper-mechanism.c'; then $(CYGPATH_W) 'cups-pk-helper-mechanism.c'; else $(CYGPATH_W) '$(srcdir)/cups-pk-helper-mechanism.c'; fi`
+
+cups_pk_helper_mechanism-main.o: main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-main.o -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-main.Tpo -c -o cups_pk_helper_mechanism-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-main.Tpo $(DEPDIR)/cups_pk_helper_mechanism-main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='cups_pk_helper_mechanism-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+
+cups_pk_helper_mechanism-main.obj: main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-main.obj -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-main.Tpo -c -o cups_pk_helper_mechanism-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-main.Tpo $(DEPDIR)/cups_pk_helper_mechanism-main.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='cups_pk_helper_mechanism-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+
+cups_pk_helper_mechanism-cph-iface-mechanism.o: cph-iface-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-cph-iface-mechanism.o -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Tpo -c -o cups_pk_helper_mechanism-cph-iface-mechanism.o `test -f 'cph-iface-mechanism.c' || echo '$(srcdir)/'`cph-iface-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Tpo $(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cph-iface-mechanism.c' object='cups_pk_helper_mechanism-cph-iface-mechanism.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-cph-iface-mechanism.o `test -f 'cph-iface-mechanism.c' || echo '$(srcdir)/'`cph-iface-mechanism.c
+
+cups_pk_helper_mechanism-cph-iface-mechanism.obj: cph-iface-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -MT cups_pk_helper_mechanism-cph-iface-mechanism.obj -MD -MP -MF $(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Tpo -c -o cups_pk_helper_mechanism-cph-iface-mechanism.obj `if test -f 'cph-iface-mechanism.c'; then $(CYGPATH_W) 'cph-iface-mechanism.c'; else $(CYGPATH_W) '$(srcdir)/cph-iface-mechanism.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Tpo $(DEPDIR)/cups_pk_helper_mechanism-cph-iface-mechanism.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cph-iface-mechanism.c' object='cups_pk_helper_mechanism-cph-iface-mechanism.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(cups_pk_helper_mechanism_CFLAGS) $(CFLAGS) -c -o cups_pk_helper_mechanism-cph-iface-mechanism.obj `if test -f 'cph-iface-mechanism.c'; then $(CYGPATH_W) 'cph-iface-mechanism.c'; else $(CYGPATH_W) '$(srcdir)/cph-iface-mechanism.c'; fi`
+
+test_cups-cups.o: cups.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -MT test_cups-cups.o -MD -MP -MF $(DEPDIR)/test_cups-cups.Tpo -c -o test_cups-cups.o `test -f 'cups.c' || echo '$(srcdir)/'`cups.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_cups-cups.Tpo $(DEPDIR)/test_cups-cups.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cups.c' object='test_cups-cups.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -c -o test_cups-cups.o `test -f 'cups.c' || echo '$(srcdir)/'`cups.c
+
+test_cups-cups.obj: cups.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -MT test_cups-cups.obj -MD -MP -MF $(DEPDIR)/test_cups-cups.Tpo -c -o test_cups-cups.obj `if test -f 'cups.c'; then $(CYGPATH_W) 'cups.c'; else $(CYGPATH_W) '$(srcdir)/cups.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_cups-cups.Tpo $(DEPDIR)/test_cups-cups.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cups.c' object='test_cups-cups.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -c -o test_cups-cups.obj `if test -f 'cups.c'; then $(CYGPATH_W) 'cups.c'; else $(CYGPATH_W) '$(srcdir)/cups.c'; fi`
+
+test_cups-test-cups.o: test-cups.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -MT test_cups-test-cups.o -MD -MP -MF $(DEPDIR)/test_cups-test-cups.Tpo -c -o test_cups-test-cups.o `test -f 'test-cups.c' || echo '$(srcdir)/'`test-cups.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_cups-test-cups.Tpo $(DEPDIR)/test_cups-test-cups.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test-cups.c' object='test_cups-test-cups.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -c -o test_cups-test-cups.o `test -f 'test-cups.c' || echo '$(srcdir)/'`test-cups.c
+
+test_cups-test-cups.obj: test-cups.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -MT test_cups-test-cups.obj -MD -MP -MF $(DEPDIR)/test_cups-test-cups.Tpo -c -o test_cups-test-cups.obj `if test -f 'test-cups.c'; then $(CYGPATH_W) 'test-cups.c'; else $(CYGPATH_W) '$(srcdir)/test-cups.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_cups-test-cups.Tpo $(DEPDIR)/test_cups-test-cups.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test-cups.c' object='test_cups-test-cups.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_CFLAGS) $(CFLAGS) -c -o test_cups-test-cups.obj `if test -f 'test-cups.c'; then $(CYGPATH_W) 'test-cups.c'; else $(CYGPATH_W) '$(srcdir)/test-cups.c'; fi`
 
 test_cups_pk-test-cups-pk.o: test-cups-pk.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_pk_CFLAGS) $(CFLAGS) -MT test_cups_pk-test-cups-pk.o -MD -MP -MF $(DEPDIR)/test_cups_pk-test-cups-pk.Tpo -c -o test_cups_pk-test-cups-pk.o `test -f 'test-cups-pk.c' || echo '$(srcdir)/'`test-cups-pk.c
@@ -480,11 +550,21 @@ test_cups_pk-test-cups-pk.obj: test-cups-pk.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_pk_CFLAGS) $(CFLAGS) -c -o test_cups_pk-test-cups-pk.obj `if test -f 'test-cups-pk.c'; then $(CYGPATH_W) 'test-cups-pk.c'; else $(CYGPATH_W) '$(srcdir)/test-cups-pk.c'; fi`
 
-mostlyclean-libtool:
-	-rm -f *.lo
+test_cups_pk-cph-iface-mechanism.o: cph-iface-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_pk_CFLAGS) $(CFLAGS) -MT test_cups_pk-cph-iface-mechanism.o -MD -MP -MF $(DEPDIR)/test_cups_pk-cph-iface-mechanism.Tpo -c -o test_cups_pk-cph-iface-mechanism.o `test -f 'cph-iface-mechanism.c' || echo '$(srcdir)/'`cph-iface-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_cups_pk-cph-iface-mechanism.Tpo $(DEPDIR)/test_cups_pk-cph-iface-mechanism.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cph-iface-mechanism.c' object='test_cups_pk-cph-iface-mechanism.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_pk_CFLAGS) $(CFLAGS) -c -o test_cups_pk-cph-iface-mechanism.o `test -f 'cph-iface-mechanism.c' || echo '$(srcdir)/'`cph-iface-mechanism.c
 
-clean-libtool:
-	-rm -rf .libs _libs
+test_cups_pk-cph-iface-mechanism.obj: cph-iface-mechanism.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_pk_CFLAGS) $(CFLAGS) -MT test_cups_pk-cph-iface-mechanism.obj -MD -MP -MF $(DEPDIR)/test_cups_pk-cph-iface-mechanism.Tpo -c -o test_cups_pk-cph-iface-mechanism.obj `if test -f 'cph-iface-mechanism.c'; then $(CYGPATH_W) 'cph-iface-mechanism.c'; else $(CYGPATH_W) '$(srcdir)/cph-iface-mechanism.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_cups_pk-cph-iface-mechanism.Tpo $(DEPDIR)/test_cups_pk-cph-iface-mechanism.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cph-iface-mechanism.c' object='test_cups_pk-cph-iface-mechanism.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_cups_pk_CFLAGS) $(CFLAGS) -c -o test_cups_pk-cph-iface-mechanism.obj `if test -f 'cph-iface-mechanism.c'; then $(CYGPATH_W) 'cph-iface-mechanism.c'; else $(CYGPATH_W) '$(srcdir)/cph-iface-mechanism.c'; fi`
 install-dbus_confDATA: $(dbus_conf_DATA)
 	@$(NORMAL_INSTALL)
 	test -z "$(dbus_confdir)" || $(MKDIR_P) "$(DESTDIR)$(dbus_confdir)"
@@ -666,8 +746,8 @@ maintainer-clean-generic:
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-am
 
-clean-am: clean-generic clean-libexecPROGRAMS clean-libtool \
-	clean-noinstPROGRAMS mostlyclean-am
+clean-am: clean-generic clean-libexecPROGRAMS clean-noinstPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -723,8 +803,7 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
 pdf: pdf-am
 
@@ -740,11 +819,10 @@ uninstall-am: uninstall-dbus_confDATA uninstall-dbus_servicesDATA \
 .MAKE: all check install install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libexecPROGRAMS clean-libtool clean-noinstPROGRAMS ctags \
-	distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dbus_confDATA \
+	clean-libexecPROGRAMS clean-noinstPROGRAMS ctags distclean \
+	distclean-compile distclean-generic distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dbus_confDATA \
 	install-dbus_servicesDATA install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-libexecPROGRAMS \
@@ -752,16 +830,19 @@ uninstall-am: uninstall-dbus_confDATA uninstall-dbus_servicesDATA \
 	install-ps install-ps-am install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-dbus_confDATA \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-dbus_confDATA \
 	uninstall-dbus_servicesDATA uninstall-libexecPROGRAMS \
 	uninstall-polkitDATA
 
 
-cups-pk-helper-mechanism-glue.h: $(srcdir)/cups-pk-helper-mechanism.xml
-	$(AM_V_GEN)dbus-binding-tool --prefix=cph_mechanism --mode=glib-server	\
-			--output=cups-pk-helper-mechanism-glue.h	\
-			$(srcdir)/cups-pk-helper-mechanism.xml
+$(cph_iface_mechanism): $(srcdir)/cups-pk-helper-mechanism.xml
+	$(AM_V_GEN)$(GDBUS_CODEGEN)					\
+			--interface-prefix=org.opensuse.CupsPkHelper.	\
+			--c-namespace CphIface				\
+			--generate-c-code cph-iface-mechanism		\
+			--c-generate-object-manager			\
+			$<
 
 $(dbus_services_DATA): $(dbus_services_in_files)
 	$(AM_V_GEN)sed -e "s|\@LIBEXECDIR\@|$(libexecdir)|" $< > $@
