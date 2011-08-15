@@ -1,3 +1,10 @@
+cups-pk-helper (0.2.0-1) unstable; urgency=low
+
+  * [9e226d4] New upstream version 0.2.0
+  * [1139e5b] Drop dbus-glib dependency, uses GDBus now.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 15 Aug 2011 09:41:17 +0200
+
 cups-pk-helper (0.1.2-1) unstable; urgency=low
 
   * [019a316] New upstream version 0.1.2 (Closes: #622366)
