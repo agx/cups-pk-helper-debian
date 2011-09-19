@@ -1501,9 +1501,11 @@ cph_cups_printer_add (CphCups    *cups,
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
-        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                      "ppd-name", NULL, ppd_file);
 
+        if (ppd_file && ppd_file[0] != '\0') {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                              "ppd-name", NULL, ppd_file);
+        }
         if (printer_uri && printer_uri[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                               "device-uri", NULL, printer_uri);
