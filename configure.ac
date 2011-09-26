@@ -1,4 +1,4 @@
-AC_INIT([cups-pk-helper], [0.2.1],
+AC_INIT([cups-pk-helper], [0.2.2],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper])
 AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2 tar-ustar])
