@@ -2226,6 +2226,11 @@ cph_cups_job_get_status (CphCups    *cups,
         _cph_cups_add_job_uri (request, job_id);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
                        "requested-attributes", 1, NULL, attrs);
+        /* Request attributes explicitly as the user running the process (as
+         * opposed to the user doing the dbus call). This is root in general,
+         * so we'll be authorized to get attributes for all jobs. */
+        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                      "requesting-user-name", NULL, cupsUser ());
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
