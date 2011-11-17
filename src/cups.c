@@ -425,7 +425,7 @@ _cph_cups_is_scheme_valid (CphCups    *cups,
  *     attributes.
  */
 _CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (ppd, "PPD", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd, "PPD", FALSE, CPH_STR_MAXLEN)
 _CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE, CPH_STR_MAXLEN)
 _CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE, CPH_STR_MAXLEN)
 _CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE, CPH_STR_MAXLEN)
@@ -1501,9 +1501,11 @@ cph_cups_printer_add (CphCups    *cups,
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
-        ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                      "ppd-name", NULL, ppd_file);
 
+        if (ppd_file && ppd_file[0] != '\0') {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                              "ppd-name", NULL, ppd_file);
+        }
         if (printer_uri && printer_uri[0] != '\0') {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                               "device-uri", NULL, printer_uri);

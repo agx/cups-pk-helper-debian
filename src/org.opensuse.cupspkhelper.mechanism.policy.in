@@ -12,7 +12,8 @@
     <_description>Get/Set server settings</_description>
     <_message>Privileges are required to get/set server settings.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -21,7 +22,8 @@
     <_description>Get list of available devices</_description>
     <_message>Privileges are required to get list of available devices.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -33,7 +35,8 @@
     <_description>Set a printer as default printer</_description>
     <_message>Privileges are required to set a printer, or a class, as default printer.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -45,7 +48,8 @@
     <_description>Enable/Disable a printer</_description>
     <_message>Privileges are required to enable/disable a printer, or a class.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -54,7 +58,8 @@
     <_description>Add/Remove/Edit a local printer</_description>
     <_message>Privileges are required to add/remove/edit a local printer.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -63,7 +68,8 @@
     <_description>Add/Remove/Edit a remote printer</_description>
     <_message>Privileges are required to add/remove/edit a remote printer.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -72,7 +78,8 @@
     <_description>Add/Remove/Edit a class</_description>
     <_message>Privileges are required to add/remove/edit a class.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -81,7 +88,8 @@
     <_description>Restart/Cancel/Edit a job</_description>
     <_message>Privileges are required to restart/cancel/edit a job.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>yes</allow_active>
     </defaults>
   </action>
@@ -90,7 +98,8 @@
     <_description>Restart/Cancel/Edit a job owned by another user</_description>
     <_message>Privileges are required to restart/cancel/edit a job owned by another user.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -99,7 +108,8 @@
     <_description>Change printer settings</_description>
     <_message>Privileges are required to change printer settings. This should only be needed from the Printers system settings panel.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
@@ -109,7 +119,8 @@
     <_description>Add/Remove/Edit a printer</_description>
     <_message>Privileges are required to add/remove/edit a printer.</_message>
     <defaults>
-      <allow_inactive>no</allow_inactive>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
   </action>
