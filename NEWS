@@ -1,4 +1,13 @@
 =============
+Version 0.2.1
+=============
+
++ Do not pass ppd file if empty when adding a printer. (Tim Waugh)
++ Accept NULL for ppd file as valid when adding a printer. (Vincent)
++ Allow inactive/any users to authenticate. (Marek Kasik)
++ New/udpated translations: gl, it, ko, zh_TW.
+
+=============
 Version 0.2.0
 =============
 
