@@ -1,3 +1,10 @@
+cups-pk-helper (0.2.1.2-1) unstable; urgency=low
+
+  * Upload to unstable. The tarball is identical to 0.2.1.
+    (Closes: #651183)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 22 Dec 2011 20:23:37 +0100
+
 cups-pk-helper (0.2.1-2) experimental; urgency=low
 
   * Upload to experimental
