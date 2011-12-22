@@ -1,4 +1,33 @@
 =============
+Version 0.2.1
+=============
+
++ Do not pass ppd file if empty when adding a printer. (Tim Waugh)
++ Accept NULL for ppd file as valid when adding a printer. (Vincent)
++ Allow inactive/any users to authenticate. (Marek Kasik)
++ New/udpated translations: gl, it, ko, zh_TW.
+
+=============
+Version 0.2.0
+=============
+
++ Port to GDBus. (Vincent)
++ Stop using deprecated polkit API. (Vincent)
++ Drop gthread handling. (Vincent)
++ Add org.freedesktop.DBus.Deprecated annotation to JobCancel. (Vincent)
++ Code cleanups. (Vincent)
++ Build system improvements. (Vincent)
++ New/udpated translations: hu.
+
+=============
+Version 0.1.3
+=============
+
++ Allow file request with NULL filename, to add raw printers. (Marek Kašík)
++ Modernize build system a bit. (Vincent)
++ New/udpated translations: eo, id, pl, sl, uk.
+
+=============
 Version 0.1.2
 =============
 

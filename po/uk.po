@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 # 
+# Yuri Chornoivan <yurchor@ukr.net>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
-"POT-Creation-Date: 2010-12-20 18:33+0100\n"
-"PO-Revision-Date: 2011-03-22 15:19+0000\n"
+"POT-Creation-Date: 2011-03-22 20:04+0100\n"
+"PO-Revision-Date: 2011-05-02 16:43+0000\n"
 "Last-Translator: yurchor <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -34,85 +34,99 @@ msgid "Add/Remove/Edit a remote printer"
 msgstr "Додати/Вилучити/Змінити віддалений принтер"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
+msgid "Change printer settings"
+msgstr "Змінити параметри принтера"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
 msgstr "Увімкнути/Вимкнути принтер"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
 msgid "Get list of available devices"
 msgstr "Отримати список доступних пристроїв"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
 msgstr "Отримати/Встановити параметри сервера"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
 msgstr ""
 "Для додавання, вилучення або зміни класу потрібні відповідні права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
 msgstr ""
 "Для додавання, вилучення або зміни локального принтера потрібні відповідні "
 "права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
 msgstr ""
 "Для додавання, вилучення або зміни принтера потрібні відповідні права "
 "доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
 msgstr ""
 "Для додавання, вилучення або зміни віддаленого принтера потрібні відповідні "
 "права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
+msgid ""
+"Privileges are required to change printer settings. This should only be "
+"needed from the Printers system settings panel."
+msgstr ""
+"Для внесення змін до параметрів принтера потрібні відповідні права доступу. "
+"Набуття прав потрібне лише для панелі «Принтери» «Системних параметрів»."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
 msgstr ""
 "Для вмикання або вимикання принтера або класу потрібні відповідні права "
 "доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
 msgstr ""
 "Для отримання списку доступних пристроїв потрібні відповідні права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
 msgstr ""
 "Для отримання або встановлення параметрів сервера потрібні відповідні права "
 "доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
 msgstr ""
 "Для перезапуску, скасування або редагування завдання, створеного іншим "
 "користувачем, потрібні відповідні права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
 msgstr ""
 "Для перезапуску, скасування або редагування завдання потрібні відповідні "
 "права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
 msgstr ""
 "Для того, щоб зробити принтер або клас принтерів типовими, потрібні "
 "відповідні права доступу."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
 msgstr "Перезапустити/Скасувати/Змінити завдання"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
 msgstr "Перезапустити/Скасувати/Змінити завдання, створене іншим користувачем"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
 msgstr "Зробити принтер типовим"
+
+

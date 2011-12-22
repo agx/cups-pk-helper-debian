@@ -1,3 +1,17 @@
+cups-pk-helper (0.2.1-2) experimental; urgency=low
+
+  * Upload to experimental
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Nov 2011 19:52:38 +0100
+
+cups-pk-helper (0.2.1-1) unstable; urgency=low
+
+  * [269a7c5] New upstream version 0.2.1
+  * [1139e5b] Drop dbus-glib dependency, uses GDBus now.
+  * [84011e4] Bump glib dependency
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Nov 2011 19:26:20 +0100
+
 cups-pk-helper (0.2.1.1-1~really0.1.2) unstable; urgency=low
 
   * Reupload 0.1.2 to replace 0.2.1 which needs a glib not yet in untable.
