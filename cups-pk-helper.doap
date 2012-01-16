@@ -6,7 +6,7 @@
 
   <name xml:lang="en">CUPS PolicyKit helper</name>
   <shortdesc xml:lang="en">PolicyKit helper to configure cups with fine-grained privileges</shortdesc>
-  <homepage rdf:resource="http://cgit.freedesktop.org/cups-pk-helper/" />
+  <homepage rdf:resource="http://www.freedesktop.org/wiki/Software/cups-pk-helper" />
   <download-page rdf:resource="http://www.freedesktop.org/software/cups-pk-helper/releases/" />
   <bug-database rdf:resource="https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper" />
 
