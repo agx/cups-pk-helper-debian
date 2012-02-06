@@ -21,7 +21,7 @@ cups-pk-helper (0.2.1-1) unstable; urgency=low
 
 cups-pk-helper (0.2.1.1-1~really0.1.2) unstable; urgency=low
 
-  * Reupload 0.1.2 to replace 0.2.1 which needs a glib not yet in untable.
+  * Reupload 0.1.2 to replace 0.2.1 which needs a glib not yet in unstable.
 
  -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Nov 2011 19:44:21 +0100
 
