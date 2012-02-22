@@ -4,6 +4,22 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 EXTRA_DIST = HACKING
 
+MAINTAINERCLEANFILES = \
+	$(srcdir)/INSTALL \
+	$(srcdir)/aclocal.m4 \
+	$(srcdir)/compile \
+	$(srcdir)/config.guess \
+	$(srcdir)/config.h.in \
+	$(srcdir)/config.sub \
+	$(srcdir)/depcomp \
+	$(srcdir)/elisp-comp \
+	$(srcdir)/install-sh \
+	$(srcdir)/ltmain.sh \
+	$(srcdir)/missing \
+	$(srcdir)/mkinstalldirs \
+	`find "$(srcdir)" -type f -name Makefile.in -print` \
+	$(srcdir)/configure
+
 CHANGELOG_GIT_RANGE =
 dist-hook:
 	$(AM_V_GEN)if test -d "$(srcdir)/.git"; then \
@@ -16,3 +32,6 @@ dist-hook:
 	else \
 	  echo A git checkout is required to generate ChangeLog >&2; \
 	fi
+
+GITIGNOREFILES = $(PACKAGE)-\*.tar.{gz,bz2,xz}
+-include $(top_srcdir)/git.mk
