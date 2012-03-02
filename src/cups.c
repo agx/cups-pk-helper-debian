@@ -722,8 +722,7 @@ _cph_cups_send_new_simple_job_request (CphCups     *cups,
         _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
-                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                              "requesting-user-name", NULL, user_name);
+                _cph_cups_add_requesting_user_name (request, user_name);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -744,8 +743,7 @@ _cph_cups_send_new_job_attributes_request (CphCups     *cups,
         _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
-                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                              "requesting-user-name", NULL, user_name);
+                _cph_cups_add_requesting_user_name (request, user_name);
 
         num_options = cupsAddOption (name, value,
                                      num_options, &options);
@@ -2395,8 +2393,7 @@ cph_cups_job_cancel (CphCups    *cups,
         _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
-                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                              "requesting-user-name", NULL, user_name);
+                _cph_cups_add_requesting_user_name (request, user_name);
 
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
         if (purge_job)
@@ -2471,8 +2468,7 @@ cph_cups_job_get_status (CphCups    *cups,
         /* Request attributes explicitly as the user running the process (as
          * opposed to the user doing the dbus call). This is root in general,
          * so we'll be authorized to get attributes for all jobs. */
-        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                      "requesting-user-name", NULL, cupsUser ());
+        _cph_cups_add_requesting_user_name (request, cupsUser ());
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
