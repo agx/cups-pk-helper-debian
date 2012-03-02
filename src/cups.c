@@ -2050,6 +2050,7 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
                                            const char        *option,
                                            const char *const *values)
 {
+        gboolean         is_class;
         char            *option_name;
         int              len;
         ipp_t           *request;
@@ -2091,36 +2092,15 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
         }
 
         /* set default value for option */
+        is_class = cph_cups_is_class (cups, printer_name);
 
-        request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
-        _cph_cups_add_printer_uri (request, printer_name);
-
-        if (len == 1)
-                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                              option_name, NULL, values[0]);
-        else {
-                int i;
-
-                attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                                      option_name, len, NULL, NULL);
-
-                for (i = 0; i < len; i++)
-                        attr->values[i].string.text = g_strdup (values[i]);
+        if (is_class) {
+                request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
+                _cph_cups_add_class_uri (request, printer_name);
+        } else {
+                request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
+                _cph_cups_add_printer_uri (request, printer_name);
         }
-
-        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN)) {
-                retval = TRUE;
-                goto out;
-        }
-
-        /* it failed, maybe it was a class? */
-        if (cups->priv->last_status != IPP_NOT_POSSIBLE) {
-                retval = FALSE;
-                goto out;
-        }
-
-        request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
-        _cph_cups_add_class_uri (request, printer_name);
 
         if (len == 1)
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
@@ -2137,7 +2117,6 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
 
         retval = _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 
-out:
         g_free (option_name);
 
         return retval;
