@@ -2159,11 +2159,11 @@ _cph_cups_prepare_ppd_for_options (CphCups       *cups,
         gboolean      ppdchanged = FALSE;
         gchar        *result = NULL;
         gchar        *error;
-        char          newppdfile[1024];
+        char          newppdfile[PATH_MAX];
         cups_file_t  *in = NULL;
         cups_file_t  *out = NULL;
-        char          line[1024];
-        char          keyword[1024];
+        char          line[CPH_STR_MAXLEN];
+        char          keyword[CPH_STR_MAXLEN];
         char         *keyptr;
         ppd_choice_t *choice;
         const char   *value;
