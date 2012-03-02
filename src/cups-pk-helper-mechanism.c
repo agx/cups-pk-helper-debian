@@ -1440,12 +1440,12 @@ cph_mechanism_connect_signals (CphMechanism *mechanism)
                           G_CALLBACK (cph_mechanism_printer_add),
                           NULL);
         g_signal_connect (mechanism,
-                          "handle-printer-add-option-default",
-                          G_CALLBACK (cph_mechanism_printer_add_option_default),
-                          NULL);
-        g_signal_connect (mechanism,
                           "handle-printer-add-option",
                           G_CALLBACK (cph_mechanism_printer_add_option),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-add-option-default",
+                          G_CALLBACK (cph_mechanism_printer_add_option_default),
                           NULL);
         g_signal_connect (mechanism,
                           "handle-printer-add-with-ppd-file",

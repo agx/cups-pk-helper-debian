@@ -2145,137 +2145,142 @@ out:
         return retval;
 }
 
-/*
- * This function sets given options to specified values in file 'ppdfile'.
+/* This function sets given options to specified values in file 'ppdfile'.
  * This needs to be done because of applications which use content of PPD files
  * instead of IPP attributes.
- * CUPS doesn't do this automatically (but hopefully will since 1.6)
- */
+ * CUPS doesn't do this automatically (but hopefully will starting with 1.6) */
 static gchar *
 _cph_cups_prepare_ppd_for_options (CphCups       *cups,
                                    const gchar   *ppdfile,
                                    cups_option_t *options,
                                    gint           num_options)
 {
-  ppd_choice_t *choice;
-  cups_file_t  *in = NULL;
-  cups_file_t  *out = NULL;
-  ppd_file_t   *ppd;
-  const char   *value;
-  gboolean      ppdchanged = FALSE;
-  gchar        *result = NULL;
-  gchar        *error;
-  char          newppdfile[1024];
-  char          line[1024];
-  char          keyword[1024];
-  char         *keyptr;
+        ppd_file_t   *ppd;
+        gboolean      ppdchanged = FALSE;
+        gchar        *result = NULL;
+        gchar        *error;
+        char          newppdfile[1024];
+        cups_file_t  *in = NULL;
+        cups_file_t  *out = NULL;
+        char          line[1024];
+        char          keyword[1024];
+        char         *keyptr;
+        ppd_choice_t *choice;
+        const char   *value;
 
-  ppd = ppdOpenFile (ppdfile);
-  if (!ppd) {
-          error = g_strdup_printf ("Unable to open PPD file \"%s\" - %s", ppdfile, strerror (errno));
-          _cph_cups_set_internal_status (cups, error);
-          g_free (error);
+        ppd = ppdOpenFile (ppdfile);
+        if (!ppd) {
+                error = g_strdup_printf ("Unable to open PPD file \"%s\": %s",
+                                         ppdfile, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
 
-          goto out;
-  }
+                goto out;
+        }
 
-  out = cupsTempFile2 (newppdfile, sizeof (newppdfile));
-  if (!out) {
-          _cph_cups_set_internal_status (cups, "Unable to create temporary file");
+        out = cupsTempFile2 (newppdfile, sizeof (newppdfile));
+        if (!out) {
+                _cph_cups_set_internal_status (cups,
+                                               "Unable to create temporary file");
 
-          goto out;
-  }
+                goto out;
+        }
 
-  in = cupsFileOpen (ppdfile, "r");
-  if (!in) {
-          error = g_strdup_printf ("Unable to open PPD file \"%s\" - %s", ppdfile, strerror (errno));
-          _cph_cups_set_internal_status (cups, error);
-          g_free (error);
+        in = cupsFileOpen (ppdfile, "r");
+        if (!in) {
+                error = g_strdup_printf ("Unable to open PPD file \"%s\": %s",
+                                         ppdfile, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
 
-          goto out;
-  }
+                goto out;
+        }
 
-  /*
-   * Mark default values and values of options we are changing.
-   */
-  ppdMarkDefaults (ppd);
-  cupsMarkOptions (ppd, num_options, options);
+        /* Mark default values and values of options we are changing. */
+        ppdMarkDefaults (ppd);
+        cupsMarkOptions (ppd, num_options, options);
 
-  while (cupsFileGets (in, line, sizeof (line))) {
-          if (!g_str_has_prefix (line, "*Default")) {
-                  cupsFilePrintf (out, "%s\n", line);
-          } else {
-                  /*
-                   * This part parses lines with *Default on their beginning.
-                   * Example:
-                   *   "*DefaultResolution: 1200dpi" becomes:
-                   *     - keyword: Resolution
-                   *     - keyptr: 1200dpi
-                   */
-                  g_strlcpy (keyword, line + strlen ("*Default"), sizeof (keyword));
+        while (cupsFileGets (in, line, sizeof (line))) {
+                if (!g_str_has_prefix (line, "*Default")) {
+                        cupsFilePrintf (out, "%s\n", line);
+                } else {
+                        /* This part parses lines with *Default on their
+                         * beginning. For instance:
+                         *   "*DefaultResolution: 1200dpi" becomes:
+                         *     - keyword: Resolution
+                         *     - keyptr: 1200dpi
+                         */
+                        g_strlcpy (keyword,
+                                   line + strlen ("*Default"),
+                                   sizeof (keyword));
 
-                  for (keyptr = keyword; *keyptr; keyptr++)
-                          if (*keyptr == ':' || isspace (*keyptr & 255))
-                                  break;
+                        for (keyptr = keyword; *keyptr; keyptr++)
+                                if (*keyptr == ':' || isspace (*keyptr & 255))
+                                        break;
 
-                  *keyptr++ = '\0';
-                  while (isspace (*keyptr & 255))
-                          keyptr++;
+                        *keyptr++ = '\0';
+                        while (isspace (*keyptr & 255))
+                                keyptr++;
 
-                  /*
-                   * We have to change PageSize if any of PageRegion, PageSize,
-                   * PaperDimension or ImageableArea changes. We change PageRegion
-                   * if PageSize is not available.
-                   */
-                  if (g_str_equal (keyword, "PageRegion") ||
-                      g_str_equal (keyword, "PageSize") ||
-                      g_str_equal (keyword, "PaperDimension") ||
-                      g_str_equal (keyword, "ImageableArea")) {
-                          choice = ppdFindMarkedChoice (ppd, "PageSize");
-                          if (!choice)
-                                  choice = ppdFindMarkedChoice (ppd, "PageRegion");
-                  } else {
-                          choice = ppdFindMarkedChoice (ppd, keyword);
-                  }
+                        /* We have to change PageSize if any of PageRegion,
+                         * PageSize, PaperDimension or ImageableArea changes.
+                         * We change PageRegion if PageSize is not available. */
+                        if (g_str_equal (keyword, "PageRegion") ||
+                            g_str_equal (keyword, "PageSize") ||
+                            g_str_equal (keyword, "PaperDimension") ||
+                            g_str_equal (keyword, "ImageableArea")) {
+                                choice = ppdFindMarkedChoice (ppd, "PageSize");
+                                if (!choice)
+                                        choice = ppdFindMarkedChoice (ppd, "PageRegion");
+                        } else {
+                                choice = ppdFindMarkedChoice (ppd, keyword);
+                        }
 
-                  if (choice && !g_str_equal (choice->choice, keyptr)) {
-                          if (!g_str_equal (choice->choice, "Custom")) {
-                                  cupsFilePrintf (out, "*Default%s: %s\n", keyword, choice->choice);
-                                  ppdchanged = TRUE;
-                          } else {
-                                  /*
-                                   * We have to set the value in PPD manually if a custom value was passed in
-                                   * because cupsMarkOptions() marks just "Custom" choice but we need the input
-                                   * value to be set.
-                                   * Custom values has "Custom." prefix and has to be enabled.
-                                   */
-                                  value = cupsGetOption (keyword, num_options, options);
-                                  if (value) {
-                                          cupsFilePrintf (out, "*Default%s: %s\n", keyword, value);
-                                          ppdchanged = TRUE;
-                                  } else {
-                                          cupsFilePrintf (out, "%s\n", line);
-                                  }
-                          }
-                  } else {
-                          cupsFilePrintf (out, "%s\n", line);
-                  }
-          }
-  }
+                        if (choice && !g_str_equal (choice->choice, keyptr)) {
+                                /* We have to set the value in PPD manually if
+                                 * a custom value was passed in:
+                                 * cupsMarkOptions() marks the choice as
+                                 * "Custom". We want to set this value with our
+                                 * input. */
+                                if (!g_str_equal (choice->choice, "Custom")) {
+                                        cupsFilePrintf (out,
+                                                        "*Default%s: %s\n",
+                                                        keyword,
+                                                        choice->choice);
+                                        ppdchanged = TRUE;
+                                } else {
+                                        value = cupsGetOption (keyword,
+                                                               num_options,
+                                                               options);
+                                        if (value) {
+                                                cupsFilePrintf (out,
+                                                                "*Default%s: %s\n",
+                                                                keyword,
+                                                                value);
+                                                ppdchanged = TRUE;
+                                        } else {
+                                                cupsFilePrintf (out,
+                                                                "%s\n", line);
+                                        }
+                                }
+                        } else {
+                                cupsFilePrintf (out, "%s\n", line);
+                        }
+                }
+        }
 
-  if (ppdchanged)
-          result = g_strdup (newppdfile);
+        if (ppdchanged)
+                result = g_strdup (newppdfile);
 
 out:
+        if (in)
+                cupsFileClose (in);
+        if (out)
+                cupsFileClose (out);
+        if (ppd)
+                ppdClose (ppd);
 
-  if (in)
-          cupsFileClose (in);
-  if (out)
-          cupsFileClose (out);
-  if (ppd)
-          ppdClose (ppd);
-
-  return result;
+        return result;
 }
 
 gboolean
@@ -2284,46 +2289,43 @@ cph_cups_printer_class_set_option (CphCups           *cups,
                                    const char        *option,
                                    const char *const *values)
 {
-        ipp_attribute_t *attr;
-        cups_option_t   *options;
-        gboolean         retval;
         gboolean         is_class;
+        int              len;
         ipp_t           *request;
-        char            *ppdfile = NULL;
-        char            *newppdfile = NULL;
-        gint             length = 0;
-        gint             num_options = 0;
-        gint             i;
+        ipp_attribute_t *attr;
+        char            *newppdfile;
+        gboolean         retval;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
         if (!_cph_cups_is_printer_name_valid (cups, printer_name))
                 return FALSE;
-
         if (!_cph_cups_is_option_valid (cups, option))
                 return FALSE;
-
         /* check the validity of values, and get the length of the array at the
          * same time */
+        len = 0;
         if (values) {
-                while (values[length] != NULL) {
+                while (values[len] != NULL) {
                         if (!_cph_cups_is_option_value_valid (cups,
-                                                              values[length]))
+                                                              values[len]))
                                 return FALSE;
-                        length++;
+                        len++;
                 }
         }
 
-        if (length == 0)
+        if (len == 0)
                 return FALSE;
 
         is_class = cph_cups_is_class (cups, printer_name);
 
-        /*
-         * We permit only one value to change in PPD file because we are setting
-         * default value in it.
-         */
-        if (!is_class && length == 1) {
+        /* We permit only one value to change in PPD file because we are setting
+         * default value in it. */
+        if (!is_class && len == 1) {
+                cups_option_t *options = NULL;
+                int            num_options = 0;
+                char          *ppdfile = NULL;
+
                 num_options = cupsAddOption (option, values[0], num_options, &options);
 
                 ppdfile = g_strdup (cupsGetPPD (printer_name));
@@ -2333,7 +2335,8 @@ cph_cups_printer_class_set_option (CphCups           *cups,
                 g_unlink (ppdfile);
                 g_free (ppdfile);
                 cupsFreeOptions (num_options, options);
-        }
+        } else
+                newppdfile = NULL;
 
         if (is_class) {
                 request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
@@ -2342,16 +2345,19 @@ cph_cups_printer_class_set_option (CphCups           *cups,
                 request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
                 _cph_cups_add_printer_uri (request, printer_name);
         }
+
         _cph_cups_add_requesting_user_name (request, NULL);
 
-        if (length == 1) {
+        if (len == 1) {
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                               option, NULL, values[0]);
         } else {
-                attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                                      option, length, NULL, NULL);
+                int i;
 
-                for (i = 0; i < length; i++)
+                attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                                      option, len, NULL, NULL);
+
+                for (i = 0; i < len; i++)
                         attr->values[i].string.text = g_strdup (values[i]);
         }
 
