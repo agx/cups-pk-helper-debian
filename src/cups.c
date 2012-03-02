@@ -2178,20 +2178,20 @@ _cph_cups_prepare_ppd_for_options (CphCups       *cups,
                 goto out;
         }
 
-        out = cupsTempFile2 (newppdfile, sizeof (newppdfile));
-        if (!out) {
-                _cph_cups_set_internal_status (cups,
-                                               "Unable to create temporary file");
-
-                goto out;
-        }
-
         in = cupsFileOpen (ppdfile, "r");
         if (!in) {
                 error = g_strdup_printf ("Unable to open PPD file \"%s\": %s",
                                          ppdfile, strerror (errno));
                 _cph_cups_set_internal_status (cups, error);
                 g_free (error);
+
+                goto out;
+        }
+
+        out = cupsTempFile2 (newppdfile, sizeof (newppdfile));
+        if (!out) {
+                _cph_cups_set_internal_status (cups,
+                                               "Unable to create temporary file");
 
                 goto out;
         }
@@ -2271,6 +2271,8 @@ _cph_cups_prepare_ppd_for_options (CphCups       *cups,
 
         if (ppdchanged)
                 result = g_strdup (newppdfile);
+        else
+                g_unlink (newppdfile);
 
 out:
         if (in)
