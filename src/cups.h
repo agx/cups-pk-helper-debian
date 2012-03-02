@@ -173,6 +173,11 @@ gboolean cph_cups_printer_class_set_option_default (CphCups           *cups,
                                                     const char        *option,
                                                     const char *const *values);
 
+gboolean cph_cups_printer_class_set_option (CphCups           *cups,
+                                            const char        *printer_name,
+                                            const char        *option,
+                                            const char *const *values);
+
 gboolean cph_cups_job_cancel (CphCups    *cups,
                               int         job_id,
                               gboolean    purge_job,

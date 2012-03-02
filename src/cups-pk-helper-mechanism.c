@@ -1186,6 +1186,30 @@ cph_mechanism_printer_delete_option_default (CphIfaceMechanism     *object,
 }
 
 static gboolean
+cph_mechanism_printer_add_option (CphIfaceMechanism      *object,
+                                  GDBusMethodInvocation  *context,
+                                  const char             *name,
+                                  const char             *option,
+                                  const char *const      *values)
+{
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
+
+        _cph_mechanism_emit_called (mechanism);
+
+        if (!_check_polkit_for_printer_class (mechanism, context, name))
+                return TRUE;
+
+        ret = cph_cups_printer_class_set_option (mechanism->priv->cups,
+                                                 name, option, values);
+
+        cph_iface_mechanism_complete_printer_add_option (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
+}
+
+static gboolean
 cph_mechanism_job_cancel_purge (CphIfaceMechanism     *object,
                                 GDBusMethodInvocation *context,
                                 int                    id,
@@ -1418,6 +1442,10 @@ cph_mechanism_connect_signals (CphMechanism *mechanism)
         g_signal_connect (mechanism,
                           "handle-printer-add-option-default",
                           G_CALLBACK (cph_mechanism_printer_add_option_default),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-add-option",
+                          G_CALLBACK (cph_mechanism_printer_add_option),
                           NULL);
         g_signal_connect (mechanism,
                           "handle-printer-add-with-ppd-file",
