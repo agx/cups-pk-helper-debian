@@ -660,6 +660,7 @@ _cph_cups_send_new_simple_request (CphCups     *cups,
 
         request = ippNewRequest (op);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -677,6 +678,7 @@ _cph_cups_send_new_simple_class_request (CphCups     *cups,
 
         request = ippNewRequest (op);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -693,6 +695,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddString (request, group, type, name, NULL, value);
 
         if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
@@ -704,6 +707,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddString (request, group, type, name, NULL, value);
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
@@ -804,6 +808,7 @@ _cph_cups_class_has_printer (CphCups     *cups,
 
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         internal_reply = cupsDoRequest (cups->priv->connection,
                                         request, resource_char);
@@ -858,6 +863,7 @@ _cph_cups_printer_class_set_users (CphCups           *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                               request_name, len ? len : 1, NULL, NULL);
         if (len == 0)
@@ -883,6 +889,7 @@ _cph_cups_printer_class_set_users (CphCups           *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                               request_name, len ? len : 1, NULL, NULL);
         if (len == 0)
@@ -934,6 +941,7 @@ cph_cups_is_class (CphCups    *cups,
 
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_class_uri (request, name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
                        "requested-attributes", 1, NULL, attrs);
 
@@ -973,6 +981,7 @@ cph_cups_printer_get_uri (CphCups    *cups,
 
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
                        "requested-attributes", 1, NULL, attrs);
 
@@ -1509,6 +1518,7 @@ cph_cups_printer_add (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
@@ -1558,6 +1568,7 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
@@ -1636,6 +1647,7 @@ cph_cups_printer_set_uri (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                       "device-uri", NULL, printer_uri);
@@ -1669,6 +1681,7 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
         /* !accept */
         request = ippNewRequest (CUPS_REJECT_JOBS);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         if (reason && reason[0] == '\0')
                 ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_TEXT,
@@ -1721,6 +1734,7 @@ cph_cups_class_add_printer (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_CLASS);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         g_snprintf (printer_uri, sizeof (printer_uri),
                     "ipp://localhost/printers/%s", printer_name);
@@ -1812,6 +1826,7 @@ cph_cups_class_delete_printer (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_CLASS);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                               "member-uris", new_len,
@@ -1893,6 +1908,7 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddBoolean (request, IPP_TAG_OPERATION,
                        "printer-is-shared", shared ? 1 : 0);
 
@@ -1905,6 +1921,7 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddBoolean (request, IPP_TAG_OPERATION,
                        "printer-is-shared", shared ? 1 : 0);
 
@@ -1931,6 +1948,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                        "job-sheets-default", 2, NULL, values);
 
@@ -1943,6 +1961,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                        "job-sheets-default", 2, NULL, values);
 
@@ -2101,6 +2120,8 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
                 request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
                 _cph_cups_add_printer_uri (request, printer_name);
         }
+
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         if (len == 1)
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
@@ -2447,7 +2468,7 @@ cph_cups_job_get_status (CphCups    *cups,
         /* Request attributes explicitly as the user running the process (as
          * opposed to the user doing the dbus call). This is root in general,
          * so we'll be authorized to get attributes for all jobs. */
-        _cph_cups_add_requesting_user_name (request, cupsUser ());
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
