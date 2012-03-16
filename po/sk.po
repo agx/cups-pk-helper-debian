@@ -3,109 +3,110 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Cheng-Chia Tseng <pswo10680@gmail.com>, 2011.
+#   <helix84@centrum.sk>, 2011.
+# Matej Moško <matej.mosko@gmail.com>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
 "PO-Revision-Date: 2012-02-14 08:27+0000\n"
-"Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
-"Language-Team: Chinese (Taiwan) (http://www.transifex.net/projects/p/freedesktop/language/zh_TW/)\n"
+"Last-Translator: helix84 <helix84@centrum.sk>\n"
+"Language-Team: Slovak (http://www.transifex.net/projects/p/freedesktop/language/sk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: zh_TW\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"Language: sk\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
-msgstr "加入/移除/編輯類別"
+msgstr "Pridať/odobrať/upraviť triedu"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
 msgid "Add/Remove/Edit a local printer"
-msgstr "加入/移除/編輯本地端印表機"
+msgstr "Pridať/odobrať/upraviť miestnu tlačiareň"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
 msgid "Add/Remove/Edit a printer"
-msgstr "加入/移除/編輯印表機"
+msgstr "Pridať/odobrať/upraviť tlačiareň"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
 msgid "Add/Remove/Edit a remote printer"
-msgstr "加入/移除/編輯遠端印表機"
+msgstr "Pridať/odobrať/upraviť vzdialenú tlačiareň"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
 msgid "Change printer settings"
-msgstr "變更印表機設定值"
+msgstr "Zmeniť nastavenia tlačiarne"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
-msgstr "啟用/停用印表機"
+msgstr "Povoliť/zakázať tlačiareň"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
 msgid "Get list of available devices"
-msgstr "取得可用裝置的清單"
+msgstr "Získať zoznam dostupných zariadení"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
-msgstr "取得/設定伺服器設定值"
+msgstr "Získať/nastaviť predvoľby servera"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
-msgstr "需要特權才能加入/移除/編輯類別。"
+msgstr "Na pridanie/odobratie/úpravu triedy potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
-msgstr "需要特權才能加入/移除/編輯本地端印表機。"
+msgstr "Na pridanie/odobratie/úpravu miestnej tlačiarne potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
-msgstr "需要特權才能加入/移除/編輯印表機。"
+msgstr "Na pridanie/odobratie/úpravu tlačiarne potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr "需要特權才能加入/移除/編輯遠端印表機。"
+msgstr "Na pridanie/odobratie/úpravu vzdialenej tlačiarne potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr "需要特權才能變更印表機設定值。這應該只有「印表機」系統設定值面板會需要。"
+msgstr "Na zmenu nastavení tlačiarne potrebujete prístupové práva. Takéto zmeny by mali byť potrebné iba v položke Tlačiarne v Nastaveniach systému."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr "需要特權才能啟用/停用印表機或類別。"
+msgstr "Na povolenie/zakázanie tlačiarne alebo triedy potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
-msgstr "需要特權才能取得可用裝置的清單。"
+msgstr "Na získanie zoznamu dostupných zariadení potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
-msgstr "需要特權才能取得/設定伺服器設定值。"
+msgstr "Na získanie/nastavenie predvolieb servera potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr "需要特權才能重新啟動/取消/編輯另一位使用者擁有的工作。"
+msgstr "Na zastavenie/reštart/úpravu tlače iného používateľa potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
-msgstr "需要特權才能重新啟動/取消/編輯工作。"
+msgstr "Na zastavenie/reštart/úpravu tlače potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr "需要特權才能設定印表機、設定類別、設為預設印表機。"
+msgstr "Na nastavenie tlačiarne ako štandardnej potrebujete prístupové práva."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
-msgstr "重新啟動/取消/編輯工作"
+msgstr "Reštartovať/zastaviť/upraviť tlač"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
-msgstr "重新啟動/取消/編輯另一位使用者擁有的工作"
+msgstr "Reštartovať/zastaviť/upraviť tlač iného používateľa"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
-msgstr "將印表機設定為預設印表機"
+msgstr "Nastaviť tlačiareň ako štandardnú"
