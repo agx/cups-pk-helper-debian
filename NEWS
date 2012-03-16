@@ -1,4 +1,14 @@
 =============
+Version 0.2.2
+=============
+
++ Add PrinterAddOption D-Bus method. (Marek Kasik)
++ Set requesting-user-name tag in requests. (Marek Kasik)
++ Code cleanups. (Vincent)
++ Build fixes and improvements. (Vincent, Marek Kasik)
++ New/updated translations: ja, nl, sk, zh_TW.
+
+=============
 Version 0.2.1
 =============
 
