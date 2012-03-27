@@ -474,10 +474,14 @@ static void
 _cph_cups_add_printer_uri (ipp_t      *request,
                            const char *name)
 {
-        char uri[HTTP_MAX_URI + 1];
+        char *escaped_name;
+        char  uri[HTTP_MAX_URI + 1];
 
+        escaped_name = g_uri_escape_string (name, NULL, FALSE);
         g_snprintf (uri, sizeof (uri),
-                    "ipp://localhost/printers/%s", name);
+                    "ipp://localhost/printers/%s", escaped_name);
+        g_free (escaped_name);
+
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
                       "printer-uri", NULL, uri);
 }
@@ -486,10 +490,14 @@ static void
 _cph_cups_add_class_uri (ipp_t      *request,
                          const char *name)
 {
-        char uri[HTTP_MAX_URI + 1];
+        char *escaped_name;
+        char  uri[HTTP_MAX_URI + 1];
 
+        escaped_name = g_uri_escape_string (name, NULL, FALSE);
         g_snprintf (uri, sizeof (uri),
-                    "ipp://localhost/classes/%s", name);
+                    "ipp://localhost/classes/%s", escaped_name);
+        g_free (escaped_name);
+
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
                       "printer-uri", NULL, uri);
 }
@@ -1702,6 +1710,7 @@ cph_cups_class_add_printer (CphCups    *cups,
         ipp_t           *request;
         int              new_len;
         ipp_attribute_t *printer_uris;
+        char            *escaped_printer_name;
         char             printer_uri[HTTP_MAX_URI + 1];
         ipp_attribute_t *attr;
 
@@ -1736,8 +1745,10 @@ cph_cups_class_add_printer (CphCups    *cups,
         _cph_cups_add_class_uri (request, class_name);
         _cph_cups_add_requesting_user_name (request, NULL);
 
+        escaped_printer_name = g_uri_escape_string (printer_name, NULL, FALSE);
         g_snprintf (printer_uri, sizeof (printer_uri),
-                    "ipp://localhost/printers/%s", printer_name);
+                    "ipp://localhost/printers/%s", escaped_printer_name);
+        g_free (escaped_printer_name);
 
         /* new length: 1 + what we had before */
         new_len = 1;
