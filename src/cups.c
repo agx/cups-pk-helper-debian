@@ -287,23 +287,25 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         int i;
         int len;
 
+        /* Quoting http://www.cups.org/documentation.php/doc-1.1/sam.html#4_1:
+         *
+         *    The printer name must start with any printable character except
+         *    " ", "/", and "@". It can contain up to 127 letters, numbers, and
+         *    the underscore (_).
+         *
+         * The first part is a bit weird, as the second part is more
+         * restrictive. So we only consider the second part. */
+
         /* no empty string */
         if (!name || name[0] == '\0')
                 return FALSE;
 
         len = strlen (name);
-        /* no string that is too long; see comment at the beginning of the
-         * validation code block */
-        if (len > CPH_STR_MAXLEN)
+        if (len > 127)
                 return FALSE;
 
-        /* only printable characters, no space, no /, no # */
         for (i = 0; i < len; i++) {
-                if (!g_ascii_isprint (name[i]))
-                        return FALSE;
-                if (g_ascii_isspace (name[i]))
-                        return FALSE;
-                if (name[i] == '/' || name[i] == '#')
+                if (!g_ascii_isalnum (name[i]) && name[i] != '_')
                         return FALSE;
         }
 
