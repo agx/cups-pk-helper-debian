@@ -70,13 +70,15 @@ char *cph_cups_printer_get_uri (CphCups    *cups,
 gboolean cph_cups_is_printer_local (CphCups    *cups,
                                     const char *printer_name);
 
-gboolean cph_cups_file_get (CphCups    *cups,
-                            const char *resource,
-                            const char *filename);
+gboolean cph_cups_file_get (CphCups      *cups,
+                            const char   *resource,
+                            const char   *filename,
+                            unsigned int  sender_uid);
 
-gboolean cph_cups_file_put (CphCups    *cups,
-                            const char *resource,
-                            const char *filename);
+gboolean cph_cups_file_put (CphCups      *cups,
+                            const char   *resource,
+                            const char   *filename,
+                            unsigned int  sender_uid);
 
 gboolean cph_cups_server_get_settings (CphCups   *cups,
                                        GVariant **settings);

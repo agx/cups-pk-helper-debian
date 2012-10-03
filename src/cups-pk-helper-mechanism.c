@@ -559,14 +559,28 @@ cph_mechanism_file_get (CphIfaceMechanism     *object,
                         const char            *filename)
 {
         CphMechanism *mechanism = CPH_MECHANISM (object);
+        unsigned int  sender_uid;
         gboolean      ret;
 
         _cph_mechanism_emit_called (mechanism);
 
+        if (!_cph_mechanism_get_sender_uid (mechanism, context, &sender_uid)) {
+                GError *error;
+
+                error = g_error_new (CPH_MECHANISM_ERROR,
+                                     CPH_MECHANISM_ERROR_GENERAL,
+                                     "Cannot determine sender UID");
+                g_dbus_method_invocation_return_gerror (context, error);
+                g_error_free (error);
+
+                return TRUE;
+        }
+
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
 
-        ret = cph_cups_file_get (mechanism->priv->cups, resource, filename);
+        ret = cph_cups_file_get (mechanism->priv->cups,
+                                 resource, filename, sender_uid);
 
         cph_iface_mechanism_complete_file_get (
                         object, context,
@@ -581,14 +595,28 @@ cph_mechanism_file_put (CphIfaceMechanism     *object,
                         const char            *filename)
 {
         CphMechanism *mechanism = CPH_MECHANISM (object);
+        unsigned int  sender_uid;
         gboolean      ret;
 
         _cph_mechanism_emit_called (mechanism);
 
+        if (!_cph_mechanism_get_sender_uid (mechanism, context, &sender_uid)) {
+                GError *error;
+
+                error = g_error_new (CPH_MECHANISM_ERROR,
+                                     CPH_MECHANISM_ERROR_GENERAL,
+                                     "Cannot determine sender UID");
+                g_dbus_method_invocation_return_gerror (context, error);
+                g_error_free (error);
+
+                return TRUE;
+        }
+
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
 
-        ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
+        ret = cph_cups_file_put (mechanism->priv->cups,
+                                 resource, filename, sender_uid);
 
         cph_iface_mechanism_complete_file_put (
                         object, context,

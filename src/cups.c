@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <pwd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -509,6 +510,34 @@ _CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
 /******************************************************
  * Helpers
  ******************************************************/
+
+static gboolean
+_cph_cups_set_effective_id (unsigned int sender_uid)
+{
+        struct passwd *password_entry;
+
+        password_entry = getpwuid ((uid_t) sender_uid);
+
+        if (password_entry == NULL ||
+            setegid (password_entry->pw_gid) != 0)
+                return FALSE;
+
+        if (seteuid (sender_uid) != 0) {
+                if (getgid () != getegid ())
+                        setegid (getgid ());
+
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
+static void
+_cph_cups_reset_effective_id (void)
+{
+        seteuid (getuid ());
+        setegid (getgid ());
+}
 
 static void
 _cph_cups_add_printer_uri (ipp_t      *request,
@@ -1081,14 +1110,15 @@ cph_cups_is_printer_local (CphCups    *cups,
 }
 
 gboolean
-cph_cups_file_get (CphCups    *cups,
-                   const char *resource,
-                   const char *filename)
+cph_cups_file_get (CphCups      *cups,
+                   const char   *resource,
+                   const char   *filename,
+                   unsigned int  sender_uid)
 {
         http_status_t status;
+        int           fd;
         struct stat   file_stat;
-        uid_t         uid;
-        gid_t         gid;
+        char         *error;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
@@ -1097,32 +1127,67 @@ cph_cups_file_get (CphCups    *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
-        stat (filename, &file_stat);
-        uid = file_stat.st_uid;
-        gid = file_stat.st_gid;
+        if (!_cph_cups_set_effective_id (sender_uid)) {
+                error = g_strdup_printf ("Cannot check if \"%s\" is "
+                                         "writable: %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        fd = open (filename, O_WRONLY | O_NOFOLLOW | O_TRUNC);
+
+        _cph_cups_reset_effective_id ();
+
+        if (fd < 0) {
+                error = g_strdup_printf ("Cannot open \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+
+        if (fstat (fd, &file_stat) != 0) {
+                error = g_strdup_printf ("Cannot write to \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
+
+        if (!S_ISREG (file_stat.st_mode)) {
+                /* hrm, this looks suspicious... we won't help */
+                error = g_strdup_printf ("File \"%s\" is not a regular file.",
+                                         filename);
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
 
         /* reset the internal status: we'll use the http status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        status = cupsGetFile (cups->priv->connection, resource, filename);
+        status = cupsGetFd (cups->priv->connection, resource, fd);
 
         /* FIXME: There's a bug where the cups connection can fail with EPIPE.
-         * We're work-arounding it here until it's fixed in cups. */
+         * We're working around it here until it's fixed in cups. */
         if (status != HTTP_OK) {
-                if (cph_cups_reconnect (cups)) {
-                        int fd;
-
-                        /* if cupsGetFile fail, then filename is unlinked */
-                        fd = open (filename, O_CREAT, S_IRUSR | S_IWUSR);
-                        close (fd);
-                        chown (filename, uid, gid);
-
-                        _cph_cups_set_internal_status (cups, NULL);
-
-                        status = cupsGetFile (cups->priv->connection,
-                                              resource, filename);
-                }
+                if (cph_cups_reconnect (cups))
+                        status = cupsGetFd (cups->priv->connection,
+                                            resource, fd);
         }
+
+        close (fd);
 
         _cph_cups_set_internal_status_from_http (cups, status);
 
@@ -1130,11 +1195,15 @@ cph_cups_file_get (CphCups    *cups,
 }
 
 gboolean
-cph_cups_file_put (CphCups    *cups,
-                   const char *resource,
-                   const char *filename)
+cph_cups_file_put (CphCups      *cups,
+                   const char   *resource,
+                   const char   *filename,
+                   unsigned int  sender_uid)
 {
         http_status_t status;
+        int           fd;
+        struct stat   file_stat;
+        char         *error;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
@@ -1143,10 +1212,58 @@ cph_cups_file_put (CphCups    *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
+        if (!_cph_cups_set_effective_id (sender_uid)) {
+                error = g_strdup_printf ("Cannot check if \"%s\" is "
+                                         "readable: %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        fd = open (filename, O_RDONLY);
+
+        _cph_cups_reset_effective_id ();
+
+        if (fd < 0) {
+                error = g_strdup_printf ("Cannot open \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        if (fstat (fd, &file_stat) != 0) {
+                error = g_strdup_printf ("Cannot read \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
+
+        if (!S_ISREG (file_stat.st_mode)) {
+                /* hrm, this looks suspicious... we won't help */
+                error = g_strdup_printf ("File \"%s\" is not a regular file.",
+                                         filename);
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
+
         /* reset the internal status: we'll use the http status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        status = cupsPutFile (cups->priv->connection, resource, filename);
+        status = cupsPutFd (cups->priv->connection, resource, fd);
+
+        close (fd);
 
         _cph_cups_set_internal_status_from_http (cups, status);
 
