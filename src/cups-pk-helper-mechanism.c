@@ -66,7 +66,7 @@ static const GDBusErrorEntry cph_error_entries[] =
 GQuark
 cph_mechanism_error_quark (void)
 {
-        static GQuark ret = 0;
+        static gsize ret = 0;
 
         if (ret == 0) {
                 g_assert (CPH_MECHANISM_NUM_ERRORS == G_N_ELEMENTS (cph_error_entries));
