@@ -47,11 +47,7 @@
 
 #include "cups.h"
 
-#if (CUPS_VERSION_MAJOR > 1) || (CUPS_VERSION_MINOR > 5)
-#define HAVE_CUPS_1_6 1
-#endif
-
-#ifndef HAVE_CUPS_1_6
+#if (!(CUPS_VERSION_MAJOR > 1) || (CUPS_VERSION_MINOR > 5))
 #define ippGetCount(attr)     attr->num_values
 #define ippGetGroupTag(attr)  attr->group_tag
 #define ippGetValueTag(attr)  attr->value_tag
@@ -63,7 +59,8 @@ static ipp_attribute_t *
 ippFirstAttribute(ipp_t *ipp)
 {
   if (!ipp)
-    return (NULL);
+    return NULL;
+
   return (ipp->current = ipp->attrs);
 }
 
@@ -71,18 +68,20 @@ static ipp_attribute_t *
 ippNextAttribute(ipp_t *ipp)
 {
   if (!ipp || !ipp->current)
-    return (NULL);
+    return NULL;
+
   return (ipp->current = ipp->current->next);
 }
 
 static int
-ippSetString(ipp_t           *ipp,
+ippSetString(ipp_t            *ipp,
              ipp_attribute_t **attr,
-             int             element,
-             const char      *strvalue)
+             int               element,
+             const char       *strvalue)
 {
   (*attr)->values[element].string.text = (char *) strvalue;
-  return (1);
+
+  return 1;
 }
 #endif
 
@@ -1808,7 +1807,8 @@ cph_cups_class_add_printer (CphCups    *cups,
                 int i;
 
                 for (i = 0; i < ippGetCount (printer_uris); i++)
-                        ippSetString (request, &attr, i, g_strdup (ippGetString (printer_uris, i, NULL)));
+                        ippSetString (request, &attr, i,
+                                      g_strdup (ippGetString (printer_uris, i, NULL)));
         }
 
         if (reply)
@@ -1886,9 +1886,11 @@ cph_cups_class_delete_printer (CphCups    *cups,
 
         /* copy all printers from the class, except the one we remove */
         for (i = 0; i < printer_index; i++)
-                ippSetString (request, &attr, i, g_strdup (ippGetString (printer_uris, i, NULL)));
+                ippSetString (request, &attr, i,
+                              g_strdup (ippGetString (printer_uris, i, NULL)));
         for (i = printer_index + 1; i < ippGetCount (printer_uris); i++)
-                ippSetString (request, &attr, i, g_strdup (ippGetString (printer_uris, i, NULL)));
+                ippSetString (request, &attr, i,
+                              g_strdup (ippGetString (printer_uris, i, NULL)));
 
         ippDelete (reply);
 
