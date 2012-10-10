@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <grp.h>
 #include <pwd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
@@ -512,31 +513,81 @@ _CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
  ******************************************************/
 
 static gboolean
-_cph_cups_set_effective_id (unsigned int sender_uid)
+_cph_cups_set_effective_id (unsigned int   sender_uid,
+                            int           *saved_ngroups,
+                            gid_t        **saved_groups)
 {
         struct passwd *password_entry;
+        int            ngroups;
+        gid_t         *groups;
+
+        /* avoid g_assert() because we don't want to crash here */
+        if (saved_ngroups == NULL || saved_groups == NULL) {
+                g_critical ("Internal error: cannot save supplementary groups.");
+                return FALSE;
+        }
+
+        *saved_ngroups = -1;
+        *saved_groups = NULL;
+
+        ngroups = getgroups (0, NULL);
+        if (ngroups < 0)
+                return FALSE;
+
+        groups = g_new (gid_t, ngroups);
+        if (groups == NULL && ngroups > 0)
+                return FALSE;
+
+        if (getgroups (ngroups, groups) < 0) {
+                g_free (groups);
+
+                return FALSE;
+        }
 
         password_entry = getpwuid ((uid_t) sender_uid);
 
         if (password_entry == NULL ||
-            setegid (password_entry->pw_gid) != 0)
+            setegid (password_entry->pw_gid) != 0) {
+                g_free (groups);
+
                 return FALSE;
+        }
+
+        if (initgroups (password_entry->pw_name,
+                        password_entry->pw_gid) != 0) {
+                if (getgid () != getegid ())
+                        setegid (getgid ());
+
+                g_free (groups);
+
+                return FALSE;
+        }
+
 
         if (seteuid (sender_uid) != 0) {
                 if (getgid () != getegid ())
                         setegid (getgid ());
 
+                setgroups (ngroups, groups);
+                g_free (groups);
+
                 return FALSE;
         }
+
+        *saved_ngroups = ngroups;
+        *saved_groups = groups;
 
         return TRUE;
 }
 
 static void
-_cph_cups_reset_effective_id (void)
+_cph_cups_reset_effective_id (int    saved_ngroups,
+                              gid_t *saved_groups)
 {
         seteuid (getuid ());
         setegid (getgid ());
+        if (saved_ngroups >= 0)
+                setgroups (saved_ngroups, saved_groups);
 }
 
 static void
@@ -1115,6 +1166,8 @@ cph_cups_file_get (CphCups      *cups,
                    const char   *filename,
                    unsigned int  sender_uid)
 {
+        int           saved_ngroups = -1;
+        gid_t        *saved_groups = NULL;
         http_status_t status;
         int           fd;
         struct stat   file_stat;
@@ -1127,7 +1180,8 @@ cph_cups_file_get (CphCups      *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
-        if (!_cph_cups_set_effective_id (sender_uid)) {
+        if (!_cph_cups_set_effective_id (sender_uid,
+                                         &saved_ngroups, &saved_groups)) {
                 error = g_strdup_printf ("Cannot check if \"%s\" is "
                                          "writable: %s",
                                          filename, strerror (errno));
@@ -1139,7 +1193,8 @@ cph_cups_file_get (CphCups      *cups,
 
         fd = open (filename, O_WRONLY | O_NOFOLLOW | O_TRUNC);
 
-        _cph_cups_reset_effective_id ();
+        _cph_cups_reset_effective_id (saved_ngroups, saved_groups);
+        g_free (saved_groups);
 
         if (fd < 0) {
                 error = g_strdup_printf ("Cannot open \"%s\": %s",
@@ -1200,6 +1255,8 @@ cph_cups_file_put (CphCups      *cups,
                    const char   *filename,
                    unsigned int  sender_uid)
 {
+        int           saved_ngroups = -1;
+        gid_t        *saved_groups = NULL;
         http_status_t status;
         int           fd;
         struct stat   file_stat;
@@ -1212,7 +1269,8 @@ cph_cups_file_put (CphCups      *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
-        if (!_cph_cups_set_effective_id (sender_uid)) {
+        if (!_cph_cups_set_effective_id (sender_uid,
+                                         &saved_ngroups, &saved_groups)) {
                 error = g_strdup_printf ("Cannot check if \"%s\" is "
                                          "readable: %s",
                                          filename, strerror (errno));
@@ -1224,7 +1282,8 @@ cph_cups_file_put (CphCups      *cups,
 
         fd = open (filename, O_RDONLY);
 
-        _cph_cups_reset_effective_id ();
+        _cph_cups_reset_effective_id (saved_ngroups, saved_groups);
+        g_free (saved_groups);
 
         if (fd < 0) {
                 error = g_strdup_printf ("Cannot open \"%s\": %s",
