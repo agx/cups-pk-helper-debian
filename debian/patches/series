@@ -1,1 +1,2 @@
 0001-Use-g_strjoinv-instead-of-g_strjoin.patch
+0002-Honor-file-permissions-when-uploading-downloading-fi.patch

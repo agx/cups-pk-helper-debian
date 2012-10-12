@@ -1,0 +1,429 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 12 Oct 2012 22:53:47 +0200
+Subject: Honor file permissions when uploading/downloading files
+
+CVE-2012-4510
+---
+ src/cups-pk-helper-mechanism.c |   59 ++++++++++-
+ src/cups.c                     |  228 +++++++++++++++++++++++++++++++++++-----
+ src/cups.h                     |    6 +-
+ 3 files changed, 265 insertions(+), 28 deletions(-)
+
+diff --git a/src/cups-pk-helper-mechanism.c b/src/cups-pk-helper-mechanism.c
+index eee5735..5442e6f 100644
+--- a/src/cups-pk-helper-mechanism.c
++++ b/src/cups-pk-helper-mechanism.c
+@@ -32,6 +32,9 @@
+ 
+ #include <stdlib.h>
+ #include <stdio.h>
++#ifndef __USE_GNU
++#define __USE_GNU
++#endif
+ #include <fcntl.h>
+ #include <unistd.h>
+ #include <string.h>
+@@ -421,6 +424,30 @@ _cph_mechanism_get_action_for_name (CphMechanism *mechanism,
+         return "printer-remote-edit";
+ }
+ 
++
++static gboolean
++_cph_mechanism_get_callers_uid (CphMechanism          *mechanism,
++                                DBusGMethodInvocation *context,
++                                unsigned int          *uid)
++{
++        unsigned long  sender_uid;
++        DBusError      dbus_error;
++        gchar         *sender;
++
++        sender = dbus_g_method_get_sender (context);
++        dbus_error_init (&dbus_error);
++        sender_uid = dbus_bus_get_unix_user (
++                        dbus_g_connection_get_connection (
++                                      mechanism->priv->system_bus_connection),
++                        sender, &dbus_error);
++        if (sender_uid == ((unsigned int)-1))
++                return FALSE;
++
++        *uid = sender_uid;
++        return TRUE;
++}
++
++
+ static char *
+ _cph_mechanism_get_callers_user_name (CphMechanism          *mechanism,
+                                       DBusGMethodInvocation *context)
+@@ -491,14 +518,28 @@ cph_mechanism_file_get (CphMechanism          *mechanism,
+                         const char            *filename,
+                         DBusGMethodInvocation *context)
+ {
++        unsigned int sender_uid;
+         gboolean ret;
+ 
+         reset_killtimer (mechanism);
+ 
++        if (!_cph_mechanism_get_callers_uid (mechanism, context, &sender_uid)) {
++                GError *error;
++
++                error = g_error_new (CPH_MECHANISM_ERROR,
++                                     CPH_MECHANISM_ERROR_GENERAL,
++                                     "Cannot determine sender UID");
++                dbus_g_method_return_error (context, error);
++                g_error_free (error);
++                return;
++        }
++
+         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
+                 return;
+ 
+-        ret = cph_cups_file_get (mechanism->priv->cups, resource, filename);
++        ret = cph_cups_file_get (mechanism->priv->cups,
++                                 resource, filename, sender_uid);
++
+         _cph_mechanism_return_error (mechanism, context, !ret);
+ }
+ 
+@@ -508,6 +549,7 @@ cph_mechanism_file_put (CphMechanism          *mechanism,
+                         const char            *filename,
+                         DBusGMethodInvocation *context)
+ {
++        unsigned int sender_uid;
+         gboolean ret;
+ 
+         reset_killtimer (mechanism);
+@@ -515,7 +557,20 @@ cph_mechanism_file_put (CphMechanism          *mechanism,
+         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
+                 return;
+ 
+-        ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
++        if (!_cph_mechanism_get_callers_uid (mechanism, context, &sender_uid)) {
++                GError *error;
++
++                error = g_error_new (CPH_MECHANISM_ERROR,
++                                     CPH_MECHANISM_ERROR_GENERAL,
++                                     "Cannot determine sender UID");
++                dbus_g_method_return_error (context, error);
++                g_error_free (error);
++                return;
++        }
++
++        ret = cph_cups_file_put (mechanism->priv->cups,
++                                 resource, filename, sender_uid);
++
+         _cph_mechanism_return_error (mechanism, context, !ret);
+ }
+ 
+diff --git a/src/cups.c b/src/cups.c
+index 4df9945..4f12a94 100644
+--- a/src/cups.c
++++ b/src/cups.c
+@@ -25,9 +25,14 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
++#ifndef __USE_GNU
++#define __USE_GNU
++#endif
+ #include <fcntl.h>
+ #include <errno.h>
+ #include <ctype.h>
++#include <grp.h>
++#include <pwd.h>
+ #include <sys/wait.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+@@ -468,6 +473,84 @@ _CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
+  * Helpers
+  ******************************************************/
+ 
++static gboolean
++_cph_cups_set_effective_id (unsigned int sender_uid,
++                            int         *saved_ngroups,
++                            gid_t      **saved_groups)
++
++{
++        struct passwd *password_entry;
++        int            ngroups;
++        gid_t         *groups;
++
++        /* avoid g_assert() because we don't want to crash here */
++        if (saved_ngroups == NULL || saved_groups == NULL) {
++                g_critical ("Internal error: cannot save supplementary groups.");
++                return FALSE;
++        }
++
++        *saved_ngroups = -1;
++        *saved_groups = NULL;
++
++        ngroups = getgroups (0, NULL);
++        if (ngroups < 0)
++                return FALSE;
++
++        groups = g_new (gid_t, ngroups);
++        if (groups == NULL && ngroups > 0)
++                return FALSE;
++
++        if (getgroups (ngroups, groups) < 0) {
++                g_free (groups);
++
++                return FALSE;
++        }
++
++        password_entry = getpwuid ((uid_t) sender_uid);
++
++        if (password_entry == NULL ||
++            setegid (password_entry->pw_gid) != 0) {
++                g_free (groups);
++
++                return FALSE;
++        }
++
++        if (initgroups (password_entry->pw_name,
++                        password_entry->pw_gid) != 0) {
++                if (getgid () != getegid ())
++                        setegid (getgid ());
++
++                g_free (groups);
++
++                return FALSE;
++        }
++
++        if (seteuid (sender_uid) != 0) {
++                if (getgid () != getegid ())
++                        setegid (getgid ());
++
++                setgroups (ngroups, groups);
++                g_free (groups);
++
++                return FALSE;
++        }
++
++        *saved_ngroups = ngroups;
++        *saved_groups = groups;
++
++        return TRUE;
++}
++
++static void
++_cph_cups_reset_effective_id (int    saved_ngroups,
++                              gid_t *saved_groups)
++{
++        seteuid (getuid ());
++        setegid (getgid ());
++        if (saved_ngroups >= 0)
++                setgroups (saved_ngroups, saved_groups);
++}
++
+ static void
+ _cph_cups_add_printer_uri (ipp_t      *request,
+                            const char *name)
+@@ -995,11 +1078,14 @@ cph_cups_is_printer_local (CphCups    *cups,
+ gboolean
+ cph_cups_file_get (CphCups    *cups,
+                    const char *resource,
+-                   const char *filename)
++                   const char *filename,
++                   unsigned int sender_uid)
+ {
++        int         saved_ngroups = -1;
++        gid_t      *saved_groups = NULL;
+         struct stat file_stat;
+-        uid_t       uid;
+-        gid_t       gid;
++        int         fd;
++        char         *error;
+ 
+         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+ 
+@@ -1008,34 +1094,71 @@ cph_cups_file_get (CphCups    *cups,
+         if (!_cph_cups_is_filename_valid (cups, filename))
+                 return FALSE;
+ 
+-        stat (filename, &file_stat);
+-        uid = file_stat.st_uid;
+-        gid = file_stat.st_gid;
++        if (!_cph_cups_set_effective_id (sender_uid,
++                                         &saved_ngroups, &saved_groups)) {
++                error = g_strdup_printf ("Cannot check if \"%s\" is "
++                                         "writable: %s",
++                                         filename, strerror (errno));
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                return FALSE;
++        }
++
++        fd = open (filename, O_WRONLY | O_NOFOLLOW | O_TRUNC);
++
++        _cph_cups_reset_effective_id (saved_ngroups, saved_groups);
++        g_free (saved_groups);
++
++        if (fd < 0) {
++                error = g_strdup_printf ("Cannot open \"%s\": %s",
++                                         filename, strerror (errno));
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                return FALSE;
++        }
++
++
++        if (fstat (fd, &file_stat) != 0) {
++                error = g_strdup_printf ("Cannot write to \"%s\": %s",
++                                         filename, strerror (errno));
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                close (fd);
++
++                return FALSE;
++        }
++
++        if (!S_ISREG (file_stat.st_mode)) {
++                /* hrm, this looks suspicious... we won't help */
++                error = g_strdup_printf ("File \"%s\" is not a regular file.",
++                                         filename);
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                close (fd);
++
++                return FALSE;
++        }
+ 
+         /* reset the internal status: we'll use the cups status */
+         _cph_cups_set_internal_status (cups, NULL);
+ 
+-        cups->priv->last_status = cupsGetFile (cups->priv->connection,
+-                                               resource, filename);
++        cups->priv->last_status = cupsGetFd (cups->priv->connection,
++                                             resource, fd);
+ 
+         /* FIXME: There's a bug where the cups connection can fail with EPIPE.
+          * We're work-arounding it here until it's fixed in cups. */
+         if (cups->priv->last_status != HTTP_OK) {
+-                if (cph_cups_reconnect (cups)) {
+-                        int fd;
+-
+-                        /* if cupsGetFile fail, then filename is unlinked */
+-                        fd = open (filename, O_CREAT, S_IRUSR | S_IWUSR);
+-                        close (fd);
+-                        chown (filename, uid, gid);
+-
+-                        _cph_cups_set_internal_status (cups, NULL);
++                if (cph_cups_reconnect (cups))
++                        cups->priv->last_status = cupsGetFd (
++                                                      cups->priv->connection,
++                                                      resource, fd);
+ 
+-                        cups->priv->last_status = cupsGetFile (cups->priv->connection,
+-                                                               resource,
+-                                                               filename);
+-                }
+         }
++        close (fd);
+ 
+         return cups->priv->last_status == HTTP_OK;
+ }
+@@ -1043,8 +1166,15 @@ cph_cups_file_get (CphCups    *cups,
+ gboolean
+ cph_cups_file_put (CphCups    *cups,
+                    const char *resource,
+-                   const char *filename)
++                   const char *filename,
++                   unsigned int  sender_uid)
+ {
++        int           saved_ngroups = -1;
++        gid_t        *saved_groups = NULL;
++        int           fd;
++        struct stat   file_stat;
++        char         *error;
++
+         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+ 
+         if (!_cph_cups_is_resource_valid (cups, resource))
+@@ -1052,11 +1182,61 @@ cph_cups_file_put (CphCups    *cups,
+         if (!_cph_cups_is_filename_valid (cups, filename))
+                 return FALSE;
+ 
++        if (!_cph_cups_set_effective_id (sender_uid,
++                                         &saved_ngroups, &saved_groups)) {
++                error = g_strdup_printf ("Cannot check if \"%s\" is "
++                                         "readable: %s",
++                                         filename, strerror (errno));
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                return FALSE;
++        }
++
++        fd = open (filename, O_RDONLY);
++
++        _cph_cups_reset_effective_id (saved_ngroups, saved_groups);
++        g_free (saved_groups);
++
++        if (fd < 0) {
++                error = g_strdup_printf ("Cannot open \"%s\": %s",
++                                         filename, strerror (errno));
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                return FALSE;
++        }
++
++        if (fstat (fd, &file_stat) != 0) {
++                error = g_strdup_printf ("Cannot read \"%s\": %s",
++                                         filename, strerror (errno));
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                close (fd);
++
++                return FALSE;
++        }
++
++        if (!S_ISREG (file_stat.st_mode)) {
++                /* hrm, this looks suspicious... we won't help */
++                error = g_strdup_printf ("File \"%s\" is not a regular file.",
++                                         filename);
++                _cph_cups_set_internal_status (cups, error);
++                g_free (error);
++
++                close (fd);
++
++                return FALSE;
++        }
++
++
+         /* reset the internal status: we'll use the cups status */
+         _cph_cups_set_internal_status (cups, NULL);
+ 
+-        cups->priv->last_status = cupsPutFile (cups->priv->connection,
+-                                               resource, filename);
++        cups->priv->last_status = cupsPutFd (cups->priv->connection,
++                                             resource, fd);
++        close (fd);
+ 
+         /* CUPS is being restarted, so we need to reconnect */
+         cph_cups_reconnect (cups);
+diff --git a/src/cups.h b/src/cups.h
+index b68e7ce..7fcafab 100644
+--- a/src/cups.h
++++ b/src/cups.h
+@@ -72,11 +72,13 @@ gboolean cph_cups_is_printer_local (CphCups    *cups,
+ 
+ gboolean cph_cups_file_get (CphCups    *cups,
+                             const char *resource,
+-                            const char *filename);
++                            const char *filename,
++                            unsigned int sender_uid);
+ 
+ gboolean cph_cups_file_put (CphCups    *cups,
+                             const char *resource,
+-                            const char *filename);
++                            const char *filename,
++                            unsigned int sender_uid);
+ 
+ GHashTable *cph_cups_server_get_settings (CphCups *cups);
+ 

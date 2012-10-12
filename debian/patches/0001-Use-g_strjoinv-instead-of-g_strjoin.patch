@@ -1,10 +1,10 @@
 From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Mon, 26 Jul 2010 17:55:40 +0200
-Subject: [PATCH] Use g_strjoinv instead of g_strjoin
+Subject: Use g_strjoinv instead of g_strjoin
 
 ---
  src/cups.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/src/cups.c b/src/cups.c
 index e439051..4df9945 100644
@@ -25,4 +25,3 @@ index e439051..4df9945 100644
          else
                  exclude_schemes_param = g_strdup (CUPS_EXCLUDE_NONE);
  
--- 
