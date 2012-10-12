@@ -1,3 +1,17 @@
+cups-pk-helper (0.2.3-1) unstable; urgency=high
+
+  [ Alexander Kurtz ]
+  * [7812cea] Update VCS and Homepage URLs
+  * [b1da444] Upstream uses xz tarballs now
+  * [74a9c74] Update download URL
+
+  [ Guido Günther ]
+  * [1e5ae4e] New upstream version 0.2.3
+    This fixes CVE-2012-4510. Set urgency to high as discussed with the
+    security team.
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 12 Oct 2012 17:32:31 +0200
+
 cups-pk-helper (0.2.1.2-1) unstable; urgency=low
 
   * Upload to unstable. The tarball is identical to 0.2.1.
