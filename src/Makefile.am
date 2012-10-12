@@ -83,3 +83,5 @@ CLEANFILES = 			\
 	$(BUILT_SOURCES)	\
 	$(polkit_DATA)		\
 	$(dbus_services_DATA)
+
+-include $(top_srcdir)/git.mk

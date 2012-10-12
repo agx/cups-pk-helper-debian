@@ -28,6 +28,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <grp.h>
+#include <pwd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -43,8 +45,47 @@
 #include <cups/cups.h>
 #include <cups/http.h>
 #include <cups/ipp.h>
+#include <cups/ppd.h>
 
 #include "cups.h"
+
+#if (!(CUPS_VERSION_MAJOR > 1) || (CUPS_VERSION_MINOR > 5))
+#define ippGetCount(attr)     attr->num_values
+#define ippGetGroupTag(attr)  attr->group_tag
+#define ippGetValueTag(attr)  attr->value_tag
+#define ippGetName(attr)      attr->name
+#define ippGetStatusCode(ipp) ipp->request.status.status_code
+#define ippGetString(attr, element, language) attr->values[element].string.text
+
+static ipp_attribute_t *
+ippFirstAttribute(ipp_t *ipp)
+{
+  if (!ipp)
+    return NULL;
+
+  return (ipp->current = ipp->attrs);
+}
+
+static ipp_attribute_t *
+ippNextAttribute(ipp_t *ipp)
+{
+  if (!ipp || !ipp->current)
+    return NULL;
+
+  return (ipp->current = ipp->current->next);
+}
+
+static int
+ippSetString(ipp_t            *ipp,
+             ipp_attribute_t **attr,
+             int               element,
+             const char       *strvalue)
+{
+  (*attr)->values[element].string.text = (char *) strvalue;
+
+  return 1;
+}
+#endif
 
 /* This is 0.1 second */
 #define RECONNECT_DELAY        100000
@@ -286,23 +327,25 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         int i;
         int len;
 
+        /* Quoting http://www.cups.org/documentation.php/doc-1.1/sam.html#4_1:
+         *
+         *    The printer name must start with any printable character except
+         *    " ", "/", and "@". It can contain up to 127 letters, numbers, and
+         *    the underscore (_).
+         *
+         * The first part is a bit weird, as the second part is more
+         * restrictive. So we only consider the second part. */
+
         /* no empty string */
         if (!name || name[0] == '\0')
                 return FALSE;
 
         len = strlen (name);
-        /* no string that is too long; see comment at the beginning of the
-         * validation code block */
-        if (len > CPH_STR_MAXLEN)
+        if (len > 127)
                 return FALSE;
 
-        /* only printable characters, no space, no /, no # */
         for (i = 0; i < len; i++) {
-                if (!g_ascii_isprint (name[i]))
-                        return FALSE;
-                if (g_ascii_isspace (name[i]))
-                        return FALSE;
-                if (name[i] == '/' || name[i] == '#')
+                if (!g_ascii_isalnum (name[i]) && name[i] != '_')
                         return FALSE;
         }
 
@@ -469,14 +512,96 @@ _CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
  * Helpers
  ******************************************************/
 
+static gboolean
+_cph_cups_set_effective_id (unsigned int   sender_uid,
+                            int           *saved_ngroups,
+                            gid_t        **saved_groups)
+{
+        struct passwd *password_entry;
+        int            ngroups;
+        gid_t         *groups;
+
+        /* avoid g_assert() because we don't want to crash here */
+        if (saved_ngroups == NULL || saved_groups == NULL) {
+                g_critical ("Internal error: cannot save supplementary groups.");
+                return FALSE;
+        }
+
+        *saved_ngroups = -1;
+        *saved_groups = NULL;
+
+        ngroups = getgroups (0, NULL);
+        if (ngroups < 0)
+                return FALSE;
+
+        groups = g_new (gid_t, ngroups);
+        if (groups == NULL && ngroups > 0)
+                return FALSE;
+
+        if (getgroups (ngroups, groups) < 0) {
+                g_free (groups);
+
+                return FALSE;
+        }
+
+        password_entry = getpwuid ((uid_t) sender_uid);
+
+        if (password_entry == NULL ||
+            setegid (password_entry->pw_gid) != 0) {
+                g_free (groups);
+
+                return FALSE;
+        }
+
+        if (initgroups (password_entry->pw_name,
+                        password_entry->pw_gid) != 0) {
+                if (getgid () != getegid ())
+                        setegid (getgid ());
+
+                g_free (groups);
+
+                return FALSE;
+        }
+
+
+        if (seteuid (sender_uid) != 0) {
+                if (getgid () != getegid ())
+                        setegid (getgid ());
+
+                setgroups (ngroups, groups);
+                g_free (groups);
+
+                return FALSE;
+        }
+
+        *saved_ngroups = ngroups;
+        *saved_groups = groups;
+
+        return TRUE;
+}
+
+static void
+_cph_cups_reset_effective_id (int    saved_ngroups,
+                              gid_t *saved_groups)
+{
+        seteuid (getuid ());
+        setegid (getgid ());
+        if (saved_ngroups >= 0)
+                setgroups (saved_ngroups, saved_groups);
+}
+
 static void
 _cph_cups_add_printer_uri (ipp_t      *request,
                            const char *name)
 {
-        char uri[HTTP_MAX_URI + 1];
+        char *escaped_name;
+        char  uri[HTTP_MAX_URI + 1];
 
+        escaped_name = g_uri_escape_string (name, NULL, FALSE);
         g_snprintf (uri, sizeof (uri),
-                    "ipp://localhost/printers/%s", name);
+                    "ipp://localhost/printers/%s", escaped_name);
+        g_free (escaped_name);
+
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
                       "printer-uri", NULL, uri);
 }
@@ -485,10 +610,14 @@ static void
 _cph_cups_add_class_uri (ipp_t      *request,
                          const char *name)
 {
-        char uri[HTTP_MAX_URI + 1];
+        char *escaped_name;
+        char  uri[HTTP_MAX_URI + 1];
 
+        escaped_name = g_uri_escape_string (name, NULL, FALSE);
         g_snprintf (uri, sizeof (uri),
-                    "ipp://localhost/classes/%s", name);
+                    "ipp://localhost/classes/%s", escaped_name);
+        g_free (escaped_name);
+
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
                       "printer-uri", NULL, uri);
 }
@@ -503,6 +632,18 @@ _cph_cups_add_job_uri (ipp_t      *request,
                     "ipp://localhost/jobs/%d", job_id);
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
                       "job-uri", NULL, uri);
+}
+
+static void
+_cph_cups_add_requesting_user_name (ipp_t      *request,
+                                    const char *username)
+{
+        if (username)
+                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                              "requesting-user-name", NULL, username);
+        else
+                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
+                              "requesting-user-name", NULL, cupsUser ());
 }
 
 static void
@@ -537,7 +678,7 @@ _cph_cups_set_error_from_reply (CphCups *cups,
                                 ipp_t   *reply)
 {
         if (reply)
-                cups->priv->last_status = reply->request.status.status_code;
+                cups->priv->last_status = ippGetStatusCode (reply);
         else
                 cups->priv->last_status = cupsLastError ();
 }
@@ -550,7 +691,7 @@ _cph_cups_is_reply_ok (CphCups  *cups,
         /* reset the internal status: we'll use the cups status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        if (reply && reply->request.status.status_code <= IPP_OK_CONFLICT) {
+        if (reply && ippGetStatusCode (reply) <= IPP_OK_CONFLICT) {
                 cups->priv->last_status = IPP_OK;
                 return TRUE;
         } else {
@@ -647,6 +788,7 @@ _cph_cups_send_new_simple_request (CphCups     *cups,
 
         request = ippNewRequest (op);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -664,6 +806,7 @@ _cph_cups_send_new_simple_class_request (CphCups     *cups,
 
         request = ippNewRequest (op);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -680,6 +823,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddString (request, group, type, name, NULL, value);
 
         if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN))
@@ -691,6 +835,7 @@ _cph_cups_send_new_printer_class_request (CphCups     *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddString (request, group, type, name, NULL, value);
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
@@ -709,8 +854,7 @@ _cph_cups_send_new_simple_job_request (CphCups     *cups,
         _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
-                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                              "requesting-user-name", NULL, user_name);
+                _cph_cups_add_requesting_user_name (request, user_name);
 
         return _cph_cups_send_request (cups, request, resource);
 }
@@ -731,8 +875,7 @@ _cph_cups_send_new_job_attributes_request (CphCups     *cups,
         _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
-                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                              "requesting-user-name", NULL, user_name);
+                _cph_cups_add_requesting_user_name (request, user_name);
 
         num_options = cupsAddOption (name, value,
                                      num_options, &options);
@@ -742,28 +885,28 @@ _cph_cups_send_new_job_attributes_request (CphCups     *cups,
 }
 
 static const char *
-_cph_cups_get_attribute_string (ipp_attribute_t *attrs,
+_cph_cups_get_attribute_string (ipp_t           *reply,
                                 ipp_tag_t        group,
                                 const char      *name,
                                 ipp_tag_t        type)
 {
         ipp_attribute_t *attr;
 
-        for (attr = attrs; attr; attr = attr->next) {
-                while (attr && attr->group_tag != group)
-                        attr = attr->next;
+        for (attr = ippFirstAttribute (reply); attr; attr = ippNextAttribute (reply)) {
+                while (attr && ippGetGroupTag (attr) != group)
+                        attr = ippNextAttribute (reply);
 
                 if (attr == NULL)
                         break;
 
-                while (attr && attr->group_tag == group) {
-                        if (attr->name &&
-                            strcmp (attr->name, name) == 0 &&
-                            attr->value_tag == type) {
-                                return attr->values[0].string.text;
+                while (attr && ippGetGroupTag (attr) == group) {
+                        if (ippGetName (attr) &&
+                            strcmp (ippGetName (attr), name) == 0 &&
+                            ippGetValueTag (attr) == type) {
+                                return ippGetString (attr, 0, NULL);
                         }
 
-                        attr = attr->next;
+                        attr = ippNextAttribute (reply);
                 }
 
                 if (attr == NULL)
@@ -793,6 +936,7 @@ _cph_cups_class_has_printer (CphCups     *cups,
 
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         internal_reply = cupsDoRequest (cups->priv->connection,
                                         request, resource_char);
@@ -806,8 +950,8 @@ _cph_cups_class_has_printer (CphCups     *cups,
         if (!printer_names)
                 goto out;
 
-        for (i = 0; i < printer_names->num_values; i++) {
-                if (!g_ascii_strcasecmp (printer_names->values[i].string.text,
+        for (i = 0; i < ippGetCount (printer_names); i++) {
+                if (!g_ascii_strcasecmp (ippGetString (printer_names, i, NULL),
                                          printer_name)) {
                         retval = i;
                         break;
@@ -847,10 +991,11 @@ _cph_cups_printer_class_set_users (CphCups           *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                               request_name, len ? len : 1, NULL, NULL);
         if (len == 0)
-                attr->values[0].string.text = g_strdup (default_value);
+                ippSetString (request, &attr, 0, g_strdup (default_value));
         else {
                 int i, j;
                 for (i = 0, j = 0; i < real_len && j < len; i++) {
@@ -858,7 +1003,7 @@ _cph_cups_printer_class_set_users (CphCups           *cups,
                         if (users[i][0] == '\0')
                                 continue;
 
-                        attr->values[j].string.text = g_strdup (users[i]);
+                        ippSetString (request, &attr, j, g_strdup (users[i]));
                         j++;
                 }
         }
@@ -872,10 +1017,11 @@ _cph_cups_printer_class_set_users (CphCups           *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                               request_name, len ? len : 1, NULL, NULL);
         if (len == 0)
-                attr->values[0].string.text = g_strdup (default_value);
+                ippSetString (request, &attr, 0, g_strdup (default_value));
         else {
                 int i, j;
                 for (i = 0, j = 0; i < real_len && j < len; i++) {
@@ -883,7 +1029,7 @@ _cph_cups_printer_class_set_users (CphCups           *cups,
                         if (users[i][0] == '\0')
                                 continue;
 
-                        attr->values[j].string.text = g_strdup (users[i]);
+                        ippSetString (request, &attr, j, g_strdup (users[i]));
                         j++;
                 }
         }
@@ -923,6 +1069,7 @@ cph_cups_is_class (CphCups    *cups,
 
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_class_uri (request, name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
                        "requested-attributes", 1, NULL, attrs);
 
@@ -962,6 +1109,7 @@ cph_cups_printer_get_uri (CphCups    *cups,
 
         request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
                        "requested-attributes", 1, NULL, attrs);
 
@@ -972,7 +1120,7 @@ cph_cups_printer_get_uri (CphCups    *cups,
         if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return NULL;
 
-        const_uri = _cph_cups_get_attribute_string (reply->attrs, IPP_TAG_PRINTER,
+        const_uri = _cph_cups_get_attribute_string (reply, IPP_TAG_PRINTER,
                                                     attrs[0], IPP_TAG_URI);
 
         uri = NULL;
@@ -1013,14 +1161,17 @@ cph_cups_is_printer_local (CphCups    *cups,
 }
 
 gboolean
-cph_cups_file_get (CphCups    *cups,
-                   const char *resource,
-                   const char *filename)
+cph_cups_file_get (CphCups      *cups,
+                   const char   *resource,
+                   const char   *filename,
+                   unsigned int  sender_uid)
 {
+        int           saved_ngroups = -1;
+        gid_t        *saved_groups = NULL;
         http_status_t status;
+        int           fd;
         struct stat   file_stat;
-        uid_t         uid;
-        gid_t         gid;
+        char         *error;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
@@ -1029,32 +1180,69 @@ cph_cups_file_get (CphCups    *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
-        stat (filename, &file_stat);
-        uid = file_stat.st_uid;
-        gid = file_stat.st_gid;
+        if (!_cph_cups_set_effective_id (sender_uid,
+                                         &saved_ngroups, &saved_groups)) {
+                error = g_strdup_printf ("Cannot check if \"%s\" is "
+                                         "writable: %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        fd = open (filename, O_WRONLY | O_NOFOLLOW | O_TRUNC);
+
+        _cph_cups_reset_effective_id (saved_ngroups, saved_groups);
+        g_free (saved_groups);
+
+        if (fd < 0) {
+                error = g_strdup_printf ("Cannot open \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+
+        if (fstat (fd, &file_stat) != 0) {
+                error = g_strdup_printf ("Cannot write to \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
+
+        if (!S_ISREG (file_stat.st_mode)) {
+                /* hrm, this looks suspicious... we won't help */
+                error = g_strdup_printf ("File \"%s\" is not a regular file.",
+                                         filename);
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
 
         /* reset the internal status: we'll use the http status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        status = cupsGetFile (cups->priv->connection, resource, filename);
+        status = cupsGetFd (cups->priv->connection, resource, fd);
 
         /* FIXME: There's a bug where the cups connection can fail with EPIPE.
-         * We're work-arounding it here until it's fixed in cups. */
+         * We're working around it here until it's fixed in cups. */
         if (status != HTTP_OK) {
-                if (cph_cups_reconnect (cups)) {
-                        int fd;
-
-                        /* if cupsGetFile fail, then filename is unlinked */
-                        fd = open (filename, O_CREAT, S_IRUSR | S_IWUSR);
-                        close (fd);
-                        chown (filename, uid, gid);
-
-                        _cph_cups_set_internal_status (cups, NULL);
-
-                        status = cupsGetFile (cups->priv->connection,
-                                              resource, filename);
-                }
+                if (cph_cups_reconnect (cups))
+                        status = cupsGetFd (cups->priv->connection,
+                                            resource, fd);
         }
+
+        close (fd);
 
         _cph_cups_set_internal_status_from_http (cups, status);
 
@@ -1062,11 +1250,17 @@ cph_cups_file_get (CphCups    *cups,
 }
 
 gboolean
-cph_cups_file_put (CphCups    *cups,
-                   const char *resource,
-                   const char *filename)
+cph_cups_file_put (CphCups      *cups,
+                   const char   *resource,
+                   const char   *filename,
+                   unsigned int  sender_uid)
 {
+        int           saved_ngroups = -1;
+        gid_t        *saved_groups = NULL;
         http_status_t status;
+        int           fd;
+        struct stat   file_stat;
+        char         *error;
 
         g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
 
@@ -1075,10 +1269,60 @@ cph_cups_file_put (CphCups    *cups,
         if (!_cph_cups_is_filename_valid (cups, filename))
                 return FALSE;
 
+        if (!_cph_cups_set_effective_id (sender_uid,
+                                         &saved_ngroups, &saved_groups)) {
+                error = g_strdup_printf ("Cannot check if \"%s\" is "
+                                         "readable: %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        fd = open (filename, O_RDONLY);
+
+        _cph_cups_reset_effective_id (saved_ngroups, saved_groups);
+        g_free (saved_groups);
+
+        if (fd < 0) {
+                error = g_strdup_printf ("Cannot open \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                return FALSE;
+        }
+
+        if (fstat (fd, &file_stat) != 0) {
+                error = g_strdup_printf ("Cannot read \"%s\": %s",
+                                         filename, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
+
+        if (!S_ISREG (file_stat.st_mode)) {
+                /* hrm, this looks suspicious... we won't help */
+                error = g_strdup_printf ("File \"%s\" is not a regular file.",
+                                         filename);
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                close (fd);
+
+                return FALSE;
+        }
+
         /* reset the internal status: we'll use the http status */
         _cph_cups_set_internal_status (cups, NULL);
 
-        status = cupsPutFile (cups->priv->connection, resource, filename);
+        status = cupsPutFd (cups->priv->connection, resource, fd);
+
+        close (fd);
 
         _cph_cups_set_internal_status_from_http (cups, status);
 
@@ -1331,7 +1575,7 @@ _cph_cups_devices_get_old (CphCups           *cups,
                 attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
                                       "include-schemes", len_include, NULL, NULL);
                 for (i = 0; i < len_include; i++)
-                        attr->values[i].string.text = g_strdup (include_schemes[i]);
+                        ippSetString (request, &attr, i, g_strdup (include_schemes[i]));
         }
 
         if (exclude_schemes && len_exclude > 0) {
@@ -1340,7 +1584,7 @@ _cph_cups_devices_get_old (CphCups           *cups,
                 attr = ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
                                       "exclude-schemes", len_exclude, NULL, NULL);
                 for (i = 0; i < len_exclude; i++)
-                        attr->values[i].string.text = g_strdup (exclude_schemes[i]);
+                        ippSetString (request, &attr, i, g_strdup (exclude_schemes[i]));
         }
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
@@ -1350,9 +1594,9 @@ _cph_cups_devices_get_old (CphCups           *cups,
         if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return FALSE;
 
-        for (attr = reply->attrs; attr; attr = attr->next) {
-                while (attr && attr->group_tag != IPP_TAG_PRINTER)
-                        attr = attr->next;
+        for (attr = ippFirstAttribute (reply); attr; attr = ippNextAttribute (reply)) {
+                while (attr && ippGetGroupTag (attr) != IPP_TAG_PRINTER)
+                        attr = ippNextAttribute (reply);
 
                 if (attr == NULL)
                         break;
@@ -1364,29 +1608,29 @@ _cph_cups_devices_get_old (CphCups           *cups,
                 device_make_and_model = NULL;
                 device_uri            = NULL;
 
-                while (attr && attr->group_tag == IPP_TAG_PRINTER) {
-                        if (attr->name == NULL)
+                while (attr && ippGetGroupTag (attr) == IPP_TAG_PRINTER) {
+                        if (ippGetName (attr) == NULL)
                                 /* nothing, just skip */;
-                        else if (strcmp (attr->name, "device-class") == 0 &&
-                                 attr->value_tag == IPP_TAG_KEYWORD)
-                                device_class = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-id") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_id = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-info") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_info = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-location") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_location = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-make-and-model") == 0 &&
-                                 attr->value_tag == IPP_TAG_TEXT)
-                                device_make_and_model = g_strdup (attr->values[0].string.text);
-                        else if (strcmp (attr->name, "device-uri") == 0 &&
-                                 attr->value_tag == IPP_TAG_URI)
-                                device_uri = g_strdup (attr->values[0].string.text);
+                        else if (strcmp (ippGetName (attr), "device-class") == 0 &&
+                                 ippGetValueTag (attr) == IPP_TAG_KEYWORD)
+                                device_class = g_strdup (ippGetString (attr, 0, NULL));
+                        else if (strcmp (ippGetName (attr), "device-id") == 0 &&
+                                 ippGetValueTag (attr) == IPP_TAG_TEXT)
+                                device_id = g_strdup (ippGetString (attr, 0, NULL));
+                        else if (strcmp (ippGetName (attr), "device-info") == 0 &&
+                                 ippGetValueTag (attr) == IPP_TAG_TEXT)
+                                device_info = g_strdup (ippGetString (attr, 0, NULL));
+                        else if (strcmp (ippGetName (attr), "device-location") == 0 &&
+                                 ippGetValueTag (attr) == IPP_TAG_TEXT)
+                                device_location = g_strdup (ippGetString (attr, 0, NULL));
+                        else if (strcmp (ippGetName (attr), "device-make-and-model") == 0 &&
+                                 ippGetValueTag (attr) == IPP_TAG_TEXT)
+                                device_make_and_model = g_strdup (ippGetString (attr, 0, NULL));
+                        else if (strcmp (ippGetName (attr), "device-uri") == 0 &&
+                                 ippGetValueTag (attr) == IPP_TAG_URI)
+                                device_uri = g_strdup (ippGetString (attr, 0, NULL));
 
-                        attr = attr->next;
+                        attr = ippNextAttribute (reply);
                 }
 
                 if (device_uri)
@@ -1498,6 +1742,7 @@ cph_cups_printer_add (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
@@ -1547,6 +1792,7 @@ cph_cups_printer_add_with_ppd_file (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                       "printer-name", NULL, printer_name);
@@ -1625,6 +1871,7 @@ cph_cups_printer_set_uri (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                       "device-uri", NULL, printer_uri);
@@ -1658,6 +1905,7 @@ cph_cups_printer_set_accept_jobs (CphCups    *cups,
         /* !accept */
         request = ippNewRequest (CUPS_REJECT_JOBS);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         if (reason && reason[0] == '\0')
                 ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_TEXT,
@@ -1678,6 +1926,7 @@ cph_cups_class_add_printer (CphCups    *cups,
         ipp_t           *request;
         int              new_len;
         ipp_attribute_t *printer_uris;
+        char            *escaped_printer_name;
         char             printer_uri[HTTP_MAX_URI + 1];
         ipp_attribute_t *attr;
 
@@ -1710,9 +1959,12 @@ cph_cups_class_add_printer (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_CLASS);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
+        escaped_printer_name = g_uri_escape_string (printer_name, NULL, FALSE);
         g_snprintf (printer_uri, sizeof (printer_uri),
-                    "ipp://localhost/printers/%s", printer_name);
+                    "ipp://localhost/printers/%s", escaped_printer_name);
+        g_free (escaped_printer_name);
 
         /* new length: 1 + what we had before */
         new_len = 1;
@@ -1720,7 +1972,7 @@ cph_cups_class_add_printer (CphCups    *cups,
                 printer_uris = ippFindAttribute (reply,
                                                  "member-uris", IPP_TAG_URI);
                 if (printer_uris)
-                        new_len += printer_uris->num_values;
+                        new_len += ippGetCount (printer_uris);
         } else
                 printer_uris = NULL;
 
@@ -1730,14 +1982,15 @@ cph_cups_class_add_printer (CphCups    *cups,
         if (printer_uris) {
                 int i;
 
-                for (i = 0; i < printer_uris->num_values; i++)
-                        attr->values[i].string.text = g_strdup (printer_uris->values[i].string.text);
+                for (i = 0; i < ippGetCount (printer_uris); i++)
+                        ippSetString (request, &attr, i,
+                                      g_strdup (ippGetString (printer_uris, i, NULL)));
         }
 
         if (reply)
                 ippDelete (reply);
 
-        attr->values[new_len - 1].string.text = g_strdup (printer_uri);
+        ippSetString (request, &attr, new_len - 1, g_strdup (printer_uri));
 
         return _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 }
@@ -1789,7 +2042,7 @@ cph_cups_class_delete_printer (CphCups    *cups,
         printer_uris = ippFindAttribute (reply,
                                          "member-uris", IPP_TAG_URI);
         if (printer_uris)
-                new_len += printer_uris->num_values;
+                new_len += ippGetCount (printer_uris);
 
         /* empty class: we delete it */
         if (new_len <= 0) {
@@ -1801,6 +2054,7 @@ cph_cups_class_delete_printer (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_CLASS);
         _cph_cups_add_class_uri (request, class_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_URI,
                               "member-uris", new_len,
@@ -1808,9 +2062,11 @@ cph_cups_class_delete_printer (CphCups    *cups,
 
         /* copy all printers from the class, except the one we remove */
         for (i = 0; i < printer_index; i++)
-                attr->values[i].string.text = g_strdup (printer_uris->values[i].string.text);
-        for (i = printer_index + 1; i < printer_uris->num_values; i++)
-                attr->values[i].string.text = g_strdup (printer_uris->values[i].string.text);
+                ippSetString (request, &attr, i,
+                              g_strdup (ippGetString (printer_uris, i, NULL)));
+        for (i = printer_index + 1; i < ippGetCount (printer_uris); i++)
+                ippSetString (request, &attr, i,
+                              g_strdup (ippGetString (printer_uris, i, NULL)));
 
         ippDelete (reply);
 
@@ -1882,6 +2138,7 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddBoolean (request, IPP_TAG_OPERATION,
                        "printer-is-shared", shared ? 1 : 0);
 
@@ -1894,6 +2151,7 @@ cph_cups_printer_class_set_shared (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddBoolean (request, IPP_TAG_OPERATION,
                        "printer-is-shared", shared ? 1 : 0);
 
@@ -1920,6 +2178,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
         _cph_cups_add_printer_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                        "job-sheets-default", 2, NULL, values);
 
@@ -1932,6 +2191,7 @@ cph_cups_printer_class_set_job_sheets (CphCups    *cups,
 
         request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
         _cph_cups_add_class_uri (request, printer_name);
+        _cph_cups_add_requesting_user_name (request, NULL);
         ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
                        "job-sheets-default", 2, NULL, values);
 
@@ -2039,6 +2299,7 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
                                            const char        *option,
                                            const char *const *values)
 {
+        gboolean         is_class;
         char            *option_name;
         int              len;
         ipp_t           *request;
@@ -2080,9 +2341,17 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
         }
 
         /* set default value for option */
+        is_class = cph_cups_is_class (cups, printer_name);
 
-        request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
-        _cph_cups_add_printer_uri (request, printer_name);
+        if (is_class) {
+                request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
+                _cph_cups_add_class_uri (request, printer_name);
+        } else {
+                request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
+                _cph_cups_add_printer_uri (request, printer_name);
+        }
+
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         if (len == 1)
                 ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
@@ -2094,40 +2363,241 @@ cph_cups_printer_class_set_option_default (CphCups           *cups,
                                       option_name, len, NULL, NULL);
 
                 for (i = 0; i < len; i++)
-                        attr->values[i].string.text = g_strdup (values[i]);
-        }
-
-        if (_cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN)) {
-                retval = TRUE;
-                goto out;
-        }
-
-        /* it failed, maybe it was a class? */
-        if (cups->priv->last_status != IPP_NOT_POSSIBLE) {
-                retval = FALSE;
-                goto out;
-        }
-
-        request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
-        _cph_cups_add_class_uri (request, printer_name);
-
-        if (len == 1)
-                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                              option_name, NULL, values[0]);
-        else {
-                int i;
-
-                attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
-                                      option_name, len, NULL, NULL);
-
-                for (i = 0; i < len; i++)
-                        attr->values[i].string.text = g_strdup (values[i]);
+                        ippSetString (request, &attr, i, g_strdup (values[i]));
         }
 
         retval = _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
 
-out:
         g_free (option_name);
+
+        return retval;
+}
+
+/* This function sets given options to specified values in file 'ppdfile'.
+ * This needs to be done because of applications which use content of PPD files
+ * instead of IPP attributes.
+ * CUPS doesn't do this automatically (but hopefully will starting with 1.6) */
+static gchar *
+_cph_cups_prepare_ppd_for_options (CphCups       *cups,
+                                   const gchar   *ppdfile,
+                                   cups_option_t *options,
+                                   gint           num_options)
+{
+        ppd_file_t   *ppd;
+        gboolean      ppdchanged = FALSE;
+        gchar        *result = NULL;
+        gchar        *error;
+        char          newppdfile[PATH_MAX];
+        cups_file_t  *in = NULL;
+        cups_file_t  *out = NULL;
+        char          line[CPH_STR_MAXLEN];
+        char          keyword[CPH_STR_MAXLEN];
+        char         *keyptr;
+        ppd_choice_t *choice;
+        const char   *value;
+
+        ppd = ppdOpenFile (ppdfile);
+        if (!ppd) {
+                error = g_strdup_printf ("Unable to open PPD file \"%s\": %s",
+                                         ppdfile, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                goto out;
+        }
+
+        in = cupsFileOpen (ppdfile, "r");
+        if (!in) {
+                error = g_strdup_printf ("Unable to open PPD file \"%s\": %s",
+                                         ppdfile, strerror (errno));
+                _cph_cups_set_internal_status (cups, error);
+                g_free (error);
+
+                goto out;
+        }
+
+        out = cupsTempFile2 (newppdfile, sizeof (newppdfile));
+        if (!out) {
+                _cph_cups_set_internal_status (cups,
+                                               "Unable to create temporary file");
+
+                goto out;
+        }
+
+        /* Mark default values and values of options we are changing. */
+        ppdMarkDefaults (ppd);
+        cupsMarkOptions (ppd, num_options, options);
+
+        while (cupsFileGets (in, line, sizeof (line))) {
+                if (!g_str_has_prefix (line, "*Default")) {
+                        cupsFilePrintf (out, "%s\n", line);
+                } else {
+                        /* This part parses lines with *Default on their
+                         * beginning. For instance:
+                         *   "*DefaultResolution: 1200dpi" becomes:
+                         *     - keyword: Resolution
+                         *     - keyptr: 1200dpi
+                         */
+                        g_strlcpy (keyword,
+                                   line + strlen ("*Default"),
+                                   sizeof (keyword));
+
+                        for (keyptr = keyword; *keyptr; keyptr++)
+                                if (*keyptr == ':' || isspace (*keyptr & 255))
+                                        break;
+
+                        *keyptr++ = '\0';
+                        while (isspace (*keyptr & 255))
+                                keyptr++;
+
+                        /* We have to change PageSize if any of PageRegion,
+                         * PageSize, PaperDimension or ImageableArea changes.
+                         * We change PageRegion if PageSize is not available. */
+                        if (g_str_equal (keyword, "PageRegion") ||
+                            g_str_equal (keyword, "PageSize") ||
+                            g_str_equal (keyword, "PaperDimension") ||
+                            g_str_equal (keyword, "ImageableArea")) {
+                                choice = ppdFindMarkedChoice (ppd, "PageSize");
+                                if (!choice)
+                                        choice = ppdFindMarkedChoice (ppd, "PageRegion");
+                        } else {
+                                choice = ppdFindMarkedChoice (ppd, keyword);
+                        }
+
+                        if (choice && !g_str_equal (choice->choice, keyptr)) {
+                                /* We have to set the value in PPD manually if
+                                 * a custom value was passed in:
+                                 * cupsMarkOptions() marks the choice as
+                                 * "Custom". We want to set this value with our
+                                 * input. */
+                                if (!g_str_equal (choice->choice, "Custom")) {
+                                        cupsFilePrintf (out,
+                                                        "*Default%s: %s\n",
+                                                        keyword,
+                                                        choice->choice);
+                                        ppdchanged = TRUE;
+                                } else {
+                                        value = cupsGetOption (keyword,
+                                                               num_options,
+                                                               options);
+                                        if (value) {
+                                                cupsFilePrintf (out,
+                                                                "*Default%s: %s\n",
+                                                                keyword,
+                                                                value);
+                                                ppdchanged = TRUE;
+                                        } else {
+                                                cupsFilePrintf (out,
+                                                                "%s\n", line);
+                                        }
+                                }
+                        } else {
+                                cupsFilePrintf (out, "%s\n", line);
+                        }
+                }
+        }
+
+        if (ppdchanged)
+                result = g_strdup (newppdfile);
+        else
+                g_unlink (newppdfile);
+
+out:
+        if (in)
+                cupsFileClose (in);
+        if (out)
+                cupsFileClose (out);
+        if (ppd)
+                ppdClose (ppd);
+
+        return result;
+}
+
+gboolean
+cph_cups_printer_class_set_option (CphCups           *cups,
+                                   const char        *printer_name,
+                                   const char        *option,
+                                   const char *const *values)
+{
+        gboolean         is_class;
+        int              len;
+        ipp_t           *request;
+        ipp_attribute_t *attr;
+        char            *newppdfile;
+        gboolean         retval;
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_printer_name_valid (cups, printer_name))
+                return FALSE;
+        if (!_cph_cups_is_option_valid (cups, option))
+                return FALSE;
+        /* check the validity of values, and get the length of the array at the
+         * same time */
+        len = 0;
+        if (values) {
+                while (values[len] != NULL) {
+                        if (!_cph_cups_is_option_value_valid (cups,
+                                                              values[len]))
+                                return FALSE;
+                        len++;
+                }
+        }
+
+        if (len == 0)
+                return FALSE;
+
+        is_class = cph_cups_is_class (cups, printer_name);
+
+        /* We permit only one value to change in PPD file because we are setting
+         * default value in it. */
+        if (!is_class && len == 1) {
+                cups_option_t *options = NULL;
+                int            num_options = 0;
+                char          *ppdfile = NULL;
+
+                num_options = cupsAddOption (option, values[0], num_options, &options);
+
+                ppdfile = g_strdup (cupsGetPPD (printer_name));
+
+                newppdfile = _cph_cups_prepare_ppd_for_options (cups, ppdfile, options, num_options);
+
+                g_unlink (ppdfile);
+                g_free (ppdfile);
+                cupsFreeOptions (num_options, options);
+        } else
+                newppdfile = NULL;
+
+        if (is_class) {
+                request = ippNewRequest (CUPS_ADD_MODIFY_CLASS);
+                _cph_cups_add_class_uri (request, printer_name);
+        } else {
+                request = ippNewRequest (CUPS_ADD_MODIFY_PRINTER);
+                _cph_cups_add_printer_uri (request, printer_name);
+        }
+
+        _cph_cups_add_requesting_user_name (request, NULL);
+
+        if (len == 1) {
+                ippAddString (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                              option, NULL, values[0]);
+        } else {
+                int i;
+
+                attr = ippAddStrings (request, IPP_TAG_PRINTER, IPP_TAG_NAME,
+                                      option, len, NULL, NULL);
+
+                for (i = 0; i < len; i++)
+                        ippSetString (request, &attr, i, g_strdup (values[i]));
+        }
+
+        if (newppdfile) {
+                retval = _cph_cups_post_request (cups, request, newppdfile, CPH_RESOURCE_ADMIN);
+                g_unlink (newppdfile);
+                g_free (newppdfile);
+        } else {
+                retval = _cph_cups_send_request (cups, request, CPH_RESOURCE_ADMIN);
+        }
 
         return retval;
 }
@@ -2153,8 +2623,7 @@ cph_cups_job_cancel (CphCups    *cups,
         _cph_cups_add_job_uri (request, job_id);
 
         if (user_name != NULL)
-                ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_NAME,
-                              "requesting-user-name", NULL, user_name);
+                _cph_cups_add_requesting_user_name (request, user_name);
 
 #if (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR >= 4) || CUPS_VERSION_MAJOR > 1
         if (purge_job)
@@ -2226,6 +2695,10 @@ cph_cups_job_get_status (CphCups    *cups,
         _cph_cups_add_job_uri (request, job_id);
         ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
                        "requested-attributes", 1, NULL, attrs);
+        /* Request attributes explicitly as the user running the process (as
+         * opposed to the user doing the dbus call). This is root in general,
+         * so we'll be authorized to get attributes for all jobs. */
+        _cph_cups_add_requesting_user_name (request, NULL);
 
         resource_char = _cph_cups_get_resource (CPH_RESOURCE_ROOT);
         reply = cupsDoRequest (cups->priv->connection,
@@ -2234,7 +2707,7 @@ cph_cups_job_get_status (CphCups    *cups,
         if (!_cph_cups_is_reply_ok (cups, reply, TRUE))
                 return CPH_JOB_STATUS_INVALID;
 
-        orig_user = _cph_cups_get_attribute_string (reply->attrs, IPP_TAG_JOB,
+        orig_user = _cph_cups_get_attribute_string (reply, IPP_TAG_JOB,
                                                     attrs[0], IPP_TAG_NAME);
 
         status = CPH_JOB_STATUS_INVALID;

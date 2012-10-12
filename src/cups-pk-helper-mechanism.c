@@ -66,7 +66,7 @@ static const GDBusErrorEntry cph_error_entries[] =
 GQuark
 cph_mechanism_error_quark (void)
 {
-        static GQuark ret = 0;
+        static gsize ret = 0;
 
         if (ret == 0) {
                 g_assert (CPH_MECHANISM_NUM_ERRORS == G_N_ELEMENTS (cph_error_entries));
@@ -559,14 +559,28 @@ cph_mechanism_file_get (CphIfaceMechanism     *object,
                         const char            *filename)
 {
         CphMechanism *mechanism = CPH_MECHANISM (object);
+        unsigned int  sender_uid;
         gboolean      ret;
 
         _cph_mechanism_emit_called (mechanism);
 
+        if (!_cph_mechanism_get_sender_uid (mechanism, context, &sender_uid)) {
+                GError *error;
+
+                error = g_error_new (CPH_MECHANISM_ERROR,
+                                     CPH_MECHANISM_ERROR_GENERAL,
+                                     "Cannot determine sender UID");
+                g_dbus_method_invocation_return_gerror (context, error);
+                g_error_free (error);
+
+                return TRUE;
+        }
+
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
 
-        ret = cph_cups_file_get (mechanism->priv->cups, resource, filename);
+        ret = cph_cups_file_get (mechanism->priv->cups,
+                                 resource, filename, sender_uid);
 
         cph_iface_mechanism_complete_file_get (
                         object, context,
@@ -581,14 +595,28 @@ cph_mechanism_file_put (CphIfaceMechanism     *object,
                         const char            *filename)
 {
         CphMechanism *mechanism = CPH_MECHANISM (object);
+        unsigned int  sender_uid;
         gboolean      ret;
 
         _cph_mechanism_emit_called (mechanism);
 
+        if (!_cph_mechanism_get_sender_uid (mechanism, context, &sender_uid)) {
+                GError *error;
+
+                error = g_error_new (CPH_MECHANISM_ERROR,
+                                     CPH_MECHANISM_ERROR_GENERAL,
+                                     "Cannot determine sender UID");
+                g_dbus_method_invocation_return_gerror (context, error);
+                g_error_free (error);
+
+                return TRUE;
+        }
+
         if (!_check_polkit_for_action (mechanism, context, "server-settings"))
                 return TRUE;
 
-        ret = cph_cups_file_put (mechanism->priv->cups, resource, filename);
+        ret = cph_cups_file_put (mechanism->priv->cups,
+                                 resource, filename, sender_uid);
 
         cph_iface_mechanism_complete_file_put (
                         object, context,
@@ -1186,6 +1214,30 @@ cph_mechanism_printer_delete_option_default (CphIfaceMechanism     *object,
 }
 
 static gboolean
+cph_mechanism_printer_add_option (CphIfaceMechanism      *object,
+                                  GDBusMethodInvocation  *context,
+                                  const char             *name,
+                                  const char             *option,
+                                  const char *const      *values)
+{
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
+
+        _cph_mechanism_emit_called (mechanism);
+
+        if (!_check_polkit_for_printer_class (mechanism, context, name))
+                return TRUE;
+
+        ret = cph_cups_printer_class_set_option (mechanism->priv->cups,
+                                                 name, option, values);
+
+        cph_iface_mechanism_complete_printer_add_option (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
+}
+
+static gboolean
 cph_mechanism_job_cancel_purge (CphIfaceMechanism     *object,
                                 GDBusMethodInvocation *context,
                                 int                    id,
@@ -1414,6 +1466,10 @@ cph_mechanism_connect_signals (CphMechanism *mechanism)
         g_signal_connect (mechanism,
                           "handle-printer-add",
                           G_CALLBACK (cph_mechanism_printer_add),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-add-option",
+                          G_CALLBACK (cph_mechanism_printer_add_option),
                           NULL);
         g_signal_connect (mechanism,
                           "handle-printer-add-option-default",
