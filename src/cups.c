@@ -49,7 +49,7 @@
 
 #include "cups.h"
 
-#if (!(CUPS_VERSION_MAJOR > 1) || (CUPS_VERSION_MINOR > 5))
+#if ((CUPS_VERSION_MAJOR < 1) || (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR < 6))
 #define ippGetCount(attr)     attr->num_values
 #define ippGetGroupTag(attr)  attr->group_tag
 #define ippGetValueTag(attr)  attr->value_tag
