@@ -1,4 +1,10 @@
 =============
+Version 0.2.4
+=============
+
++ Fix detection of CUPS version (Jürg Billeter, Vincent)
+
+=============
 Version 0.2.3
 =============
 
