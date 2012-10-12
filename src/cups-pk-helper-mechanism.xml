@@ -194,6 +194,14 @@
       <arg name="error"    direction="out" type="s"/>
     </method>
 
+    <method name="PrinterAddOption">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="name"     direction="in"  type="s"/>
+      <arg name="option"   direction="in"  type="s"/>
+      <arg name="values"   direction="in"  type="as"/>
+      <arg name="error"    direction="out" type="s"/>
+    </method>
+
     <!-- Methods for jobs -->
 
     <!-- JobCancel is deprecated; JobCancelPurge should be used instead -->

@@ -1,4 +1,25 @@
 =============
+Version 0.2.3
+=============
+
++ Fix security flaw in cupsGetFile/cupsPutFile wrappers (CVE-2012-4510)
+  (Vincent)
++ Escape printer/class names before putting them in URIs (Vincent)
++ Be stricter when validating printer names (Vincent)
++ Fix build with CUPS >= 1.6 (Jiri Popelka)
++ New/updated translations: de, es, fi, ka, lv, pt_BR, sl, tr, zh_CN.
+
+=============
+Version 0.2.2
+=============
+
++ Add PrinterAddOption D-Bus method. (Marek Kasik)
++ Set requesting-user-name tag in requests. (Marek Kasik)
++ Code cleanups. (Vincent)
++ Build fixes and improvements. (Vincent, Marek Kasik)
++ New/updated translations: ja, nl, sk, zh_TW.
+
+=============
 Version 0.2.1
 =============
 

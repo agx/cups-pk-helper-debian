@@ -1,6 +1,8 @@
 cups-pk-helper
 ==============
 
+http://www.freedesktop.org/wiki/Software/cups-pk-helper
+
 cups-pk-helper is a PolicyKit helper to configure cups with fine-grained
 privileges.
 

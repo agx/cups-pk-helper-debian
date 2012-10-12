@@ -3,110 +3,109 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Necdet Yücel <necdetyucel@gmail.com>, 2012.
-# ozancaglayan <ozan@pardus.org.tr>, 2011.
+# Tomoyuki KATO <tomo@dream.daynight.jp>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2012-06-11 14:28+0000\n"
-"Last-Translator: Necdet Yücel <necdetyucel@gmail.com>\n"
-"Language-Team: Turkish (http://www.transifex.com/projects/p/freedesktop/language/tr/)\n"
+"PO-Revision-Date: 2012-02-14 08:27+0000\n"
+"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
+"Language-Team: Japanese (http://www.transifex.net/projects/p/freedesktop/language/ja/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: tr\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: ja\n"
+"Plural-Forms: nplurals=1; plural=0\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
-msgstr "Sınıf ekle/kaldır/düzenle"
+msgstr "クラスの追加/削除/編集"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
 msgid "Add/Remove/Edit a local printer"
-msgstr "Yerel yazıcı ekle/kaldır/düzenle"
+msgstr "ローカルプリンターの追加/削除/編集"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
 msgid "Add/Remove/Edit a printer"
-msgstr "Yazıcı ekle/kaldır/düzenle"
+msgstr "プリンターの追加/削除/編集"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
 msgid "Add/Remove/Edit a remote printer"
-msgstr "Uzak yazıcı ekle/kaldır/düzenle"
+msgstr "リモートプリンターの追加/削除/編集"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
 msgid "Change printer settings"
-msgstr "Yazıcı ayarlarını değiştir"
+msgstr "プリンター設定の変更"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
-msgstr "Bir yazıcıyı etkinleştir/devre dışı bırak"
+msgstr "プリンターの有効化/無効化"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
 msgid "Get list of available devices"
-msgstr "Mevcut aygıtların listesini al"
+msgstr "利用可能なデバイスの一覧の取得"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
-msgstr "Sunucu ayarlarını al/değiştir"
+msgstr "サーバー設定の取得/設定"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
-msgstr "Bir yazıcı sınıfı eklemek, kaldırmak veya düzenlemek için yetki gerekiyor."
+msgstr "クラスの追加/削除/編集には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
-msgstr "Yerel bir yazıcı eklemek, kaldırmak veya düzenlemek için yetki gerekiyor."
+msgstr "ローカルプリンターの追加/削除/編集には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
-msgstr "Bir yazıcı eklemek, kaldırmak veya düzenlemek için yetki gerekiyor."
+msgstr "プリンターの追加/削除/編集には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr "Bir uzak yazıcı eklemek, kaldırmak, düzenlemek için yetki gerekiyor."
+msgstr "リモートプリンターの追加/削除/編集には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr "Yazıcı ayarlarını değiştirebilmek için ayrıcalıklar gereklidir. Bu sadece Yazıcı sistem ayarları panelinden gerekli hale getirilmiş olabilir."
+msgstr "プリンター設定の変更には特権が必要です。これはプリンターシステム設定パネルからのみ必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr "Bir yazıcıyı veya yazıcı sınıfını etkinleştirmek veya devre dışı bırakmak için yetki gerekiyor."
+msgstr "プリンターまたはクラスの有効化/無効化には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
-msgstr "Mevcut aygıtların listesini almak için yetki gerekiyor."
+msgstr "利用可能なデバイスの一覧の取得には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
-msgstr "Sunucu ayarlarına gözatmak veya ayarları değiştirmek için yetki gerekiyor."
+msgstr "サーバー設定の取得/設定には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr "Başka bir kullanıcıya ait yazdırma görevini yeniden başlatmak, iptal etmek veya değiştirmek için yetki gerekiyor."
+msgstr "他のユーザーが所有するジョブの再起動/取り消し/編集には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
-msgstr "Bir yazdırma görevini yeniden başlatmak, iptal etmek veya düzenlemek için yetki gerekiyor."
+msgstr "ジョブの再起動/取り消し/編集には特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr "Bir yazıcıyı veya yazıcı sınıfını öntanımlı yazıcı olarak ayarlamak için yetki gerekiyor."
+msgstr "デフォルトのプリンターとしてプリンターまたはクラスを設定するには特権が必要です。"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
-msgstr "Bir yazdırma görevini yeniden başlat/iptal et/değiştir"
+msgstr "ジョブの再起動/取り消し/編集"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
-msgstr "Başka bir kullanıcıya ait yazdırma görevini yeniden başlat/iptal et/değiştir"
+msgstr "他のユーザーが所有するジョブの再起動/取り消し/編集"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
-msgstr "Bir yazıcıyı öntanımlı yazıcı olarak ayarla"
+msgstr "デフォルトのプリンターとしてプリンターの設定"

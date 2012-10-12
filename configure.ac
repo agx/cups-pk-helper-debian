@@ -1,7 +1,7 @@
-AC_INIT([cups-pk-helper], [0.2.1],
+AC_INIT([cups-pk-helper], [0.2.3],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper])
 AC_CONFIG_SRCDIR(src/cups-pk-helper-mechanism.c)
-AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-bzip2 tar-ustar])
+AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz tar-ustar])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_CONFIG_HEADER(config.h)
 
@@ -37,11 +37,11 @@ GIO_REQUIRED=2.29.8
 POLKIT_REQUIRED=0.97
 
 # pkg-config dependency checks
-PKG_CHECK_MODULES(CUPS_PK, gio-2.0 >= $GIO_REQUIRED polkit-gobject-1 >= $POLKIT_REQUIRED)
+PKG_CHECK_MODULES(CUPS_PK, gio-2.0 >= $GIO_REQUIRED gio-unix-2.0 >= $GIO_REQUIRED polkit-gobject-1 >= $POLKIT_REQUIRED)
 AC_SUBST(CUPS_PK_CFLAGS)
 AC_SUBST(CUPS_PK_LIBS)
 
-PKG_CHECK_MODULES(TEST, gio-2.0 >= $GIO_REQUIRED)
+PKG_CHECK_MODULES(TEST, gio-2.0 >= $GIO_REQUIRED gio-unix-2.0 >= $GIO_REQUIRED)
 AC_SUBST(TEST_CFLAGS)
 AC_SUBST(TEST_LIBS)
 

@@ -1,19 +1,23 @@
-# German translation of cups-pk-helper.
-# Copyright (C) 2010 cups-pk-helper's copyright holder
-# This file is distributed under the same license as the cups-pk-helper package.
-# Andre Klapper <ak-47@gmx.net>, 2010.
-#
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# Translators:
+# Mario Blättermann <mario.blaettermann@gmail.com>, 2012.
+# Vincent Untz <vuntz@gnome.org>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-05-27 22:36+0200\n"
-"PO-Revision-Date: 2010-06-04 22:18+0200\n"
-"Last-Translator: Andre Klapper <ak-47@gmx.net>\n"
-"Language-Team: German <de@li.org>\n"
+"Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
+"POT-Creation-Date: 2011-03-22 20:04+0100\n"
+"PO-Revision-Date: 2012-04-23 09:07+0000\n"
+"Last-Translator: Mario Blättermann <mario.blaettermann@gmail.com>\n"
+"Language-Team: German (http://www.transifex.com/projects/p/freedesktop/language/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: de\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
@@ -32,67 +36,77 @@ msgid "Add/Remove/Edit a remote printer"
 msgstr "Einen Netzwerkdrucker hinzufügen/entfernen/bearbeiten"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
+msgid "Change printer settings"
+msgstr "Druckereinstellungen ändern"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
 msgstr "Einen Drucker aktivieren/deaktivieren"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
-msgid "Get devices"
-msgstr "Geräte erhalten"
-
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
+msgid "Get list of available devices"
+msgstr "Liste der verfügbaren Geräte holen"
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
 msgstr "Servereinstellungen erhalten/setzen"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
-msgid "Privileges are required to add/remove/edit a class."
-msgstr "Rechte werden benötigt um eine Klasse hinzuzufügen/zu entfernen/zu bearbeiten."
-
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
-msgid "Privileges are required to add/remove/edit a local printer."
-msgstr "Rechte werden benötigt um einen lokalen Drucker hinzuzufügen/zu entfernen/zu bearbeiten."
+msgid "Privileges are required to add/remove/edit a class."
+msgstr "Rechte werden benötigt, um eine Klasse hinzuzufügen/zu entfernen/zu bearbeiten."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
-msgid "Privileges are required to add/remove/edit a printer."
-msgstr "Rechte werden benötigt um einen Drucker hinzuzufügen/zu entfernen/zu bearbeiten."
+msgid "Privileges are required to add/remove/edit a local printer."
+msgstr "Rechte werden benötigt, um einen lokalen Drucker hinzuzufügen/zu entfernen/zu bearbeiten."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
-msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr "Rechte werden benötigt um einen Netzwerkdrucker hinzuzufügen/zu entfernen/zu bearbeiten."
+msgid "Privileges are required to add/remove/edit a printer."
+msgstr "Rechte werden benötigt, um einen Drucker hinzuzufügen/zu entfernen/zu bearbeiten."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
-msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr "Rechte werden benötigt um einen Drucker zu aktivieren/deaktivieren, oder eine Klasse."
+msgid "Privileges are required to add/remove/edit a remote printer."
+msgstr "Rechte werden benötigt, um einen Netzwerkdrucker hinzuzufügen/zu entfernen/zu bearbeiten."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
-msgid "Privileges are required to get devices."
-msgstr "Rechte werden benötigt um Geräte zu erhalten."
+msgid ""
+"Privileges are required to change printer settings. This should only be "
+"needed from the Printers system settings panel."
+msgstr "Rechte werden benötigt, um die Druckereinstellungen zu ändern. Dies sollte nur im Systemeinstellungswerkzeug für Drucker nötig sein."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
-msgid "Privileges are required to get/set server settings."
-msgstr "Rechte werden benötigt um Servereinstellungen zu erhalten/zu setzen."
+msgid "Privileges are required to enable/disable a printer, or a class."
+msgstr "Rechte werden benötigt, um einen Drucker zu aktivieren/deaktivieren, oder eine Klasse."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
-msgid ""
-"Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr "Rechte werden benötigt um einen Auftrag neuzustarten/abzubrechen/zu bearbeiten, der einem anderen Benutzer gehört."
+msgid "Privileges are required to get list of available devices."
+msgstr "Rechte werden benötigt, um eine Liste der verfügbaren Geräte zu holen."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
-msgid "Privileges are required to restart/cancel/edit a job."
-msgstr "Rechte werden benötigt um einen Auftrag neuzustarten/abzubrechen/zu bearbeiten."
+msgid "Privileges are required to get/set server settings."
+msgstr "Rechte werden benötigt, um Servereinstellungen zu erhalten/zu setzen."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
-"Privileges are required to set a printer, or a class, as default printer."
-msgstr "Rechte werden benötigt um einen Drucker oder eine Klasse als Vorgabedrucker zu setzen."
+"Privileges are required to restart/cancel/edit a job owned by another user."
+msgstr "Rechte werden benötigt, um einen Auftrag neuzustarten/abzubrechen/zu bearbeiten, der einem anderen Benutzer gehört."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
+msgid "Privileges are required to restart/cancel/edit a job."
+msgstr "Rechte werden benötigt, um einen Auftrag neuzustarten/abzubrechen/zu bearbeiten."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+msgid ""
+"Privileges are required to set a printer, or a class, as default printer."
+msgstr "Rechte werden benötigt, um einen Drucker oder eine Klasse als Vorgabedrucker zu setzen."
+
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
 msgstr "Einen Auftrag neustarten/abbrechen/bearbeiten"
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
 msgstr "Einen Auftrag neustarten/abbrechen/bearbeiten, der einem anderen Benutzer gehört."
 
-#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
+#: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
 msgstr "Einen Drucker als Vorgabedrucker setzen"
