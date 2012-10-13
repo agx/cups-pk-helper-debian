@@ -1,3 +1,10 @@
+cups-pk-helper (0.1.0-3) stable-security; urgency=high
+
+  * [4e1319f] Honor file permissions when uploading/downloading files.
+    This fixes CVE-2012-4510.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 13 Oct 2012 14:08:23 +0200
+
 cups-pk-helper (0.1.0-2) unstable; urgency=low
 
   * [ee026be] New patch 0001-Use-g_strjoinv-instead-of-g_strjoin.patch:
