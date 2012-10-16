@@ -1,3 +1,10 @@
+cups-pk-helper (0.2.3-2) unstable; urgency=low
+
+  * [a4c337b] Make sure O_NOFOLLOW can be used. Fixes FTBS on
+    kFreeBSD. Thanks to Moritz Muehlenhoff
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 16 Oct 2012 20:40:09 +0200
+
 cups-pk-helper (0.2.3-1) unstable; urgency=high
 
   [ Alexander Kurtz ]
