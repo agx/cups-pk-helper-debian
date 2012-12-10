@@ -327,6 +327,12 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         int i;
         int len;
 
+        /* Quoting the lpadmin man page:
+         *    CUPS allows printer names to contain any printable character
+         *    except SPACE, TAB, "/", or  "#".
+         * On top of that, validate_name() in lpadmin.c (from cups) checks that
+         * the string is 127 characters long, or shorter. */
+
         /* no empty string */
         if (!name || name[0] == '\0')
                 return FALSE;
@@ -334,7 +340,7 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         len = strlen (name);
         /* no string that is too long; see comment at the beginning of the
          * validation code block */
-        if (len > CPH_STR_MAXLEN)
+        if (len > 127)
                 return FALSE;
 
         /* only printable characters, no space, no /, no # */
