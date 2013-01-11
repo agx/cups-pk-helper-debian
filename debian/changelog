@@ -1,3 +1,10 @@
+cups-pk-helper (0.2.3-3) unstable; urgency=low
+
+  * [0e08076] Revert "Be stricter when validating printer names"
+    Thanks to Kjö Hansi Glaz
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 11 Jan 2013 22:20:14 +0100
+
 cups-pk-helper (0.2.3-2) unstable; urgency=low
 
   * [a4c337b] Make sure O_NOFOLLOW can be used. Fixes FTBS on
