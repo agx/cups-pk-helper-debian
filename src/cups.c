@@ -278,6 +278,12 @@ cph_cups_new (void)
  */
 #define CPH_STR_MAXLEN 512
 
+#ifdef PATH_MAX
+# define CPH_PATH_MAX PATH_MAX
+#else
+# define CPH_PATH_MAX 1024
+#endif
+
 static gboolean
 _cph_cups_is_string_printable (const char *str,
                                gboolean    check_for_null,
@@ -2636,7 +2642,7 @@ _cph_cups_prepare_ppd_for_options (CphCups       *cups,
         gboolean      ppdchanged = FALSE;
         gchar        *result = NULL;
         gchar        *error;
-        char          newppdfile[PATH_MAX];
+        char          newppdfile[CPH_PATH_MAX];
         cups_file_t  *in = NULL;
         cups_file_t  *out = NULL;
         char          line[CPH_STR_MAXLEN];
