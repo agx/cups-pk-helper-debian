@@ -16,4 +16,10 @@
       <foaf:mbox rdf:resource="mailto:vuntz@novell.com" />
     </foaf:Person>
   </maintainer>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Marek Kasik</foaf:name>
+      <foaf:mbox rdf:resource="mailto:mkasik@redhat.com" />
+    </foaf:Person>
+  </maintainer>
 </Project>
