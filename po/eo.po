@@ -2,20 +2,21 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # 
-#   <kristjan.schmidt@googlemail.com>, 2011.
+# Translators:
+# kristjan <kristjan.schmidt@googlemail.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2011-06-17 17:50+0000\n"
-"Last-Translator: kristjan <kristjan.schmidt@googlemail.com>\n"
-"Language-Team: Esperanto (http://www.transifex.net/projects/p/freedesktop/team/eo/)\n"
+"PO-Revision-Date: 2013-04-29 08:45+0000\n"
+"Last-Translator: mkasik <mkasik@redhat.com>\n"
+"Language-Team: Esperanto (http://www.transifex.com/projects/p/freedesktop/language/eo/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: eo\n"
-"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
@@ -69,9 +70,7 @@ msgstr "Privilegioj estas nepre por aldoni/forigi/redakti foran presilon."
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr ""
-"Privilegioj estas nepre por ŝanĝi presil-agordojn. Tio nur devintus esti "
-"bezonata de la sistem-agordo-panelo de la presilo."
+msgstr "Privilegioj estas nepre por ŝanĝi presil-agordojn. Tio nur devintus esti bezonata de la sistem-agordo-panelo de la presilo."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
@@ -88,9 +87,7 @@ msgstr "Privilegioj estas nepre por akiri/agordi servil-agordojn."
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr ""
-"Privilegioj estas nepre por restarti/nuligi/redakti taskon posedante de alia"
-" uzanto."
+msgstr "Privilegioj estas nepre por restarti/nuligi/redakti taskon posedante de alia uzanto."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
@@ -99,8 +96,7 @@ msgstr "Privilegioj estas nepre por restarti/nuligi/redakti taskon."
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr ""
-"Privilegioj estas nepre por agordi presilon, aŭ klason, al defaŭlta presilo."
+msgstr "Privilegioj estas nepre por agordi presilon, aŭ klason, al defaŭlta presilo."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
@@ -113,5 +109,3 @@ msgstr "Restarti/Nuligi/Redakti taskon posedante al alia uzanto"
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
 msgstr "Agordi presilon al defaŭlta presilo"
-
-

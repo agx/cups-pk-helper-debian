@@ -2,20 +2,21 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # 
-# Andika Triwidada <andika@gmail.com>, 2011.
+# Translators:
+# Andika Triwidada <andika@gmail.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2011-05-15 14:41+0000\n"
-"Last-Translator: andika <andika@gmail.com>\n"
-"Language-Team: Indonesian (http://www.transifex.net/projects/p/freedesktop/team/id/)\n"
+"PO-Revision-Date: 2013-04-29 08:45+0000\n"
+"Last-Translator: mkasik <mkasik@redhat.com>\n"
+"Language-Team: Indonesian (http://www.transifex.com/projects/p/freedesktop/language/id/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: id\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
@@ -51,39 +52,29 @@ msgstr "Baca/tulis pengaturan server"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
-msgstr ""
-"Diperlukan hak khusus untuk menambah/menghapus/menyunting suatu kelas."
+msgstr "Diperlukan hak khusus untuk menambah/menghapus/menyunting suatu kelas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
-msgstr ""
-"Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak "
-"lokal."
+msgstr "Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak lokal."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
-msgstr ""
-"Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak."
+msgstr "Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr ""
-"Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak "
-"jauh."
+msgstr "Diperlukan hak khusus untuk menambah/menghapus/menyunting sebuah pencetak jauh."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr ""
-"Diperlukan hak khusus untuk mengubah pengaturan pencetak. Ini mestinya hanya"
-" diperlukan dari Panel pengaturan sistem pencetak."
+msgstr "Diperlukan hak khusus untuk mengubah pengaturan pencetak. Ini mestinya hanya diperlukan dari Panel pengaturan sistem pencetak."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr ""
-"Diperlukan hak khusus untuk mengaktifkan/mematikan sebuah pencetak atau "
-"suatu kelas."
+msgstr "Diperlukan hak khusus untuk mengaktifkan/mematikan sebuah pencetak atau suatu kelas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
@@ -96,22 +87,16 @@ msgstr "Diperlukan hak khusus untuk membaca/menulis pengaturan server."
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr ""
-"Diperlukan hak khusus untuk memulai ulang/membatalkan/menyunting suatu tugas"
-" yang dimiliki oleh pengguna lain."
+msgstr "Diperlukan hak khusus untuk memulai ulang/membatalkan/menyunting suatu tugas yang dimiliki oleh pengguna lain."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
-msgstr ""
-"Diperlukan hak khusus untuk memulai ulang/membatalkan/menyunting suatu "
-"tugas."
+msgstr "Diperlukan hak khusus untuk memulai ulang/membatalkan/menyunting suatu tugas."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr ""
-"Diperlukan hak khusus untuk mengatur agar suatu pencetak atau sebuah kelas "
-"menjadi pencetak bawaan."
+msgstr "Diperlukan hak khusus untuk mengatur agar suatu pencetak atau sebuah kelas menjadi pencetak bawaan."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
@@ -124,5 +109,3 @@ msgstr "Mulai ulang/batalkan/sunting suatu tugas yang dimiliki pengguna lain"
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
 msgstr "Jadikan suatu pencetak sebagai bawaan"
-
-
