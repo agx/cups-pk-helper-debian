@@ -1,4 +1,17 @@
 =============
+Version 0.2.5
+=============
+
++ Revert "Be stricter when validating printer names" (Vincent)
++ New/updated translations: cs, eo, es, eu, fr, gl, hr, hu, ia, id, it, pl, sr, sv, uk.
+
+=============
+Version 0.2.4
+=============
+
++ Fix detection of CUPS version (Jürg Billeter, Vincent)
+
+=============
 Version 0.2.3
 =============
 

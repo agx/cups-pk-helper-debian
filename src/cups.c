@@ -49,7 +49,7 @@
 
 #include "cups.h"
 
-#if (!(CUPS_VERSION_MAJOR > 1) || (CUPS_VERSION_MINOR > 5))
+#if ((CUPS_VERSION_MAJOR < 1) || (CUPS_VERSION_MAJOR == 1 && CUPS_VERSION_MINOR < 6))
 #define ippGetCount(attr)     attr->num_values
 #define ippGetGroupTag(attr)  attr->group_tag
 #define ippGetValueTag(attr)  attr->value_tag
@@ -327,25 +327,29 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         int i;
         int len;
 
-        /* Quoting http://www.cups.org/documentation.php/doc-1.1/sam.html#4_1:
-         *
-         *    The printer name must start with any printable character except
-         *    " ", "/", and "@". It can contain up to 127 letters, numbers, and
-         *    the underscore (_).
-         *
-         * The first part is a bit weird, as the second part is more
-         * restrictive. So we only consider the second part. */
+        /* Quoting the lpadmin man page:
+         *    CUPS allows printer names to contain any printable character
+         *    except SPACE, TAB, "/", or  "#".
+         * On top of that, validate_name() in lpadmin.c (from cups) checks that
+         * the string is 127 characters long, or shorter. */
 
         /* no empty string */
         if (!name || name[0] == '\0')
                 return FALSE;
 
         len = strlen (name);
+        /* no string that is too long; see comment at the beginning of the
+         * validation code block */
         if (len > 127)
                 return FALSE;
 
+        /* only printable characters, no space, no /, no # */
         for (i = 0; i < len; i++) {
-                if (!g_ascii_isalnum (name[i]) && name[i] != '_')
+                if (!g_ascii_isprint (name[i]))
+                        return FALSE;
+                if (g_ascii_isspace (name[i]))
+                        return FALSE;
+                if (name[i] == '/' || name[i] == '#')
                         return FALSE;
         }
 
