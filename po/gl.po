@@ -3,20 +3,20 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Fran Diéguez <frandieguez@ubuntu.com>, 2011.
+# Fran Diéguez <frandieguez@ubuntu.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2011-09-05 12:50+0000\n"
-"Last-Translator: frandieguez <frandieguez@ubuntu.com>\n"
+"PO-Revision-Date: 2013-04-29 08:45+0000\n"
+"Last-Translator: mkasik <mkasik@redhat.com>\n"
 "Language-Team: Galician <proxecto@trasno.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: gl\n"
-"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
@@ -56,8 +56,7 @@ msgstr "Requírense privilexios para engadir/quitar/editar unha clase."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
-msgstr ""
-"Requírense privilexios para engadir/quitar/editar unha impresora local."
+msgstr "Requírense privilexios para engadir/quitar/editar unha impresora local."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
@@ -65,27 +64,21 @@ msgstr "Requírense privilexios para engadir/quitar/editar unha impresora."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr ""
-"Requírense privilexios para engadir/quitar/editar unha impresora remota."
+msgstr "Requírense privilexios para engadir/quitar/editar unha impresora remota."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr ""
-"Requírense privilexios para cambiar as opcións da impresora. Isto só debería"
-" ser necesario desde o panel Impresoras das Opcións do sistema."
+msgstr "Requírense privilexios para cambiar as opcións da impresora. Isto só debería ser necesario desde o panel Impresoras das Opcións do sistema."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr ""
-"Requírense privilexios para activar/desactivar unha impresora, ou unha "
-"clase."
+msgstr "Requírense privilexios para activar/desactivar unha impresora, ou unha clase."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
-msgstr ""
-"Requírense privilexios para obter unha lista dos dispositivos dispoñíbeis."
+msgstr "Requírense privilexios para obter unha lista dos dispositivos dispoñíbeis."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
@@ -94,9 +87,7 @@ msgstr "Requírense privilexios para obter/estabelecer as opcións do servidor."
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr ""
-"Requírense privilexios para reiniciar/cancelar/editar un traballo que "
-"pertence a outro usuario."
+msgstr "Requírense privilexios para reiniciar/cancelar/editar un traballo que pertence a outro usuario."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
@@ -105,9 +96,7 @@ msgstr "Requírense privilexios para reiniciar/cancelar/editar un traballo."
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr ""
-"Requírense privilexios para estabelecer unha impresora, ou unha clase, como "
-"impresora predeterminada."
+msgstr "Requírense privilexios para estabelecer unha impresora, ou unha clase, como impresora predeterminada."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
@@ -120,5 +109,3 @@ msgstr "Reiniciar/cancelar/editar un traballo que pertence a outro usuario"
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
 msgstr "Estabelecer unha impresora como impresora predeterminada"
-
-
