@@ -1,3 +1,13 @@
+cups-pk-helper (0.2.5-1) unstable; urgency=low
+
+  * [4ec8dbf] New upstream version 0.2.5
+    (Closes: #713591)
+  * [1781960] Update patches:
+    0003-Revert-Be-stricter-when-validating-printer-names.patch - fixed
+    upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 24 Jun 2013 19:55:21 +0200
+
 cups-pk-helper (0.2.3-3) unstable; urgency=low
 
   * [0e08076] Revert "Be stricter when validating printer names"
