@@ -7,12 +7,12 @@ Content-Transfer-Encoding: 8bit
 
 Thanks Moritz Mühlenhoff
 ---
- configure.ac |    3 +++
- src/cups.c   |    6 ++++--
+ configure.ac | 3 +++
+ src/cups.c   | 6 ++++--
  2 files changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/configure.ac b/configure.ac
-index 8240fb2..3824cd8 100644
+index c3accc8..e865318 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -5,6 +5,9 @@ AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz tar-ustar])
@@ -26,7 +26,7 @@ index 8240fb2..3824cd8 100644
  AC_PROG_CC
  
 diff --git a/src/cups.c b/src/cups.c
-index d45a315..f94330a 100644
+index 92425eb..2f7ff22 100644
 --- a/src/cups.c
 +++ b/src/cups.c
 @@ -22,6 +22,10 @@
