@@ -1,3 +1,10 @@
+cups-pk-helper (0.2.5-2) unstable; urgency=medium
+
+  * [ba6e475] Bump debhelper dependency to 9 to enable hardened build-flags
+    Thanks to Moritz Muehlenhoff (Closes: #734803)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Jan 2014 12:55:09 +0100
+
 cups-pk-helper (0.2.5-1) unstable; urgency=low
 
   * [4ec8dbf] New upstream version 0.2.5
