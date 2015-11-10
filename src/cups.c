@@ -611,6 +611,22 @@ _cph_cups_add_printer_uri (ipp_t      *request,
 }
 
 static void
+_cph_cups_add_job_printer_uri (ipp_t      *request,
+                               const char *name)
+{
+        char *escaped_name;
+        char  uri[HTTP_MAX_URI + 1];
+
+        escaped_name = g_uri_escape_string (name, NULL, FALSE);
+        g_snprintf (uri, sizeof (uri),
+                    "ipp://localhost/printers/%s", escaped_name);
+        g_free (escaped_name);
+
+        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
+                      "job-printer-uri", NULL, uri);
+}
+
+static void
 _cph_cups_add_class_uri (ipp_t      *request,
                          const char *name)
 {
@@ -2086,6 +2102,235 @@ cph_cups_class_delete (CphCups    *cups,
         return _cph_cups_send_new_simple_class_request (cups, CUPS_DELETE_CLASS,
                                                         class_name,
                                                         CPH_RESOURCE_ADMIN);
+}
+
+gboolean
+cph_cups_printer_class_rename (CphCups    *cups,
+                               const char *old_printer_name,
+                               const char *new_printer_name)
+{
+        cups_dest_t      *dests;
+        cups_dest_t      *dest;
+        cups_job_t       *jobs;
+        int               num_dests = 0;
+        int               num_jobs = 0;
+        ipp_t            *request;
+        ipp_t            *response;
+        ipp_t            *reply;
+        ipp_attribute_t  *attr;
+        gchar            *device_uri = NULL;
+        gchar            *printer_info = NULL;
+        gchar            *job_sheets = NULL;
+        gchar            *printer_location = NULL;
+        gchar            *printer_uri = NULL;
+        gchar            *error_policy = NULL;
+        gchar            *op_policy = NULL;
+        gchar           **users_allowed = NULL;
+        gchar           **users_denied = NULL;
+        gchar           **member_names = NULL;
+        const gchar      *ppd_link = NULL;
+        gchar            *ppd_filename = NULL;
+        gchar           **sheets = NULL;
+        gchar            *start_sheet = NULL;
+        gchar            *end_sheet = NULL;
+        gboolean          accepting = FALSE;
+        gboolean          printer_shared = FALSE;
+        gboolean          printer_paused = FALSE;
+        gboolean          is_default = FALSE;
+        int               i;
+
+        static const char * const requested_attrs[] = {
+                "printer-error-policy",
+                "printer-op-policy",
+                "requesting-user-name-allowed",
+                "requesting-user-name-denied",
+                "member-names"
+        };
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_printer_name_valid (cups, old_printer_name))
+                return FALSE;
+        if (!_cph_cups_is_printer_name_valid (cups, new_printer_name))
+                return FALSE;
+
+        num_dests = cupsGetDests (&dests);
+
+        dest = cupsGetDest (new_printer_name, NULL, num_dests, dests);
+        if (dest != NULL) {
+                cupsFreeDests (num_dests, dests);
+                return FALSE;
+        }
+
+        dest = cupsGetDest (old_printer_name, NULL, num_dests, dests);
+        if (dest == NULL) {
+                cupsFreeDests (num_dests, dests);
+                return FALSE;
+        }
+
+        num_jobs = cupsGetJobs (&jobs, old_printer_name, 0, CUPS_WHICHJOBS_ACTIVE);
+        for (i = 0; i < num_jobs; i++) {
+                if (jobs[i].state == IPP_JSTATE_PENDING ||
+                    jobs[i].state == IPP_JSTATE_PROCESSING) {
+                        cupsFreeJobs (num_jobs, jobs);
+                        cupsFreeDests (num_dests, dests);
+                        return FALSE;
+                }
+        }
+        cupsFreeJobs (num_jobs, jobs);
+
+        for (i = 0; i < dest->num_options; i++) {
+                if (g_strcmp0 (dest->options[i].name, "device-uri") == 0) {
+                        device_uri = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "job-sheets") == 0) {
+                        job_sheets = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-info") == 0) {
+                        printer_info = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-is-accepting-jobs") == 0) {
+                        accepting = g_strcmp0 (dest->options[i].value, "true") == 0;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-is-shared") == 0) {
+                        printer_shared = g_strcmp0 (dest->options[i].value, "true") == 0;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-location") == 0) {
+                        printer_location = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-state") == 0) {
+                        printer_paused = g_strcmp0 (dest->options[i].value, "5") == 0;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-uri-supported") == 0) {
+                        printer_uri = dest->options[i].value;
+                }
+        }
+        is_default = dest->is_default;
+
+        request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
+        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
+                      "printer-uri", NULL, printer_uri);
+        ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
+                      "requested-attributes", G_N_ELEMENTS (requested_attrs), NULL, requested_attrs);
+        response = cupsDoRequest (cups->priv->connection, request, "/");
+
+        if (response != NULL) {
+                if (ippGetStatusCode (response) <= IPP_OK_CONFLICT) {
+                        attr = ippFindAttribute (response, "printer-error-policy", IPP_TAG_NAME);
+                        if (attr != NULL)
+                                error_policy = g_strdup (ippGetString (attr, 0, NULL));
+
+                        attr = ippFindAttribute (response, "printer-op-policy", IPP_TAG_NAME);
+                        if (attr != NULL)
+                                op_policy = g_strdup (ippGetString (attr, 0, NULL));
+
+                        attr = ippFindAttribute (response, "requesting-user-name-allowed", IPP_TAG_NAME);
+                        if (attr != NULL && ippGetCount (attr) > 0) {
+                                users_allowed = g_new0 (gchar *, ippGetCount (attr) + 1);
+                                for (i = 0; i < ippGetCount (attr); i++)
+                                        users_allowed[i] = g_strdup (ippGetString (attr, i, NULL));
+                        }
+
+                        attr = ippFindAttribute (response, "requesting-user-name-denied", IPP_TAG_NAME);
+                        if (attr != NULL && ippGetCount (attr) > 0) {
+                                users_denied = g_new0 (gchar *, ippGetCount (attr) + 1);
+                                for (i = 0; i < ippGetCount (attr); i++)
+                                        users_denied[i] = g_strdup (ippGetString (attr, i, NULL));
+                        }
+
+                        attr = ippFindAttribute (response, "member-names", IPP_TAG_NAME);
+                        if (attr != NULL && ippGetCount (attr) > 0) {
+                                member_names = g_new0 (gchar *, ippGetCount (attr) + 1);
+                                for (i = 0; i < ippGetCount (attr); i++)
+                                        member_names[i] = g_strdup (ippGetString (attr, i, NULL));
+                        }
+                }
+                ippDelete (response);
+        }
+
+        ppd_link = cupsGetPPD (old_printer_name);
+        if (ppd_link != NULL && (ppd_filename = g_file_read_link (ppd_link, NULL)) == NULL) {
+                ppd_filename = g_strdup (ppd_link);
+        }
+
+        if (cph_cups_is_class (cups, old_printer_name)) {
+                if (member_names != NULL) {
+                        for (i = 0; i < g_strv_length (member_names); i++) {
+                                cph_cups_class_add_printer (cups, new_printer_name, member_names[i]);
+                        }
+                }
+        } else if (cph_cups_printer_add_with_ppd_file (cups,
+                                                       new_printer_name,
+                                                       device_uri,
+                                                       ppd_filename,
+                                                       printer_info,
+                                                       printer_location)) {
+                for (i = 0; i < num_dests; i++) {
+                        if (cph_cups_is_class (cups, dests[i].name)) {
+                                if (_cph_cups_class_has_printer (cups, dests[i].name, old_printer_name, &reply) >= 0) {
+                                        if (reply != NULL)
+                                                ippDelete (reply);
+                                        cph_cups_class_delete_printer (cups, dests[i].name, old_printer_name);
+                                        cph_cups_class_add_printer (cups, dests[i].name, new_printer_name);
+                                }
+                        }
+                }
+        } else {
+                cph_cups_printer_set_accept_jobs (cups, old_printer_name, accepting, NULL);
+                return FALSE;
+        }
+
+        num_jobs = cupsGetJobs (&jobs, old_printer_name, 0, CUPS_WHICHJOBS_ACTIVE);
+        for (i = 0; i < num_jobs; i++) {
+                if (jobs[i].state == IPP_JSTATE_HELD) {
+                        request = ippNewRequest (CUPS_MOVE_JOB);
+
+                        _cph_cups_add_job_uri (request, jobs[i].id);
+                        _cph_cups_add_job_printer_uri (request, new_printer_name);
+                        _cph_cups_add_requesting_user_name (request, cupsUser ());
+                        _cph_cups_send_request (cups, request, CPH_RESOURCE_JOBS);
+                }
+        }
+        cupsFreeJobs (num_jobs, jobs);
+
+        cph_cups_printer_set_accept_jobs (cups, new_printer_name, accepting, NULL);
+        if (is_default)
+                cph_cups_printer_set_default (cups, new_printer_name);
+        cph_cups_printer_class_set_error_policy (cups, new_printer_name, error_policy);
+        cph_cups_printer_class_set_op_policy (cups, new_printer_name, op_policy);
+
+        if (job_sheets != NULL) {
+                sheets = g_strsplit (job_sheets, ",", 0);
+                if (g_strv_length (sheets) > 1) {
+                        start_sheet = sheets[0];
+                        end_sheet = sheets[1];
+                }
+                cph_cups_printer_class_set_job_sheets (cups, new_printer_name, start_sheet, end_sheet);
+        }
+        cph_cups_printer_set_enabled (cups, new_printer_name, !printer_paused);
+        cph_cups_printer_class_set_shared (cups, new_printer_name, printer_shared);
+        cph_cups_printer_class_set_users_allowed (cups, new_printer_name, (const char * const *) users_allowed);
+        cph_cups_printer_class_set_users_denied (cups, new_printer_name, (const char * const *) users_denied);
+
+        if (cph_cups_is_class (cups, old_printer_name)) {
+                if (member_names != NULL) {
+                        for (i = 0; i < g_strv_length (member_names); i++) {
+                                cph_cups_class_delete_printer (cups, old_printer_name, member_names[i]);
+                        }
+                }
+
+                cph_cups_class_delete (cups, old_printer_name);
+        } else {
+                cph_cups_printer_delete (cups, old_printer_name);
+        }
+
+
+        cupsFreeDests (num_dests, dests);
+
+        if (ppd_link != NULL) {
+                g_unlink (ppd_link);
+                g_free (ppd_filename);
+        }
+        g_free (op_policy);
+        g_free (error_policy);
+        g_strfreev (sheets);
+        g_strfreev (users_allowed);
+        g_strfreev (users_denied);
+
+        return TRUE;
 }
 
 /* Functions that can work on printer and class */

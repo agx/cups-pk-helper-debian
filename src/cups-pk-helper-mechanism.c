@@ -903,6 +903,28 @@ cph_mechanism_printer_delete (CphIfaceMechanism     *object,
 }
 
 static gboolean
+cph_mechanism_printer_class_rename (CphIfaceMechanism     *object,
+                                    GDBusMethodInvocation *context,
+                                    const char            *old_printer_name,
+                                    const char            *new_printer_name)
+{
+        CphMechanism *mechanism = CPH_MECHANISM (object);
+        gboolean      ret;
+
+        _cph_mechanism_emit_called (mechanism);
+
+        if (!_check_polkit_for_printer_class (mechanism, context, old_printer_name))
+                return TRUE;
+
+        ret = cph_cups_printer_class_rename (mechanism->priv->cups, old_printer_name, new_printer_name);
+
+        cph_iface_mechanism_complete_printer_rename (
+                        object, context,
+                        _cph_mechanism_return_error (mechanism, !ret));
+        return TRUE;
+}
+
+static gboolean
 cph_mechanism_class_add_printer (CphIfaceMechanism     *object,
                                  GDBusMethodInvocation *context,
                                  const char            *name,
@@ -1486,6 +1508,10 @@ cph_mechanism_connect_signals (CphMechanism *mechanism)
         g_signal_connect (mechanism,
                           "handle-printer-delete-option-default",
                           G_CALLBACK (cph_mechanism_printer_delete_option_default),
+                          NULL);
+        g_signal_connect (mechanism,
+                          "handle-printer-rename",
+                          G_CALLBACK (cph_mechanism_printer_class_rename),
                           NULL);
         g_signal_connect (mechanism,
                           "handle-printer-set-accept-jobs",
