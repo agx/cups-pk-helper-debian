@@ -287,9 +287,9 @@ cph_cups_new (void)
 static gboolean
 _cph_cups_is_string_printable (const char *str,
                                gboolean    check_for_null,
+                               gboolean    check_utf,
                                int         maxlen)
 {
-        int i;
         int len;
 
         /* no NULL string */
@@ -300,31 +300,49 @@ _cph_cups_is_string_printable (const char *str,
         if (maxlen > 0 && len > maxlen)
                 return FALSE;
 
-        /* only printable characters */
-        for (i = 0; i < len; i++) {
-                if (!g_ascii_isprint (str[i]))
+        if (check_utf) {
+                const gchar *utf8_char;
+
+                /* Check whether the string is valid UTF-8.
+                 * This is what ippValidateAttribute() does for IPP_TAG_TEXT.
+                 * See section 4.1.1 of RFC 2911. */
+                if (!g_utf8_validate (str, -1, NULL))
                         return FALSE;
+
+                /* only printable characters */
+                for (utf8_char = str; *utf8_char != '\0'; utf8_char = g_utf8_next_char (utf8_char)) {
+                        if (!g_unichar_isprint (g_utf8_get_char (utf8_char)))
+                                return FALSE;
+                }
+        } else {
+                int i;
+
+                /* only printable characters */
+                for (i = 0; i < len; i++) {
+                        if (!g_ascii_isprint (str[i]))
+                                return FALSE;
+                }
         }
 
         return TRUE;
 }
 
-#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null, maxlen)        \
-static gboolean                                                               \
-_cph_cups_is_##name##_valid (CphCups    *cups,                                \
-                             const char *str)                                 \
-{                                                                             \
-        char *error;                                                          \
-                                                                              \
-        if (_cph_cups_is_string_printable (str, check_for_null, maxlen))      \
-                return TRUE;                                                  \
-                                                                              \
-        error = g_strdup_printf ("\"%s\" is not a valid %s.",                 \
-                                 str, name_for_str);                          \
-        _cph_cups_set_internal_status (cups, error);                          \
-        g_free (error);                                                       \
-                                                                              \
-        return FALSE;                                                         \
+#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null, check_utf, maxlen)    \
+static gboolean                                                                      \
+_cph_cups_is_##name##_valid (CphCups    *cups,                                       \
+                             const char *str)                                        \
+{                                                                                    \
+        char *error;                                                                 \
+                                                                                     \
+        if (_cph_cups_is_string_printable (str, check_for_null, check_utf, maxlen))  \
+                return TRUE;                                                         \
+                                                                                     \
+        error = g_strdup_printf ("\"%s\" is not a valid %s.",                        \
+                                 str, name_for_str);                                 \
+        _cph_cups_set_internal_status (cups, error);                                 \
+        g_free (error);                                                              \
+                                                                                     \
+        return FALSE;                                                                \
 }
 
 static gboolean
@@ -343,16 +361,13 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         if (!name || name[0] == '\0')
                 return FALSE;
 
-        len = strlen (name);
-        /* no string that is too long; see comment at the beginning of the
-         * validation code block */
-        if (len > 127)
+        /* only printable strings with maximal length of 127 octets */
+        if (!_cph_cups_is_string_printable (name, TRUE, TRUE, 127))
                 return FALSE;
 
-        /* only printable characters, no space, no /, no # */
+        /* no space, no /, no # */
+        len = strlen (name);
         for (i = 0; i < len; i++) {
-                if (!g_ascii_isprint (name[i]))
-                        return FALSE;
                 if (g_ascii_isspace (name[i]))
                         return FALSE;
                 if (name[i] == '/' || name[i] == '#')
@@ -477,12 +492,12 @@ _cph_cups_is_scheme_valid (CphCups    *cups,
  *     printer-error-policy-supported and printer-op-policy-supported
  *     attributes.
  */
-_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (ppd, "PPD", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd, "PPD", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, FALSE, CPH_STR_MAXLEN)
 
 /* Check for users. Those are some printable strings, which souldn't be NULL.
  * They should also not be empty, but it appears that it's possible to carry
@@ -491,7 +506,7 @@ _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, CPH_STR_MAXLEN)
  * We could also check that the username exists on the system, but cups will do
  * it.
  */
-_CPH_CUPS_IS_VALID (user, "user", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (user, "user", TRUE, FALSE, CPH_STR_MAXLEN)
 
 /* Check for options & values. Those are for sure some printable strings, but
  * can we do more? Let's see:
@@ -500,14 +515,14 @@ _CPH_CUPS_IS_VALID (user, "user", TRUE, CPH_STR_MAXLEN)
  *     and so we'll let cups handle that.
  *   + a value can be some text, and we don't know much more.
  */
-_CPH_CUPS_IS_VALID (option, "option", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (option, "option", TRUE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE, FALSE, CPH_STR_MAXLEN)
 
 /* This is really just some text */
-_CPH_CUPS_IS_VALID (info, "description", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (location, "location", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (info, "description", FALSE, TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (location, "location", FALSE, TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE, TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, FALSE, CPH_STR_MAXLEN)
 
 /* For put/get file: this is some text, but we could potentially do more
  * checks. We don't do them because cups will already do them.
@@ -515,8 +530,8 @@ _CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, CPH_STR_MAXLEN)
  *   + for the filename, in the put case, we could check that the file exists
  *     and is a regular file (no socket, block device, etc.).
  */
-_CPH_CUPS_IS_VALID (resource, "resource", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (resource, "resource", TRUE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (filename, "filename", TRUE, FALSE, CPH_STR_MAXLEN)
 
 /******************************************************
  * Helpers
