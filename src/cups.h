@@ -137,6 +137,10 @@ gboolean cph_cups_class_delete_printer (CphCups    *cups,
 gboolean cph_cups_class_delete (CphCups    *cups,
                                 const char *class_name);
 
+gboolean cph_cups_printer_class_rename (CphCups    *cups,
+                                        const char *old_printer_name,
+                                        const char *new_printer_name);
+
 gboolean cph_cups_printer_class_set_info (CphCups    *cups,
                                           const char *printer_name,
                                           const char *info);

@@ -278,12 +278,18 @@ cph_cups_new (void)
  */
 #define CPH_STR_MAXLEN 512
 
+#ifdef PATH_MAX
+# define CPH_PATH_MAX PATH_MAX
+#else
+# define CPH_PATH_MAX 1024
+#endif
+
 static gboolean
 _cph_cups_is_string_printable (const char *str,
                                gboolean    check_for_null,
+                               gboolean    check_utf,
                                int         maxlen)
 {
-        int i;
         int len;
 
         /* no NULL string */
@@ -294,31 +300,49 @@ _cph_cups_is_string_printable (const char *str,
         if (maxlen > 0 && len > maxlen)
                 return FALSE;
 
-        /* only printable characters */
-        for (i = 0; i < len; i++) {
-                if (!g_ascii_isprint (str[i]))
+        if (check_utf) {
+                const gchar *utf8_char;
+
+                /* Check whether the string is valid UTF-8.
+                 * This is what ippValidateAttribute() does for IPP_TAG_TEXT.
+                 * See section 4.1.1 of RFC 2911. */
+                if (!g_utf8_validate (str, -1, NULL))
                         return FALSE;
+
+                /* only printable characters */
+                for (utf8_char = str; *utf8_char != '\0'; utf8_char = g_utf8_next_char (utf8_char)) {
+                        if (!g_unichar_isprint (g_utf8_get_char (utf8_char)))
+                                return FALSE;
+                }
+        } else {
+                int i;
+
+                /* only printable characters */
+                for (i = 0; i < len; i++) {
+                        if (!g_ascii_isprint (str[i]))
+                                return FALSE;
+                }
         }
 
         return TRUE;
 }
 
-#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null, maxlen)        \
-static gboolean                                                               \
-_cph_cups_is_##name##_valid (CphCups    *cups,                                \
-                             const char *str)                                 \
-{                                                                             \
-        char *error;                                                          \
-                                                                              \
-        if (_cph_cups_is_string_printable (str, check_for_null, maxlen))      \
-                return TRUE;                                                  \
-                                                                              \
-        error = g_strdup_printf ("\"%s\" is not a valid %s.",                 \
-                                 str, name_for_str);                          \
-        _cph_cups_set_internal_status (cups, error);                          \
-        g_free (error);                                                       \
-                                                                              \
-        return FALSE;                                                         \
+#define _CPH_CUPS_IS_VALID(name, name_for_str, check_for_null, check_utf, maxlen)    \
+static gboolean                                                                      \
+_cph_cups_is_##name##_valid (CphCups    *cups,                                       \
+                             const char *str)                                        \
+{                                                                                    \
+        char *error;                                                                 \
+                                                                                     \
+        if (_cph_cups_is_string_printable (str, check_for_null, check_utf, maxlen))  \
+                return TRUE;                                                         \
+                                                                                     \
+        error = g_strdup_printf ("\"%s\" is not a valid %s.",                        \
+                                 str, name_for_str);                                 \
+        _cph_cups_set_internal_status (cups, error);                                 \
+        g_free (error);                                                              \
+                                                                                     \
+        return FALSE;                                                                \
 }
 
 static gboolean
@@ -337,16 +361,13 @@ _cph_cups_is_printer_name_valid_internal (const char *name)
         if (!name || name[0] == '\0')
                 return FALSE;
 
-        len = strlen (name);
-        /* no string that is too long; see comment at the beginning of the
-         * validation code block */
-        if (len > 127)
+        /* only printable strings with maximal length of 127 octets */
+        if (!_cph_cups_is_string_printable (name, TRUE, TRUE, 127))
                 return FALSE;
 
-        /* only printable characters, no space, no /, no # */
+        /* no space, no /, no # */
+        len = strlen (name);
         for (i = 0; i < len; i++) {
-                if (!g_ascii_isprint (name[i]))
-                        return FALSE;
                 if (g_ascii_isspace (name[i]))
                         return FALSE;
                 if (name[i] == '/' || name[i] == '#')
@@ -471,12 +492,12 @@ _cph_cups_is_scheme_valid (CphCups    *cups,
  *     printer-error-policy-supported and printer-op-policy-supported
  *     attributes.
  */
-_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (ppd, "PPD", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (printer_uri, "printer URI", TRUE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd, "PPD", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (ppd_filename, "PPD file", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (job_sheet, "job sheet", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (error_policy, "error policy", FALSE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, FALSE, CPH_STR_MAXLEN)
 
 /* Check for users. Those are some printable strings, which souldn't be NULL.
  * They should also not be empty, but it appears that it's possible to carry
@@ -485,7 +506,7 @@ _CPH_CUPS_IS_VALID (op_policy, "op policy", FALSE, CPH_STR_MAXLEN)
  * We could also check that the username exists on the system, but cups will do
  * it.
  */
-_CPH_CUPS_IS_VALID (user, "user", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (user, "user", TRUE, FALSE, CPH_STR_MAXLEN)
 
 /* Check for options & values. Those are for sure some printable strings, but
  * can we do more? Let's see:
@@ -494,14 +515,14 @@ _CPH_CUPS_IS_VALID (user, "user", TRUE, CPH_STR_MAXLEN)
  *     and so we'll let cups handle that.
  *   + a value can be some text, and we don't know much more.
  */
-_CPH_CUPS_IS_VALID (option, "option", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (option, "option", TRUE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (option_value, "value for option", FALSE, FALSE, CPH_STR_MAXLEN)
 
 /* This is really just some text */
-_CPH_CUPS_IS_VALID (info, "description", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (location, "location", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (info, "description", FALSE, TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (location, "location", FALSE, TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (reject_jobs_reason, "reason", FALSE, TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, FALSE, CPH_STR_MAXLEN)
 
 /* For put/get file: this is some text, but we could potentially do more
  * checks. We don't do them because cups will already do them.
@@ -509,8 +530,8 @@ _CPH_CUPS_IS_VALID (job_hold_until, "job hold until", FALSE, CPH_STR_MAXLEN)
  *   + for the filename, in the put case, we could check that the file exists
  *     and is a regular file (no socket, block device, etc.).
  */
-_CPH_CUPS_IS_VALID (resource, "resource", TRUE, CPH_STR_MAXLEN)
-_CPH_CUPS_IS_VALID (filename, "filename", TRUE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (resource, "resource", TRUE, FALSE, CPH_STR_MAXLEN)
+_CPH_CUPS_IS_VALID (filename, "filename", TRUE, FALSE, CPH_STR_MAXLEN)
 
 /******************************************************
  * Helpers
@@ -608,6 +629,22 @@ _cph_cups_add_printer_uri (ipp_t      *request,
 
         ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
                       "printer-uri", NULL, uri);
+}
+
+static void
+_cph_cups_add_job_printer_uri (ipp_t      *request,
+                               const char *name)
+{
+        char *escaped_name;
+        char  uri[HTTP_MAX_URI + 1];
+
+        escaped_name = g_uri_escape_string (name, NULL, FALSE);
+        g_snprintf (uri, sizeof (uri),
+                    "ipp://localhost/printers/%s", escaped_name);
+        g_free (escaped_name);
+
+        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
+                      "job-printer-uri", NULL, uri);
 }
 
 static void
@@ -2088,6 +2125,235 @@ cph_cups_class_delete (CphCups    *cups,
                                                         CPH_RESOURCE_ADMIN);
 }
 
+gboolean
+cph_cups_printer_class_rename (CphCups    *cups,
+                               const char *old_printer_name,
+                               const char *new_printer_name)
+{
+        cups_dest_t      *dests;
+        cups_dest_t      *dest;
+        cups_job_t       *jobs;
+        int               num_dests = 0;
+        int               num_jobs = 0;
+        ipp_t            *request;
+        ipp_t            *response;
+        ipp_t            *reply;
+        ipp_attribute_t  *attr;
+        gchar            *device_uri = NULL;
+        gchar            *printer_info = NULL;
+        gchar            *job_sheets = NULL;
+        gchar            *printer_location = NULL;
+        gchar            *printer_uri = NULL;
+        gchar            *error_policy = NULL;
+        gchar            *op_policy = NULL;
+        gchar           **users_allowed = NULL;
+        gchar           **users_denied = NULL;
+        gchar           **member_names = NULL;
+        const gchar      *ppd_link = NULL;
+        gchar            *ppd_filename = NULL;
+        gchar           **sheets = NULL;
+        gchar            *start_sheet = NULL;
+        gchar            *end_sheet = NULL;
+        gboolean          accepting = FALSE;
+        gboolean          printer_shared = FALSE;
+        gboolean          printer_paused = FALSE;
+        gboolean          is_default = FALSE;
+        int               i;
+
+        static const char * const requested_attrs[] = {
+                "printer-error-policy",
+                "printer-op-policy",
+                "requesting-user-name-allowed",
+                "requesting-user-name-denied",
+                "member-names"
+        };
+
+        g_return_val_if_fail (CPH_IS_CUPS (cups), FALSE);
+
+        if (!_cph_cups_is_printer_name_valid (cups, old_printer_name))
+                return FALSE;
+        if (!_cph_cups_is_printer_name_valid (cups, new_printer_name))
+                return FALSE;
+
+        num_dests = cupsGetDests (&dests);
+
+        dest = cupsGetDest (new_printer_name, NULL, num_dests, dests);
+        if (dest != NULL) {
+                cupsFreeDests (num_dests, dests);
+                return FALSE;
+        }
+
+        dest = cupsGetDest (old_printer_name, NULL, num_dests, dests);
+        if (dest == NULL) {
+                cupsFreeDests (num_dests, dests);
+                return FALSE;
+        }
+
+        num_jobs = cupsGetJobs (&jobs, old_printer_name, 0, CUPS_WHICHJOBS_ACTIVE);
+        for (i = 0; i < num_jobs; i++) {
+                if (jobs[i].state == IPP_JSTATE_PENDING ||
+                    jobs[i].state == IPP_JSTATE_PROCESSING) {
+                        cupsFreeJobs (num_jobs, jobs);
+                        cupsFreeDests (num_dests, dests);
+                        return FALSE;
+                }
+        }
+        cupsFreeJobs (num_jobs, jobs);
+
+        for (i = 0; i < dest->num_options; i++) {
+                if (g_strcmp0 (dest->options[i].name, "device-uri") == 0) {
+                        device_uri = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "job-sheets") == 0) {
+                        job_sheets = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-info") == 0) {
+                        printer_info = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-is-accepting-jobs") == 0) {
+                        accepting = g_strcmp0 (dest->options[i].value, "true") == 0;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-is-shared") == 0) {
+                        printer_shared = g_strcmp0 (dest->options[i].value, "true") == 0;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-location") == 0) {
+                        printer_location = dest->options[i].value;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-state") == 0) {
+                        printer_paused = g_strcmp0 (dest->options[i].value, "5") == 0;
+                } else if (g_strcmp0 (dest->options[i].name, "printer-uri-supported") == 0) {
+                        printer_uri = dest->options[i].value;
+                }
+        }
+        is_default = dest->is_default;
+
+        request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
+        ippAddString (request, IPP_TAG_OPERATION, IPP_TAG_URI,
+                      "printer-uri", NULL, printer_uri);
+        ippAddStrings (request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
+                      "requested-attributes", G_N_ELEMENTS (requested_attrs), NULL, requested_attrs);
+        response = cupsDoRequest (cups->priv->connection, request, "/");
+
+        if (response != NULL) {
+                if (ippGetStatusCode (response) <= IPP_OK_CONFLICT) {
+                        attr = ippFindAttribute (response, "printer-error-policy", IPP_TAG_NAME);
+                        if (attr != NULL)
+                                error_policy = g_strdup (ippGetString (attr, 0, NULL));
+
+                        attr = ippFindAttribute (response, "printer-op-policy", IPP_TAG_NAME);
+                        if (attr != NULL)
+                                op_policy = g_strdup (ippGetString (attr, 0, NULL));
+
+                        attr = ippFindAttribute (response, "requesting-user-name-allowed", IPP_TAG_NAME);
+                        if (attr != NULL && ippGetCount (attr) > 0) {
+                                users_allowed = g_new0 (gchar *, ippGetCount (attr) + 1);
+                                for (i = 0; i < ippGetCount (attr); i++)
+                                        users_allowed[i] = g_strdup (ippGetString (attr, i, NULL));
+                        }
+
+                        attr = ippFindAttribute (response, "requesting-user-name-denied", IPP_TAG_NAME);
+                        if (attr != NULL && ippGetCount (attr) > 0) {
+                                users_denied = g_new0 (gchar *, ippGetCount (attr) + 1);
+                                for (i = 0; i < ippGetCount (attr); i++)
+                                        users_denied[i] = g_strdup (ippGetString (attr, i, NULL));
+                        }
+
+                        attr = ippFindAttribute (response, "member-names", IPP_TAG_NAME);
+                        if (attr != NULL && ippGetCount (attr) > 0) {
+                                member_names = g_new0 (gchar *, ippGetCount (attr) + 1);
+                                for (i = 0; i < ippGetCount (attr); i++)
+                                        member_names[i] = g_strdup (ippGetString (attr, i, NULL));
+                        }
+                }
+                ippDelete (response);
+        }
+
+        ppd_link = cupsGetPPD (old_printer_name);
+        if (ppd_link != NULL && (ppd_filename = g_file_read_link (ppd_link, NULL)) == NULL) {
+                ppd_filename = g_strdup (ppd_link);
+        }
+
+        if (cph_cups_is_class (cups, old_printer_name)) {
+                if (member_names != NULL) {
+                        for (i = 0; i < g_strv_length (member_names); i++) {
+                                cph_cups_class_add_printer (cups, new_printer_name, member_names[i]);
+                        }
+                }
+        } else if (cph_cups_printer_add_with_ppd_file (cups,
+                                                       new_printer_name,
+                                                       device_uri,
+                                                       ppd_filename,
+                                                       printer_info,
+                                                       printer_location)) {
+                for (i = 0; i < num_dests; i++) {
+                        if (cph_cups_is_class (cups, dests[i].name)) {
+                                if (_cph_cups_class_has_printer (cups, dests[i].name, old_printer_name, &reply) >= 0) {
+                                        if (reply != NULL)
+                                                ippDelete (reply);
+                                        cph_cups_class_delete_printer (cups, dests[i].name, old_printer_name);
+                                        cph_cups_class_add_printer (cups, dests[i].name, new_printer_name);
+                                }
+                        }
+                }
+        } else {
+                cph_cups_printer_set_accept_jobs (cups, old_printer_name, accepting, NULL);
+                return FALSE;
+        }
+
+        num_jobs = cupsGetJobs (&jobs, old_printer_name, 0, CUPS_WHICHJOBS_ACTIVE);
+        for (i = 0; i < num_jobs; i++) {
+                if (jobs[i].state == IPP_JSTATE_HELD) {
+                        request = ippNewRequest (CUPS_MOVE_JOB);
+
+                        _cph_cups_add_job_uri (request, jobs[i].id);
+                        _cph_cups_add_job_printer_uri (request, new_printer_name);
+                        _cph_cups_add_requesting_user_name (request, cupsUser ());
+                        _cph_cups_send_request (cups, request, CPH_RESOURCE_JOBS);
+                }
+        }
+        cupsFreeJobs (num_jobs, jobs);
+
+        cph_cups_printer_set_accept_jobs (cups, new_printer_name, accepting, NULL);
+        if (is_default)
+                cph_cups_printer_set_default (cups, new_printer_name);
+        cph_cups_printer_class_set_error_policy (cups, new_printer_name, error_policy);
+        cph_cups_printer_class_set_op_policy (cups, new_printer_name, op_policy);
+
+        if (job_sheets != NULL) {
+                sheets = g_strsplit (job_sheets, ",", 0);
+                if (g_strv_length (sheets) > 1) {
+                        start_sheet = sheets[0];
+                        end_sheet = sheets[1];
+                }
+                cph_cups_printer_class_set_job_sheets (cups, new_printer_name, start_sheet, end_sheet);
+        }
+        cph_cups_printer_set_enabled (cups, new_printer_name, !printer_paused);
+        cph_cups_printer_class_set_shared (cups, new_printer_name, printer_shared);
+        cph_cups_printer_class_set_users_allowed (cups, new_printer_name, (const char * const *) users_allowed);
+        cph_cups_printer_class_set_users_denied (cups, new_printer_name, (const char * const *) users_denied);
+
+        if (cph_cups_is_class (cups, old_printer_name)) {
+                if (member_names != NULL) {
+                        for (i = 0; i < g_strv_length (member_names); i++) {
+                                cph_cups_class_delete_printer (cups, old_printer_name, member_names[i]);
+                        }
+                }
+
+                cph_cups_class_delete (cups, old_printer_name);
+        } else {
+                cph_cups_printer_delete (cups, old_printer_name);
+        }
+
+
+        cupsFreeDests (num_dests, dests);
+
+        if (ppd_link != NULL) {
+                g_unlink (ppd_link);
+                g_free (ppd_filename);
+        }
+        g_free (op_policy);
+        g_free (error_policy);
+        g_strfreev (sheets);
+        g_strfreev (users_allowed);
+        g_strfreev (users_denied);
+
+        return TRUE;
+}
+
 /* Functions that can work on printer and class */
 
 gboolean
@@ -2391,7 +2657,7 @@ _cph_cups_prepare_ppd_for_options (CphCups       *cups,
         gboolean      ppdchanged = FALSE;
         gchar        *result = NULL;
         gchar        *error;
-        char          newppdfile[PATH_MAX];
+        char          newppdfile[CPH_PATH_MAX];
         cups_file_t  *in = NULL;
         cups_file_t  *out = NULL;
         char          line[CPH_STR_MAXLEN];
