@@ -1,1 +1,6 @@
 0001-Make-sure-O_NOFOLLOW-can-be-used.patch
+Drop-deprecated-and-unused-GNOME_MAINTAINER_MODE_DEFINES.patch
+Use-AX_COMPILER_FLAGS-instead-of-GNOME_COMPILE_WARNINGS.patch
+Don-t-compare-signed-and-unsigned-int.patch
+Add-default-statements-to-silence-compiler-warnings.patch
+Don-t-use-g_type_init-on-recent-glib.patch

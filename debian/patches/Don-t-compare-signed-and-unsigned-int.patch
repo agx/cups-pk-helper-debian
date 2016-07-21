@@ -1,0 +1,55 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 21 Jul 2016 11:22:36 +0200
+Subject: Don't compare signed and unsigned int
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+  CC       cups_pk_helper_mechanism-cups.o
+cups.c: In function ‘cph_cups_printer_class_rename’:
+cups.c:2272:39: error: comparison between signed and unsigned integer
+expressions [-Werror=sign-compare]
+                         for (i = 0; i < g_strv_length (member_names); i++) {
+                                       ^
+cups.c:2331:39: error: comparison between signed and unsigned integer
+expressions [-Werror=sign-compare]
+                         for (i = 0; i < g_strv_length (member_names); i++) {
+                                       ^
+---
+ src/cups.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/src/cups.c b/src/cups.c
+index f598294..f2c98c6 100644
+--- a/src/cups.c
++++ b/src/cups.c
+@@ -2161,6 +2161,7 @@ cph_cups_printer_class_rename (CphCups    *cups,
+         gboolean          printer_paused = FALSE;
+         gboolean          is_default = FALSE;
+         int               i;
++        guint             len;
+ 
+         static const char * const requested_attrs[] = {
+                 "printer-error-policy",
+@@ -2271,8 +2272,8 @@ cph_cups_printer_class_rename (CphCups    *cups,
+ 
+         if (cph_cups_is_class (cups, old_printer_name)) {
+                 if (member_names != NULL) {
+-                        for (i = 0; i < g_strv_length (member_names); i++) {
+-                                cph_cups_class_add_printer (cups, new_printer_name, member_names[i]);
++                        for (len = 0; len < g_strv_length (member_names); len++) {
++                                cph_cups_class_add_printer (cups, new_printer_name, member_names[len]);
+                         }
+                 }
+         } else if (cph_cups_printer_add_with_ppd_file (cups,
+@@ -2330,8 +2331,8 @@ cph_cups_printer_class_rename (CphCups    *cups,
+ 
+         if (cph_cups_is_class (cups, old_printer_name)) {
+                 if (member_names != NULL) {
+-                        for (i = 0; i < g_strv_length (member_names); i++) {
+-                                cph_cups_class_delete_printer (cups, old_printer_name, member_names[i]);
++                        for (len = 0; len < g_strv_length (member_names); len++) {
++                                cph_cups_class_delete_printer (cups, old_printer_name, member_names[len]);
+                         }
+                 }
+ 

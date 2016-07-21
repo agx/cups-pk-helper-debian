@@ -1,0 +1,48 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 21 Jul 2016 11:31:59 +0200
+Subject: Add default statements to silence compiler warnings
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+cups-pk-helper-mechanism.c: In function ‘cph_mechanism_job_set_hold_until’:
+cups-pk-helper-mechanism.c:1402:9: error: switch missing default case
+[-Werror=switch-default]
+         switch (job_status) {
+         ^
+cc1: all warnings being treated as errors
+---
+ src/cups-pk-helper-mechanism.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/cups-pk-helper-mechanism.c b/src/cups-pk-helper-mechanism.c
+index 0e07349..18534e9 100644
+--- a/src/cups-pk-helper-mechanism.c
++++ b/src/cups-pk-helper-mechanism.c
+@@ -1300,6 +1300,8 @@ cph_mechanism_job_cancel_purge (CphIfaceMechanism     *object,
+                                         _cph_mechanism_return_error (mechanism, TRUE));
+                         goto out;
+                 }
++                default:
++                        g_warning("Invalid value in enum");
+         }
+ 
+         ret = cph_cups_job_cancel (mechanism->priv->cups, id, purge, user_name);
+@@ -1364,6 +1366,8 @@ cph_mechanism_job_restart (CphIfaceMechanism     *object,
+                                         _cph_mechanism_return_error (mechanism, TRUE));
+                         goto out;
+                 }
++                default:
++                        g_warning("Invalid value in enum");
+         }
+ 
+         ret = cph_cups_job_restart (mechanism->priv->cups, id, user_name);
+@@ -1419,6 +1423,8 @@ cph_mechanism_job_set_hold_until (CphIfaceMechanism     *object,
+                                         _cph_mechanism_return_error (mechanism, TRUE));
+                         goto out;
+                 }
++                default:
++                        g_warning("Invalid value in enum");
+         }
+ 
+         ret = cph_cups_job_set_hold_until (mechanism->priv->cups, id, job_hold_until, user_name);

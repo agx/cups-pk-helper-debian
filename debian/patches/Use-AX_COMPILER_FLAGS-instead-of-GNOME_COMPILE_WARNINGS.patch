@@ -1,0 +1,39 @@
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 21 Jul 2016 11:04:55 +0200
+Subject: Use AX_COMPILER_FLAGS instead of GNOME_COMPILE_WARNINGS
+
+since the later is deprecated by GNOME:
+
+   https://git.gnome.org/browse/gnome-common/commit/?id=b57bae0be
+   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=830009
+---
+ configure.ac    | 2 +-
+ src/Makefile.am | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 21d2479..59ea078 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -22,7 +22,7 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Define the gettext pack
+ AM_GLIB_GNU_GETTEXT
+ 
+ # Compiler Warnings
+-GNOME_COMPILE_WARNINGS([maximum])
++AX_COMPILER_FLAGS
+ 
+ AC_ARG_ENABLE(deprecation_flags,
+               [AC_HELP_STRING([--enable-deprecation-flags],
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 5077b03..4d87932 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -8,6 +8,8 @@ AM_CPPFLAGS =				\
+ 
+ AM_CFLAGS = $(WARN_CFLAGS)
+ 
++AM_LDFLAGS = $(WARN_LDFLAGS)
++
+ cups_pk_helper_mechanism_SOURCES =	\
+ 	cups.c				\
+ 	cups.h				\
