@@ -4,6 +4,8 @@ Priority: extra
 Maintainer: Guido Günther <agx@sigxcpu.org>
 Build-Depends: debhelper (>= 7.0.50~),
  autotools-dev,
+ dh-autoreconf,
+ gnome-common,
  intltool,
  libglib2.0-dev (>= 2.29.8),
  libpolkit-gobject-1-dev,

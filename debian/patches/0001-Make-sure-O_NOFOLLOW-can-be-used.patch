@@ -1,8 +1,8 @@
-From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Tue, 16 Oct 2012 19:54:45 +0200
 Subject: Make sure O_NOFOLLOW can be used
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
 
 Thanks Moritz Mühlenhoff
@@ -12,7 +12,7 @@ Thanks Moritz Mühlenhoff
  2 files changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/configure.ac b/configure.ac
-index c3accc8..e865318 100644
+index 5777efb..63e45b3 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -5,6 +5,9 @@ AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz tar-ustar])
@@ -26,7 +26,7 @@ index c3accc8..e865318 100644
  AC_PROG_CC
  
 diff --git a/src/cups.c b/src/cups.c
-index 92425eb..2f7ff22 100644
+index a2cb9f4..f598294 100644
 --- a/src/cups.c
 +++ b/src/cups.c
 @@ -22,6 +22,10 @@
