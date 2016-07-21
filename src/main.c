@@ -145,7 +145,9 @@ main (int argc, char **argv)
         cph_main data;
         guint    owner_id;
 
+#if ! GLIB_CHECK_VERSION(2, 36, 0)
         g_type_init ();
+#endif
 
         memset (&data, 0, sizeof (data));
 

@@ -77,7 +77,9 @@ main (int argc, char **argv)
         gboolean           ret;
         GError            *error;
 
+#if ! GLIB_CHECK_VERSION(2, 36, 0)
         g_type_init ();
+#endif
 
         error = NULL;
         proxy = cph_iface_mechanism_proxy_new_for_bus_sync (
