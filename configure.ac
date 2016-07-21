@@ -20,7 +20,6 @@ AM_GLIB_GNU_GETTEXT
 
 # Compiler Warnings
 GNOME_COMPILE_WARNINGS([maximum])
-GNOME_MAINTAINER_MODE_DEFINES
 
 AC_ARG_ENABLE(deprecation_flags,
               [AC_HELP_STRING([--enable-deprecation-flags],
