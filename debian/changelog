@@ -1,3 +1,11 @@
+cups-pk-helper (0.2.6-1) unstable; urgency=medium
+
+  * [0a8053c] New upstream version 0.2.6
+  * [12cd52c] Use dh_autoreconf instead of carrying a patch for configure
+  * [ded426a] Don't use deprecated GNOME autoconf macros (Closes: #830009)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 21 Jul 2016 12:17:08 +0200
+
 cups-pk-helper (0.2.5-2) unstable; urgency=medium
 
   * [ba6e475] Bump debhelper dependency to 9 to enable hardened build-flags
