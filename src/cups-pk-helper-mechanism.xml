@@ -92,6 +92,13 @@
       <arg name="error"    direction="out" type="s"/>
     </method>
 
+    <method name="PrinterRename">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+      <arg name="old_name"  direction="in"  type="s"/>
+      <arg name="new_name"  direction="in"  type="s"/>
+      <arg name="error"     direction="out" type="s"/>
+    </method>
+
     <method name="PrinterDelete">
       <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="name"     direction="in"  type="s"/>

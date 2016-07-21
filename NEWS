@@ -1,4 +1,14 @@
 =============
+Version 0.2.6
+=============
+
++ Enable UTF-8 chars in names and texts (Marek)
++ Introduce CPH_PATH_MAX (Pino Toscano)
++ New/updated translations: ca, cs, da, de, en, en_GB, gl, ia, kk, ko, oc, pt,
+  ru, sk, sr
++ Add function for printer renaming (Martin Hatina)
+
+=============
 Version 0.2.5
 =============
 

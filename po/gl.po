@@ -3,15 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Fran Diéguez <frandieguez@ubuntu.com>, 2011
+# Fran Diéguez <frandieguez@ubuntu.com>, 2011,2013
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
-"Report-Msgid-Bugs-To: https://bugs.freedesktop.org/enter_bug.cgi?product=cups-pk-helper\n"
+"Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2013-04-29 08:45+0000\n"
-"Last-Translator: mkasik <mkasik@redhat.com>\n"
-"Language-Team: Galician <proxecto@trasno.net>\n"
+"PO-Revision-Date: 2013-11-20 09:29+0000\n"
+"Last-Translator: Fran Diéguez <frandieguez@ubuntu.com>\n"
+"Language-Team: Galician (http://www.transifex.com/freedesktop/cups-pk-helper/language/gl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -48,7 +48,7 @@ msgstr "Obter unha lista dos dispositivos dispoñíbeis"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
-msgstr "Obter/estabelecer as opcións do servidor"
+msgstr "Obter/estabelecer as configuracións do servidor"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."

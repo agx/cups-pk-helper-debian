@@ -3,111 +3,109 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# helix84 <helix84@centrum.sk>, 2015
-# helix84 <helix84@centrum.sk>, 2011
-# Matej Moško <matej.mosko@gmail.com>, 2011
+# Baurzhan Muftakhidinov <baurthefirst@gmail.com>, 2014-2015
 msgid ""
 msgstr ""
 "Project-Id-Version: cups-pk-helper\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-03-22 20:04+0100\n"
-"PO-Revision-Date: 2015-02-12 15:04+0000\n"
-"Last-Translator: helix84 <helix84@centrum.sk>\n"
-"Language-Team: Slovak (http://www.transifex.com/freedesktop/cups-pk-helper/language/sk/)\n"
+"PO-Revision-Date: 2015-03-27 09:15+0000\n"
+"Last-Translator: Baurzhan Muftakhidinov <baurthefirst@gmail.com>\n"
+"Language-Team: Kazakh (http://www.transifex.com/freedesktop/cups-pk-helper/language/kk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: sk\n"
-"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Language: kk\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:1
 msgid "Add/Remove/Edit a class"
-msgstr "Pridať/odobrať/upraviť triedu"
+msgstr "Класты қосу/өшіру/түзету"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:2
 msgid "Add/Remove/Edit a local printer"
-msgstr "Pridať/odobrať/upraviť miestnu tlačiareň"
+msgstr "Жергілікті принтерді қосу/өшіру/түзету"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:3
 msgid "Add/Remove/Edit a printer"
-msgstr "Pridať/odobrať/upraviť tlačiareň"
+msgstr "Принтерді қосу/өшіру/түзету"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:4
 msgid "Add/Remove/Edit a remote printer"
-msgstr "Pridať/odobrať/upraviť vzdialenú tlačiareň"
+msgstr "Қашықтағы принтерді қосу/өшіру/түзету"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:5
 msgid "Change printer settings"
-msgstr "Zmeniť nastavenia tlačiarne"
+msgstr "Принтер баптауларын өзгерту"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:6
 msgid "Enable/Disable a printer"
-msgstr "Povoliť/zakázať tlačiareň"
+msgstr "Принтерді іске қосу/сөндіру"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:7
 msgid "Get list of available devices"
-msgstr "Získať zoznam dostupných zariadení"
+msgstr "Қолжетерлік құрылғылар тізімін алу"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:8
 msgid "Get/Set server settings"
-msgstr "Získať/nastaviť predvoľby servera"
+msgstr "Сервер баптауларын алу/орнату"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:9
 msgid "Privileges are required to add/remove/edit a class."
-msgstr "Na pridanie/odobratie/úpravu triedy potrebujete prístupové práva."
+msgstr "Класты қосу/өшіру/түзету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:10
 msgid "Privileges are required to add/remove/edit a local printer."
-msgstr "Na pridanie/odobratie/úpravu miestnej tlačiarne potrebujete prístupové práva."
+msgstr "Жергілікті принтерді қосу/өшіру/түзету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:11
 msgid "Privileges are required to add/remove/edit a printer."
-msgstr "Na pridanie/odobratie/úpravu tlačiarne potrebujete prístupové práva."
+msgstr "Принтерді қосу/өшіру/түзету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:12
 msgid "Privileges are required to add/remove/edit a remote printer."
-msgstr "Na pridanie/odobratie/úpravu vzdialenej tlačiarne potrebujete prístupové práva."
+msgstr "Қашықтағы принтерді қосу/өшіру/түзету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:13
 msgid ""
 "Privileges are required to change printer settings. This should only be "
 "needed from the Printers system settings panel."
-msgstr "Na zmenu nastavení tlačiarne potrebujete prístupové práva. Takéto zmeny by mali byť potrebné iba v položke Tlačiarne v Nastaveniach systému."
+msgstr "Принтер баптауларын өзгерту үшін привилегиялар керек. Бұл тек Принтерлер жүйелік баптаулар панелінен шақырылғанда керек болады."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:14
 msgid "Privileges are required to enable/disable a printer, or a class."
-msgstr "Na povolenie/zakázanie tlačiarne alebo triedy potrebujete prístupové práva."
+msgstr "Принтерді не класты іске қосу/сөндіру үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:15
 msgid "Privileges are required to get list of available devices."
-msgstr "Na získanie zoznamu dostupných zariadení potrebujete prístupové práva."
+msgstr "Қолжетерлік құрылғылар тізімін алу үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:16
 msgid "Privileges are required to get/set server settings."
-msgstr "Na získanie/nastavenie predvolieb servera potrebujete prístupové práva."
+msgstr "Сервер баптауларын алу/орнату үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:17
 msgid ""
 "Privileges are required to restart/cancel/edit a job owned by another user."
-msgstr "Na zastavenie/reštart/úpravu tlačovej úlohy iného používateľa potrebujete prístupové práva."
+msgstr "Басқа пайдаланушы тапсырмасын қайта іске қосу/үзу/түзету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:18
 msgid "Privileges are required to restart/cancel/edit a job."
-msgstr "Na zastavenie/reštart/úpravu tlačovej úlohy potrebujete prístupové práva."
+msgstr "Тапсырманы қайта іске қосу/үзу/түзету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:19
 msgid ""
 "Privileges are required to set a printer, or a class, as default printer."
-msgstr "Na nastavenie tlačiarne ako štandardnej potrebujete prístupové práva."
+msgstr "Принтерді не класты үнсіз келісім бойынша принтері ету үшін привилегиялар керек."
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:20
 msgid "Restart/Cancel/Edit a job"
-msgstr "Reštartovať/zastaviť/upraviť tlačovú úlohu"
+msgstr "Тапсырманы қайта іске қосу/үзу/түзету"
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:21
 msgid "Restart/Cancel/Edit a job owned by another user"
-msgstr "Reštartovať/zastaviť/upraviť tlačovú úlohu iného používateľa"
+msgstr ""
 
 #: ../src/org.opensuse.cupspkhelper.mechanism.policy.in.h:22
 msgid "Set a printer as default printer"
-msgstr "Nastaviť tlačiareň ako štandardnú"
+msgstr ""
