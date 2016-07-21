@@ -8,6 +8,8 @@ AM_CPPFLAGS =				\
 
 AM_CFLAGS = $(WARN_CFLAGS)
 
+AM_LDFLAGS = $(WARN_LDFLAGS)
+
 cups_pk_helper_mechanism_SOURCES =	\
 	cups.c				\
 	cups.h				\

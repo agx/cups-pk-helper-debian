@@ -19,7 +19,7 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Define the gettext pack
 AM_GLIB_GNU_GETTEXT
 
 # Compiler Warnings
-GNOME_COMPILE_WARNINGS([maximum])
+AX_COMPILER_FLAGS
 
 AC_ARG_ENABLE(deprecation_flags,
               [AC_HELP_STRING([--enable-deprecation-flags],
